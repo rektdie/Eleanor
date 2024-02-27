@@ -11,7 +11,7 @@ void Bitboard::PrintBoard() const {
             for (int file = 0; file < 8; file++) {
                 int square = rank * 8 + file;
                 
-                std::cout << IsSet << " | ";
+                std::cout << IsSet(square) << " | ";
             }
             std::cout << ' ' << rank + 1<< '\n';
         }
