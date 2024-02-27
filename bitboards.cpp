@@ -3,20 +3,20 @@
 #include <bitset>
 
 void Bitboard::PrintBoard() const {
-	Bitboard mask = 0xff00000000000000;
-
-	for (int i = 0; i < 8; i++) {
-		std::bitset<8> currentRank = ((this->m_board & mask.m_board) >> (7 - i) * 8);
-
-		std::cout << "+---+---+---+---+---+---+---+---+\n";
-		std::cout << "| ";
-		for (int j = 0; j < 8; j++) {
-			std::cout << currentRank[j] << " | ";
-		}
-		std::cout << ' ' << 8 - i << '\n';
-		mask.m_board = (mask.m_board >> 8);
-	}
-	std::cout << "+---+---+---+---+---+---+---+---+\n";
+	for (int rank = 7; rank >= 0; rank--) {
+            
+            std::cout << "+---+---+---+---+---+---+---+---+\n";
+		    std::cout << "| ";
+		    
+            for (int file = 0; file < 8; file++) {
+                int square = rank * 8 + file;
+                
+                std::cout << IsSet << " | ";
+            }
+            std::cout << ' ' << rank + 1<< '\n';
+        }
+        
+        std::cout << "+---+---+---+---+---+---+---+---+\n";
 	std::cout << "  a   b   c   d   e   f   g   h\n\n";
 }
 
