@@ -4,20 +4,20 @@
 #include <iostream>
 
 void Board::Init() {
-	this->SetByFen(StartingFen);
+	SetByFen(StartingFen);
 }
 
 void Board::Reset() {
-	this->castlingRights = { false, false, false, false };
-	this->enPassantTarget = 0ULL;
-	this->halfMoves = 0;
-	this->fullMoves = 0;
-	this->sideToMove = White;
-	this->occupied = 0ULL;
+	castlingRights = { false, false, false, false };
+	enPassantTarget = 0ULL;
+	halfMoves = 0;
+	fullMoves = 0;
+	sideToMove = White;
+	occupied = 0ULL;
 	std::cout << '\n';
 
-	this->pieces = std::array<Bitboard, 6>();
-	this->colors = std::array<Bitboard, 2>();
+	pieces = std::array<Bitboard, 6>();
+	colors = std::array<Bitboard, 2>();
 }
 
 void Board::SetByFen(const char* fen) {
@@ -180,5 +180,5 @@ void Board::SetByFen(const char* fen) {
 		fen++;
 	}
 
-	this->occupied = (colors[White] | colors[Black]);
+	occupied = (colors[White] | colors[Black]);
 }

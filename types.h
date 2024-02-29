@@ -1,11 +1,10 @@
 #pragma once
 #include <cstdint>
 #include <array>
-#include <string>
 
-typedef uint64_t U64;
+using U64 = uint64_t;
 
-#define StartingFen "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+constexpr char StartingFen[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 enum COLOR {
 	White,
@@ -59,10 +58,10 @@ enum SQUARE {
 
 enum DIRECTION {
 	north = 8,
-	west = 1,
+	east = 1,
 
 	south = -north,
-	east = -west,
+	west = -east,
 
 	noWe = north + west,
 	noEa = north + east,

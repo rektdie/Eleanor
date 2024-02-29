@@ -12,6 +12,7 @@ public:
 		: m_board(board) {}
 	
 	bool IsSet(int square) const;
+	void SetBit(int square);
 	void PrintBoard() const;
 
 	static Bitboard GetSquare(int square) {

@@ -8,7 +8,7 @@ public:
 	std::array<Bitboard, 2> colors;
 	Bitboard occupied;
 
-	bool sideToMove = White;
+	COLOR sideToMove = White;
 	int halfMoves = 0;
 	int fullMoves = 0;
 
