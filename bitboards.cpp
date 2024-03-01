@@ -19,6 +19,10 @@ void Bitboard::PrintBoard() const {
 	std::cout << "  a   b   c   d   e   f   g   h\n\n";
 }
 
+U64 Bitboard::GetBoard() const {
+	return m_board;
+}
+
 bool Bitboard::IsSet(int square) const {
 	return (1ULL << square) & m_board;
 }

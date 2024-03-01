@@ -4,7 +4,7 @@
 
 using U64 = uint64_t;
 
-constexpr char StartingFen[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+constexpr char StartingFen[] = "3b4/3P1N2/2b1P2K/n4r2/6Pk/3p2r1/2P1qQ2/6n1 w - - 0 1";
 
 enum COLOR {
 	White,
@@ -25,7 +25,7 @@ enum RANKS { r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8 };
 
 constexpr std::array<U64, 8> files {
 	0x0101010101010101,
-	0x2020202020202020,
+	0x0202020202020202,
 	0x0404040404040404,
 	0x0808080808080808,
 	0x1010101010101010,

@@ -10,7 +10,8 @@ public:
 
 	Bitboard(const U64& board)
 		: m_board(board) {}
-	
+
+	U64 GetBoard() const;
 	bool IsSet(int square) const;
 	void SetBit(int square);
 	void PrintBoard() const;

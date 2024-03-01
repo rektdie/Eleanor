@@ -7,7 +7,9 @@ int main() {
 	Board board;
 	board.Init();
 
-	
+	initLeaperAttacks();
+
+	pawnAttacks[White][e4].PrintBoard();
 
 	return 0;
 }
