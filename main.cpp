@@ -9,7 +9,8 @@ int main() {
 
 	initLeaperAttacks();
 
-	pawnAttacks[White][e4].PrintBoard();
+	system("Color 0a");
+	maskBishopAttacks(e6).PrintBoard();
 
 	return 0;
 }
