@@ -1,4 +1,3 @@
-#include <iostream>
 #include "bitboards.h"
 
 void Bitboard::PrintBoard() const {

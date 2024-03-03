@@ -20,14 +20,9 @@ Chess-Test$(EXE_EXT): $(OBJS)
 	g++ -o $@ $^
 
 # Rule to compile source files to object files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(SRC_DIR)/types.h | $(OBJ_DIR)
 	g++ -c -o $@ $<
 
-# Dependencies
-main.o: $(SRC_DIR)/main.cpp $(SRC_DIR)/types.h $(SRC_DIR)/board.h $(SRC_DIR)/movegen.h
-bitboards.o: $(SRC_DIR)/bitboards.cpp $(SRC_DIR)/bitboards.h
-board.o: $(SRC_DIR)/board.cpp $(SRC_DIR)/board.h
-movegen.o: $(SRC_DIR)/movegen.cpp $(SRC_DIR)/movegen.h
-
 # Create the object directory if it doesn't exist
-$(shell mkdir $(OBJ_DIR))
+$(OBJ_DIR):
+	mkdir -p $@

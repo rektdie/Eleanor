@@ -1,6 +1,4 @@
 #include "board.h"
-#include "types.h"
-#include "bitboards.h"
 #include <iostream>
 
 void Board::Init() {

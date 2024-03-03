@@ -1,6 +1,7 @@
 #pragma once
-#include "bitboards.h"
 #include <array>
+#include "bitboards.h"
+#include "types.h"
 
 class Board {
 public:

@@ -4,7 +4,7 @@
 
 using U64 = uint64_t;
 
-constexpr char StartingFen[] = "3b4/3P1N2/2b1P2K/n4r2/6Pk/3p2r1/2P1qQ2/6n1 w - - 0 1";
+constexpr char StartingFen[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 enum COLOR {
 	White,

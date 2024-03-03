@@ -8,7 +8,7 @@ int main() {
 	board.Init();
 
 	initLeaperAttacks();
-	maskRookAttacks(e4).PrintBoard();
+	rookAttacksOnTheFly(e4, board.occupied).PrintBoard();
 
 	return 0;
 }

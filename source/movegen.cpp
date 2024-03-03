@@ -118,6 +118,84 @@ Bitboard maskRookAttacks(int square) {
 	return attacks;
 }
 
+Bitboard bishopAttacksOnTheFly(int square, Bitboard block) {
+	Bitboard attacks;
+
+	// target rank and files
+	int tr = square / 8;
+	int tf = square % 8;
+
+	Bitboard currentSquare;
+	
+	// generate bishop attacks
+	
+	// North West
+	for (int r = tr + 1, f = tf - 1; r <= 7 && f >= 0; r++, f--) {
+		currentSquare = (1ULL << (r * 8 + f));
+		if ((currentSquare & block).GetBoard()) break;
+		attacks |= currentSquare;
+	}
+	// North East
+	for (int r = tr + 1, f = tf + 1; r <= 7 && f <= 7; r++, f++) {
+		currentSquare = (1ULL << (r * 8 + f));
+		if ((currentSquare & block).GetBoard()) break;
+		attacks |= currentSquare;
+	}
+	//South West
+	for (int r = tr - 1, f = tf - 1; r >= 0 && f >= 0; r--, f--) {
+		currentSquare = (1ULL << (r * 8 + f));
+		if ((currentSquare & block).GetBoard()) break;
+		attacks |= currentSquare;
+	}
+	//South East
+	for (int r = tr - 1, f = tf + 1; r >= 0 && f <= 7; r--, f++) {
+		currentSquare = (1ULL << (r * 8 + f));
+		if ((currentSquare & block).GetBoard()) break;
+		attacks |= currentSquare;
+	}
+
+	return attacks;
+}
+
+Bitboard rookAttacksOnTheFly(int square, Bitboard block) {
+	Bitboard attacks;
+
+	// target rank and files
+	int tr = square / 8;
+	int tf = square % 8;
+
+	Bitboard currentSquare;
+	
+	// generate rook attacks
+	
+	// North
+	for (int r = tr + 1; r <= 7; r++) {
+		currentSquare = (1ULL << (r * 8 + tf));
+		if ((currentSquare & block).GetBoard()) break;
+		attacks |= currentSquare;
+	}
+	//South
+	for (int r = tr - 1; r >= 0; r--) {
+		currentSquare = (1ULL << (r * 8 + tf));
+		if ((currentSquare & block).GetBoard()) break;
+		attacks |= currentSquare;
+	}
+	// East
+	for (int f = tf + 1; f <= 7; f++) {
+		currentSquare = (1ULL << (tr * 8 + f));
+		if ((currentSquare & block).GetBoard()) break;
+		attacks |= currentSquare;
+	}
+	//West
+	for (int f = tf - 1; f >= 0; f--) {
+		currentSquare = (1ULL << (tr * 8 + f));
+		if ((currentSquare & block).GetBoard()) break;
+		attacks |= currentSquare;
+	}
+
+	return attacks;
+}
+
 void initLeaperAttacks() {
 	for (int square = 0; square < 64; square++) {
 		pawnAttacks[White][square] = maskPawnAttacks(White, square);
