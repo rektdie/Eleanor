@@ -30,6 +30,19 @@ void Bitboard::SetBit(int square) {
 	m_board |= (1ULL << square);
 }
 
+int Bitboard::popCount() const {
+	U64 board = m_board;
+	int count = 0;
+
+	while (board) {
+		board &= board - 1;
+
+		count++;
+	}
+
+	return count;
+}
+
 // Operator overloading for easier comparisons
 Bitboard Bitboard::operator&(const Bitboard& other) const {
 	return m_board & other.m_board;

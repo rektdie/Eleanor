@@ -4,11 +4,10 @@
 #include "movegen.h"
 
 int main() {
+	initLeaperAttacks();
+	
 	Board board;
 	board.Init();
-
-	initLeaperAttacks();
-	rookAttacksOnTheFly(e4, board.occupied).PrintBoard();
 
 	return 0;
 }

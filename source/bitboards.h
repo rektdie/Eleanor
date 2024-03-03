@@ -17,6 +17,8 @@ public:
 	void SetBit(int square);
 	void PrintBoard() const;
 
+	int popCount() const;
+
 	static Bitboard GetSquare(int square) {
 		return (1ULL << square);
 	};
