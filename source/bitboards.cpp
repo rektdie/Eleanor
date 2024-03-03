@@ -43,6 +43,16 @@ int Bitboard::popCount() const {
 	return count;
 }
 
+// LS1B = least significat first bit
+int Bitboard::getLS1BIndex() const {
+	if (m_board) {
+		// count trailing bits before LS1B
+		return Bitboard((m_board & -m_board) - 1).popCount();
+	}
+
+	return -1;
+}
+
 // Operator overloading for easier comparisons
 Bitboard Bitboard::operator&(const Bitboard& other) const {
 	return m_board & other.m_board;

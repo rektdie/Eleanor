@@ -18,6 +18,7 @@ public:
 	void PrintBoard() const;
 
 	int popCount() const;
+	int getLS1BIndex() const;
 
 	static Bitboard GetSquare(int square) {
 		return (1ULL << square);
