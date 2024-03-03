@@ -30,4 +30,4 @@ board.o: $(SRC_DIR)/board.cpp $(SRC_DIR)/board.h
 movegen.o: $(SRC_DIR)/movegen.cpp $(SRC_DIR)/movegen.h
 
 # Create the object directory if it doesn't exist
-$(shell mkdir -p $(OBJ_DIR))
+$(shell mkdir $(OBJ_DIR))
