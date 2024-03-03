@@ -63,9 +63,6 @@ Bitboard maskKingAttacks(int square) {
 Bitboard maskBishopAttacks(int square) {
 	Bitboard attacks;
 
-	// ranks and files
-	int r, f;
-
 	// target rank and files
 	int tr = square / 8;
 	int tf = square % 8;
@@ -73,20 +70,49 @@ Bitboard maskBishopAttacks(int square) {
 	// mask relevant occupancy bits
 	
 	// North West
-	for (r = tr + 1, f = tf - 1; r <= 6 && f >= 1; r++, f--) {
+	for (int r = tr + 1, f = tf - 1; r <= 6 && f >= 1; r++, f--) {
 		attacks |= (1ULL << (r * 8 + f));
 	}
 	// North East
-	for (r = tr + 1, f = tf + 1; r <= 6 && f <= 6; r++, f++) {
+	for (int r = tr + 1, f = tf + 1; r <= 6 && f <= 6; r++, f++) {
 		attacks |= (1ULL << (r * 8 + f));
 	}
 	//South West
-	for (r = tr - 1, f = tf - 1; r >= 1 && f >= 1; r--, f--) {
+	for (int r = tr - 1, f = tf - 1; r >= 1 && f >= 1; r--, f--) {
 		attacks |= (1ULL << (r * 8 + f));
 	}
 	//South East
-	for (r = tr - 1, f = tf + 1; r >= 1 && f <= 6; r--, f++) {
+	for (int r = tr - 1, f = tf + 1; r >= 1 && f <= 6; r--, f++) {
 		attacks |= (1ULL << (r * 8 + f));
+	}
+
+	return attacks;
+}
+
+Bitboard maskRookAttacks(int square) {
+	Bitboard attacks;
+
+	// target rank and files
+	int tr = square / 8;
+	int tf = square % 8;
+	
+	// mask relevant occupancy bits
+
+	// North
+	for (int r = tr + 1; r <= 6; r++) {
+		attacks |= (1ULL << (r * 8 + tf));
+	}
+	// South
+	for (int r = tr - 1; r >= 1; r--) {
+		attacks |= (1ULL << (r * 8 + tf));
+	}
+	// East
+	for (int f = tf + 1; f <= 6; f++) {
+		attacks |= (1ULL << (tr * 8 + f));
+	}
+	// West
+	for (int f = tf - 1; f >= 1; f--) {
+		attacks |= (1ULL << (tr * 8 + f));
 	}
 
 	return attacks;

@@ -19,4 +19,7 @@ Bitboard maskKingAttacks(int square);
 // generate bishop attacks
 Bitboard maskBishopAttacks(int square);
 
+// generate rook attacks
+Bitboard maskRookAttacks(int square);
+
 void initLeaperAttacks();

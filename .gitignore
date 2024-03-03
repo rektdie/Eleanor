@@ -1,0 +1,6 @@
+# Ignore object files
+obj/
+
+# Ignore executable files
+*.exe
+Chess-Test

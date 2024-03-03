@@ -8,9 +8,7 @@ int main() {
 	board.Init();
 
 	initLeaperAttacks();
-
-	system("Color 0a");
-	maskBishopAttacks(e6).PrintBoard();
+	maskRookAttacks(e4).PrintBoard();
 
 	return 0;
 }
