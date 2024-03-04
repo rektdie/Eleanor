@@ -30,6 +30,12 @@ void Bitboard::SetBit(int square) {
 	m_board |= (1ULL << square);
 }
 
+void Bitboard::PopBit(int square) {
+	if (Bitboard(m_board).IsSet(square)) {
+		m_board &= (~Bitboard::GetSquare(square)).GetBoard(); 
+	}
+}
+
 int Bitboard::popCount() const {
 	U64 board = m_board;
 	int count = 0;
@@ -75,9 +81,6 @@ Bitboard Bitboard::operator|=(const Bitboard& other) {
 }
 Bitboard Bitboard::operator^=(const Bitboard& other) {
 	return m_board ^= other.m_board;
-}
-Bitboard Bitboard::operator*=(const Bitboard& other) {
-	return m_board *= other.m_board;
 }
 
 Bitboard Bitboard::operator<<(int other) {

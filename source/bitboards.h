@@ -15,6 +15,7 @@ public:
 	U64 GetBoard() const;
 	bool IsSet(int square) const;
 	void SetBit(int square);
+	void PopBit(int square);
 	void PrintBoard() const;
 
 	int popCount() const;
@@ -32,7 +33,6 @@ public:
 	Bitboard operator&=(const Bitboard& other);
 	Bitboard operator|=(const Bitboard& other);
 	Bitboard operator^=(const Bitboard& other);
-	Bitboard operator*=(const Bitboard& other);
 
 	Bitboard operator<<(int other);
 	Bitboard operator>>(int other);

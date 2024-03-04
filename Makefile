@@ -25,4 +25,4 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(SRC_DIR)/types.h | $(OBJ_DIR)
 
 # Create the object directory if it doesn't exist
 $(OBJ_DIR):
-	mkdir -p $@
+	mkdir $@
