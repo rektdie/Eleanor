@@ -49,7 +49,7 @@ int Bitboard::popCount() const {
 	return count;
 }
 
-// LS1B = least significat first bit
+// LS1B = least significant first bit
 int Bitboard::getLS1BIndex() const {
 	if (m_board) {
 		// count trailing bits before LS1B
@@ -57,6 +57,23 @@ int Bitboard::getLS1BIndex() const {
 	}
 
 	return -1;
+}
+
+Bitboard Bitboard::getOccupancy(int index, Bitboard attackMask) {
+	Bitboard occupancy;
+	int squareNum = attackMask.popCount();
+
+	for (int count = 0; count < squareNum; count++) {
+		int square = attackMask.getLS1BIndex();
+		
+		attackMask.PopBit(square);
+
+		if (index & (1 << count)) {
+			occupancy |= (1ULL << square);
+		}
+	}
+
+	return occupancy;
 }
 
 // Operator overloading for easier comparisons
