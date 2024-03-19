@@ -9,7 +9,5 @@ int main() {
 	Board board;
 	board.Init();
 
-	Bitboard::getOccupancy(4095, maskRookAttacks(e5)).PrintBoard();
-
 	return 0;
 }
