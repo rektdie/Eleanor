@@ -19,4 +19,5 @@ public:
 	void Init();
 	void Reset();
 	void SetByFen(const char* fen);
+	void PrintBoard();
 };

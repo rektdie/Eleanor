@@ -1,6 +1,17 @@
 #pragma once
 #include "bitboards.h"
 
+struct Move {
+public:
+    SQUARE moveFrom;
+    SQUARE moveTo;
+
+    Move(const SQUARE from, const SQUARE to)
+        : moveFrom(from), moveTo(to) {}
+};
+
+void doMove(Move move);
+
 // bishop relevant occupancy bit count
 constexpr int bishopRelevantBits[64] = {
     6, 5, 5, 5, 5, 5, 5, 6,

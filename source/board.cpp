@@ -180,3 +180,35 @@ void Board::SetByFen(const char* fen) {
 
 	occupied = (colors[White] | colors[Black]);
 }
+
+void Board::PrintBoard() {
+
+	for (int rank = 7; rank >= 0; rank--) {
+
+		std::cout << "+---+---+---+---+---+---+---+---+\n";
+		std::cout << "| ";
+
+		for (int file = 0; file < 8; file++) {
+			int square = rank * 8 + file;
+			bool pieceSet = false;
+
+			for (int i = Pawn; i <= King; i++) {
+				if ((colors[White] & pieces[i]).IsSet(square)) {
+					std::cout << PIECE_LETTERS[i * 2 + White] << " | ";
+					pieceSet = true;
+				} else if ((colors[Black] & pieces[i]).IsSet(square)) {
+					std::cout << PIECE_LETTERS[i * 2 + Black] << " | ";
+					pieceSet = true;
+				}
+			}
+
+			if (!pieceSet) {
+				std::cout << "  | ";
+			}
+		}
+		std::cout << ' ' << rank + 1 << '\n';
+	}
+
+	std::cout << "+---+---+---+---+---+---+---+---+\n";
+	std::cout << "  a   b   c   d   e   f   g   h\n\n";
+}

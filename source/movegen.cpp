@@ -16,6 +16,10 @@ static Bitboard notHfile = ~files[H];
 static Bitboard notABfile = notAfile & ~files[B];
 static Bitboard notHGfile = notHfile & ~files[G];
 
+void doMove(Move move) {
+	
+}
+
 Bitboard maskPawnAttacks(int side, int square) {
 	Bitboard attacks;
 	Bitboard attacker = Bitboard::GetSquare(square);

@@ -20,6 +20,15 @@ enum PIECE {
 	King
 };
 
+constexpr std::array<const char, 12> PIECE_LETTERS = {
+	'P', 'p',
+	'N', 'n',
+	'B', 'b',
+	'R', 'r',
+	'Q', 'q',
+	'K', 'k'
+};
+
 enum FILES { A, B, C, D, E, F, G, H };
 enum RANKS { r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8 };
 
