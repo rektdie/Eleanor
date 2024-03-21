@@ -6,11 +6,13 @@ public:
     SQUARE moveFrom;
     SQUARE moveTo;
 
+    Move(){}
+
     Move(const SQUARE from, const SQUARE to)
         : moveFrom(from), moveTo(to) {}
-};
 
-void doMove(Move move);
+    void PrintMove();
+};
 
 // bishop relevant occupancy bit count
 constexpr int bishopRelevantBits[64] = {

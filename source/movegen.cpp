@@ -16,8 +16,8 @@ static Bitboard notHfile = ~files[H];
 static Bitboard notABfile = notAfile & ~files[B];
 static Bitboard notHGfile = notHfile & ~files[G];
 
-void doMove(Move move) {
-	
+void Move::PrintMove() {
+	std::cout << squareCoords[moveFrom] << squareCoords[moveTo] << '\n';
 }
 
 Bitboard maskPawnAttacks(int side, int square) {

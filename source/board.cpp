@@ -212,3 +212,13 @@ void Board::PrintBoard() {
 	std::cout << "+---+---+---+---+---+---+---+---+\n";
 	std::cout << "  a   b   c   d   e   f   g   h\n\n";
 }
+
+void Board::AddMove(Move move) {
+	moveList.push_back(move);
+}
+
+void Board::ListMoves() {
+	for (Move move : moveList) {
+		move.PrintMove();
+	}
+}
