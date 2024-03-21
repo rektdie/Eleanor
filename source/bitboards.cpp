@@ -61,9 +61,9 @@ int Bitboard::getLS1BIndex() const {
 
 Bitboard Bitboard::getOccupancy(int index, Bitboard attackMask) {
 	Bitboard occupancy;
-	int squareNum = attackMask.popCount();
-
-	for (int count = 0; count < squareNum; count++) {
+	int squareCount = attackMask.popCount();
+	
+	for (int count = 0; count < squareCount; count++) {
 		int square = attackMask.getLS1BIndex();
 		
 		attackMask.PopBit(square);

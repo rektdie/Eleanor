@@ -5,7 +5,8 @@
 
 int main() {
 	initLeaperAttacks();
-	
+	initSliderAttacks();
+
 	Board board;
 	board.Init();
 
