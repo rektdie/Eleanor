@@ -9,6 +9,10 @@ class Board {
 private:
 	std::vector<Move> moveList;
 public:
+	Board() {
+		Init();
+	}
+
 	std::array<Bitboard, 6> pieces;
 	std::array<Bitboard, 2> colors;
 	Bitboard occupied;
