@@ -8,6 +8,7 @@ int main() {
 	initSliderAttacks();
 
 	Board board;
+	board.PrintBoard();
 
 	return 0;
 }

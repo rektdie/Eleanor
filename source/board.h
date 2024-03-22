@@ -24,12 +24,15 @@ public:
 	Move lastMove;	
 
 	std::array<bool, 4> castlingRights = { false, false, false, false };
-	Bitboard enPassantTarget;
+	int enPassantTarget;
 
 	void Init();
 	void Reset();
 	void SetByFen(const char* fen);
 	void PrintBoard();
 	void AddMove(Move move);
+	void ResetMoves();
 	void ListMoves();
+
+	void DoMove(Move move);
 };

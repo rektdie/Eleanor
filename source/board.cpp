@@ -7,7 +7,7 @@ void Board::Init() {
 
 void Board::Reset() {
 	castlingRights = { false, false, false, false };
-	enPassantTarget = 0ULL;
+	enPassantTarget = 0;
 	halfMoves = 0;
 	fullMoves = 0;
 	sideToMove = White;
@@ -163,7 +163,7 @@ void Board::SetByFen(const char* fen) {
 					}
 					fen++;
 					const int passantRank = *fen - 49;
-					enPassantTarget = Bitboard::GetSquare(passantFile + passantRank*8);
+					enPassantTarget = passantFile + passantRank*8;
 				}
 				else if (section == 3) {
 					halfMoves = (*fen) - 48;
@@ -211,14 +211,40 @@ void Board::PrintBoard() {
 
 	std::cout << "+---+---+---+---+---+---+---+---+\n";
 	std::cout << "  a   b   c   d   e   f   g   h\n\n";
+	std::cout << "      Side to move: ";
+	if (!sideToMove) {
+		std::cout << "White\n";
+	} else {
+		std::cout << "Black\n";
+	}
+	if (enPassantTarget != 0) {
+		std::cout << "      En Passant square: " << squareCoords[enPassantTarget] << '\n';
+	} else {
+		std::cout << "      En Passant square: None" << '\n';
+	}
+
+	std::cout << "      Castling rights: ";
+	if (castlingRights[0]) std::cout << "K"; else std::cout << "-";
+	if (castlingRights[1]) std::cout << "Q"; else std::cout << "-";
+	if (castlingRights[2]) std::cout << "k"; else std::cout << "-";
+	if (castlingRights[3]) std::cout << "q"; else std::cout << "-";
+	std::cout << '\n';
 }
 
 void Board::AddMove(Move move) {
 	moveList.push_back(move);
 }
 
+void Board::ResetMoves() {
+	moveList.clear();
+}
+
 void Board::ListMoves() {
 	for (Move move : moveList) {
 		move.PrintMove();
 	}
+}
+
+void Board::DoMove(Move move) {
+	
 }
