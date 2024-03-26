@@ -245,6 +245,42 @@ void Board::ListMoves() {
 	}
 }
 
+int Board::GetPieceType(int square) {
+	for (int piece = Pawn; piece <= King; piece++) {
+		if (pieces[piece].IsSet(square)) return piece;
+	}
+
+	return -1;
+}
+
+int Board::GetPieceColor(int square) {
+	return (colors[White].IsSet(square));
+}
+
+bool Board::InCheck(bool side) {
+	Bitboard myKingSquare = colors[side] & pieces[King];
+
+	for (int square = a1; square <= h8; square++) {
+		for (int piece = Pawn; piece <= King; piece++) {
+			if ((colors[!side] & pieces[piece]).IsSet(square)) {
+				if (piece == Pawn) {
+					if ((pawnAttacks[!side][square] & myKingSquare).GetBoard()) return true;
+				} else if (piece == Knight) {
+					if ((knightAttacks[square] & myKingSquare).GetBoard()) return true;
+				} else if (piece == Bishop) {
+					if ((getBishopAttack(square, occupied.GetBoard()) & myKingSquare).GetBoard()) return true;
+				} else if (piece == Rook) {
+					if ((getRookAttack(square, occupied.GetBoard()) & myKingSquare).GetBoard()) return true;
+				} else if (piece == Queen) {
+					if ((getQueenAttack(square, occupied.GetBoard()) & myKingSquare).GetBoard()) return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 void Board::DoMove(Move move) {
 	
 }

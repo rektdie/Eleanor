@@ -21,7 +21,7 @@ public:
 	int halfMoves = 0;
 	int fullMoves = 0;
 
-	Move lastMove;	
+	Move lastMove;
 
 	std::array<bool, 4> castlingRights = { false, false, false, false };
 	int enPassantTarget;
@@ -30,9 +30,15 @@ public:
 	void Reset();
 	void SetByFen(const char* fen);
 	void PrintBoard();
+
 	void AddMove(Move move);
 	void ResetMoves();
 	void ListMoves();
+
+	int GetPieceType(int square);
+	int GetPieceColor(int square);
+
+	bool InCheck(bool side);
 
 	void DoMove(Move move);
 };
