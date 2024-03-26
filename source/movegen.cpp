@@ -257,3 +257,18 @@ Bitboard getRookAttack(int square, U64 occupancy) {
 
 	return rookAttacks[square][occupancy];
 }
+
+Bitboard getQueenAttack(int square, U64 occupancy) {
+	U64 bishopOccupancy = occupancy;
+	U64 rookOccupancy = occupancy;
+
+	bishopOccupancy &= bishopMasks[square].GetBoard();
+	bishopOccupancy *= bishopMagicNumbers[square];
+	bishopOccupancy >>= (64 - bishopRelevantBits[square]);
+
+	rookOccupancy &= rookMasks[square].GetBoard();
+	rookOccupancy *= rookMagicNumbers[square];
+	rookOccupancy >>= (64 - rookRelevantBits[square]);
+
+	return rookAttacks[square][rookOccupancy] | bishopAttacks[square][bishopOccupancy];
+}
