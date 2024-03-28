@@ -281,8 +281,13 @@ void GenPawnMoves(Board &board, bool color) {
 		int direction = color ? south : north;
 
 		Bitboard attacks = pawnAttacks[color][square] & board.colors[!color];
-		attacks |= (Bitboard::GetSquare(square + direction) 
-			| Bitboard::GetSquare(square + 2 * direction)) & ~(board.occupied);
+
+		Bitboard firstAhead = Bitboard::GetSquare(square + direction) & ~board.occupied;
+		
+		if (firstAhead.GetBoard()) {
+			attacks |= firstAhead;
+			attacks |= Bitboard::GetSquare(square + 2 * direction) & ~board.occupied;
+		}
 
 		while (attacks.GetBoard()) {
 			int targetSquare = attacks.getLS1BIndex();
