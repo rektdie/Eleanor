@@ -341,6 +341,62 @@ void GenRookMoves(Board &board, bool color) {
 	}
 }
 
+void GenBishopMoves(Board &board, bool color) {
+	Bitboard bishops = board.colors[color] & board.pieces[Bishop];
+
+	while (bishops.GetBoard()) {
+		int square = bishops.getLS1BIndex();
+
+		Bitboard attacks = getBishopAttack(square, board.occupied.GetBoard()) & ~board.colors[color];
+
+		while (attacks.GetBoard()) {
+			int targetSquare = attacks.getLS1BIndex();
+			
+			board.AddMove(Move(SQUARE(square), SQUARE(targetSquare)));
+
+			attacks.PopBit(targetSquare);
+		}
+
+		bishops.PopBit(square);
+	}
+}
+
+void GenQueenMoves(Board &board, bool color) {
+	Bitboard queens = board.colors[color] & board.pieces[Queen];
+
+	while (queens.GetBoard()) {
+		int square = queens.getLS1BIndex();
+
+		Bitboard attacks = getQueenAttack(square, board.occupied.GetBoard()) & ~board.colors[color];
+
+		while (attacks.GetBoard()) {
+			int targetSquare = attacks.getLS1BIndex();
+			
+			board.AddMove(Move(SQUARE(square), SQUARE(targetSquare)));
+
+			attacks.PopBit(targetSquare);
+		}
+
+		queens.PopBit(square);
+	}
+}
+
+void GenKingMoves(Board &board, bool color) {
+	Bitboard king = board.colors[color] & board.pieces[King];
+
+	int square = king.getLS1BIndex();
+
+	Bitboard attacks = kingAttacks[square] & ~board.colors[color];
+
+	while (attacks.GetBoard()) {
+		int targetSquare = attacks.getLS1BIndex();
+		
+		board.AddMove(Move(SQUARE(square), SQUARE(targetSquare)));
+
+		attacks.PopBit(targetSquare);
+	}
+}
+
 void GenerateMoves(Board &board) {
 	GenPawnMoves(board, White);
 	GenPawnMoves(board, Black);
@@ -350,4 +406,13 @@ void GenerateMoves(Board &board) {
 
 	GenRookMoves(board, White);
 	GenRookMoves(board, Black);
+
+	GenBishopMoves(board, White);
+	GenBishopMoves(board, Black);
+
+	GenQueenMoves(board, White);
+	GenQueenMoves(board, Black);
+
+	GenKingMoves(board, White);
+	GenKingMoves(board, Black);
 }
