@@ -2,7 +2,7 @@
 #include <array>
 #include "bitboards.h"
 #include "types.h"
-#include "movegen.h"
+#include "move.h"
 #include <vector>
 
 class Board {

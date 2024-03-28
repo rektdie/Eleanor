@@ -272,3 +272,31 @@ Bitboard getQueenAttack(int square, U64 occupancy) {
 
 	return rookAttacks[square][rookOccupancy] | bishopAttacks[square][bishopOccupancy];
 }
+
+void GenPawnMoves(Board &board, bool color) {
+	Bitboard pawns = board.colors[color] & board.pieces[Pawn];
+
+	while (pawns.GetBoard()) {
+		int square = pawns.getLS1BIndex();
+		int direction = color ? south : north;
+
+		Bitboard attacks = pawnAttacks[color][square] & board.colors[!color];
+		attacks |= (Bitboard::GetSquare(square + direction) 
+			| Bitboard::GetSquare(square + 2 * direction)) & ~(board.occupied);
+
+		while (attacks.GetBoard()) {
+			int targetSquare = attacks.getLS1BIndex();
+			
+			board.AddMove(Move(SQUARE(square), SQUARE(targetSquare)));
+
+			attacks.PopBit(targetSquare);
+		}
+
+		pawns.PopBit(square);
+	}
+}
+
+void GenerateMoves(Board &board) {
+	GenPawnMoves(board, White);
+	GenPawnMoves(board, Black);
+}

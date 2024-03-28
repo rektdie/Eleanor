@@ -1,18 +1,7 @@
 #pragma once
 #include "bitboards.h"
-
-struct Move {
-public:
-    SQUARE moveFrom;
-    SQUARE moveTo;
-
-    Move(){}
-
-    Move(const SQUARE from, const SQUARE to)
-        : moveFrom(from), moveTo(to) {}
-
-    void PrintMove();
-};
+#include "move.h"
+#include "board.h"
 
 // bishop relevant occupancy bit count
 constexpr int bishopRelevantBits[64] = {
@@ -214,3 +203,5 @@ void initSliderAttacks();
 Bitboard getBishopAttack(int square, U64 occupancy);
 Bitboard getRookAttack(int square, U64 occupancy);
 Bitboard getQueenAttack(int square, U64 occupancy);
+
+void GenerateMoves(Board &board);

@@ -1,4 +1,5 @@
 #include "board.h"
+#include "movegen.h"
 #include <iostream>
 
 void Board::Init() {
