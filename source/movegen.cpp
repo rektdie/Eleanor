@@ -296,7 +296,30 @@ void GenPawnMoves(Board &board, bool color) {
 	}
 }
 
+void GenKnightMoves(Board &board, bool color) {
+	Bitboard knights = board.colors[color] & board.pieces[Knight];
+
+	while (knights.GetBoard()) {
+		int square = knights.getLS1BIndex();
+
+		Bitboard attacks = knightAttacks[square] & ~board.colors[color];
+
+		while (attacks.GetBoard()) {
+			int targetSquare = attacks.getLS1BIndex();
+			
+			board.AddMove(Move(SQUARE(square), SQUARE(targetSquare)));
+
+			attacks.PopBit(targetSquare);
+		}
+
+		knights.PopBit(square);
+	}
+}
+
 void GenerateMoves(Board &board) {
 	GenPawnMoves(board, White);
 	GenPawnMoves(board, Black);
+
+	GenKnightMoves(board, White);
+	GenKnightMoves(board, Black);
 }
