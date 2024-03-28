@@ -321,10 +321,33 @@ void GenKnightMoves(Board &board, bool color) {
 	}
 }
 
+void GenRookMoves(Board &board, bool color) {
+	Bitboard rooks = board.colors[color] & board.pieces[Rook];
+
+	while (rooks.GetBoard()) {
+		int square = rooks.getLS1BIndex();
+
+		Bitboard attacks = getRookAttack(square, board.occupied.GetBoard()) & ~board.colors[color];
+
+		while (attacks.GetBoard()) {
+			int targetSquare = attacks.getLS1BIndex();
+			
+			board.AddMove(Move(SQUARE(square), SQUARE(targetSquare)));
+
+			attacks.PopBit(targetSquare);
+		}
+
+		rooks.PopBit(square);
+	}
+}
+
 void GenerateMoves(Board &board) {
 	GenPawnMoves(board, White);
 	GenPawnMoves(board, Black);
 
 	GenKnightMoves(board, White);
 	GenKnightMoves(board, Black);
+
+	GenRookMoves(board, White);
+	GenRookMoves(board, Black);
 }
