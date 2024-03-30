@@ -290,7 +290,7 @@ void Board::DoMove(Move move) {
 
 	int targetType = GetPieceType(move.moveTo);
 
-	int direction = attackerColor ? north : south;
+	int direction = attackerColor ? south : north;
 
 	pieces[attackerType].PopBit(move.moveFrom);
 	colors[attackerColor].PopBit(move.moveFrom);
@@ -303,7 +303,7 @@ void Board::DoMove(Move move) {
 	} else if (moveType == doublePawnPush) {
 		occupied.SetBit(move.moveTo);
 		enPassantTarget = move.moveFrom + direction;
-	} else if (moveType == capture) {
+	} else if (moveType == capture || moveType == epCapture) {
 		pieces[targetType].PopBit(move.moveTo);
 		colors[!attackerColor].PopBit(move.moveTo);
 	}

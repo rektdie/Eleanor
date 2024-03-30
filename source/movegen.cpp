@@ -276,7 +276,18 @@ static void GenPawnMoves(Board &board, bool color) {
 		int square = pawns.getLS1BIndex();
 		int direction = color ? south : north;
 
-		Bitboard attacks = pawnAttacks[color][square] & board.colors[!color];
+		Bitboard attacks = pawnAttacks[color][square];
+
+		// Checking for possible en passant
+		if (board.enPassantTarget) {
+			if ((attacks & Bitboard::GetSquare(board.enPassantTarget)).GetBoard() 
+				&& board.sideToMove == color) {
+					
+				board.AddMove(Move(square, board.enPassantTarget, epCapture));
+			}
+		}
+
+		attacks &= board.colors[!color];
 
 		Bitboard firstAhead = Bitboard::GetSquare(square + direction) & ~board.occupied;
 		Bitboard secondAhead = Bitboard::GetSquare(square + 2 * direction) & ~board.occupied;
@@ -306,7 +317,6 @@ static void GenPawnMoves(Board &board, bool color) {
 				}
 			}
 		}
-
 
 		pawns.PopBit(square);
 	}
@@ -459,6 +469,8 @@ static void GenKingMoves(Board &board, bool color) {
 }
 
 void GenerateMoves(Board &board) {
+	board.moveList.clear();
+
 	GenPawnMoves(board, White);
 	GenPawnMoves(board, Black);
 
