@@ -255,7 +255,7 @@ int Board::GetPieceType(int square) {
 }
 
 int Board::GetPieceColor(int square) {
-	return (colors[White].IsSet(square));
+	return (colors[Black].IsSet(square));
 }
 
 bool Board::InCheck(bool side) {
@@ -283,5 +283,34 @@ bool Board::InCheck(bool side) {
 }
 
 void Board::DoMove(Move move) {
-	
+	enPassantTarget = a1; // resetting (a1 is impossible)
+	uint16_t moveType = move.moveFlags;
+	int attackerType = GetPieceType(move.moveFrom);
+	bool attackerColor = GetPieceColor(move.moveFrom);
+
+	int targetType = GetPieceType(move.moveTo);
+
+	int direction = attackerColor ? north : south;
+
+	pieces[attackerType].PopBit(move.moveFrom);
+	colors[attackerColor].PopBit(move.moveFrom);
+	occupied.PopBit(move.moveFrom);
+
+	pieces[attackerType].SetBit(move.moveTo);
+	colors[attackerColor].SetBit(move.moveTo);
+	if (moveType == quiet) {
+		occupied.SetBit(move.moveTo);
+	} else if (moveType == doublePawnPush) {
+		occupied.SetBit(move.moveTo);
+		enPassantTarget = move.moveFrom + direction;
+	} else if (moveType == capture) {
+		pieces[targetType].PopBit(move.moveTo);
+		colors[!attackerColor].PopBit(move.moveTo);
+	}
+
+	halfMoves++;
+
+	if (halfMoves & 2 == 0) fullMoves++;
+	lastMove = move;
+	sideToMove = !attackerColor;
 }

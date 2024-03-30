@@ -6,8 +6,6 @@
 #include <vector>
 
 class Board {
-private:
-	std::vector<Move> moveList;
 public:
 	Board() {
 		Init();
@@ -17,7 +15,9 @@ public:
 	std::array<Bitboard, 2> colors;
 	Bitboard occupied;
 
-	COLOR sideToMove = White;
+	std::vector<Move> moveList;
+
+	bool sideToMove = White;
 	int halfMoves = 0;
 	int fullMoves = 0;
 

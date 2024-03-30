@@ -269,7 +269,7 @@ Bitboard getQueenAttack(int square, U64 occupancy) {
 	return rookAttacks[square][rookOccupancy] | bishopAttacks[square][bishopOccupancy];
 }
 
-void GenPawnMoves(Board &board, bool color) {
+static void GenPawnMoves(Board &board, bool color) {
 	Bitboard pawns = board.colors[color] & board.pieces[Pawn];
 
 	while (pawns.GetBoard()) {
@@ -312,7 +312,7 @@ void GenPawnMoves(Board &board, bool color) {
 	}
 }
 
-void GenKnightMoves(Board &board, bool color) {
+static void GenKnightMoves(Board &board, bool color) {
 	Bitboard knights = board.colors[color] & board.pieces[Knight];
 
 	while (knights.GetBoard()) {
@@ -342,7 +342,7 @@ void GenKnightMoves(Board &board, bool color) {
 	}
 }
 
-void GenRookMoves(Board &board, bool color) {
+static void GenRookMoves(Board &board, bool color) {
 	Bitboard rooks = board.colors[color] & board.pieces[Rook];
 
 	while (rooks.GetBoard()) {
@@ -372,7 +372,7 @@ void GenRookMoves(Board &board, bool color) {
 	}
 }
 
-void GenBishopMoves(Board &board, bool color) {
+static void GenBishopMoves(Board &board, bool color) {
 	Bitboard bishops = board.colors[color] & board.pieces[Bishop];
 
 	while (bishops.GetBoard()) {
@@ -402,7 +402,7 @@ void GenBishopMoves(Board &board, bool color) {
 	}
 }
 
-void GenQueenMoves(Board &board, bool color) {
+static void GenQueenMoves(Board &board, bool color) {
 	Bitboard queens = board.colors[color] & board.pieces[Queen];
 
 	while (queens.GetBoard()) {
@@ -432,7 +432,7 @@ void GenQueenMoves(Board &board, bool color) {
 	}
 }
 
-void GenKingMoves(Board &board, bool color) {
+static void GenKingMoves(Board &board, bool color) {
 	Bitboard king = board.colors[color] & board.pieces[King];
 
 	int square = king.getLS1BIndex();

@@ -10,7 +10,5 @@ int main() {
 	Board board;
 	GenerateMoves(board);
 
-	board.ListMoves();
-
 	return 0;
 }
