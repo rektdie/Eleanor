@@ -1,9 +1,8 @@
 #pragma once
-#include "bitboards.h"
 
 enum MOVE_FLAGS {
     quiet, doublePawnPush,
-    kingCastle, QueenCastle,
+    kingCastle, queenCastle,
     capture, epCapture,
     knightPromotion, bishopPromotion, rookPromotion, queenPromotion,
     knightPromoCapture, bishopPromoCapture, rookPromoCapture, queenPromoCapture

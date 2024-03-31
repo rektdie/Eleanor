@@ -280,7 +280,7 @@ static void GenPawnMoves(Board &board, bool color) {
 
 		// Checking for possible en passant
 		if (board.enPassantTarget) {
-			if ((attacks & Bitboard::GetSquare(board.enPassantTarget)).GetBoard() 
+			if ((attacks & Bitboard::GetSquare(board.enPassantTarget)).GetBoard()
 				&& board.sideToMove == color) {
 					
 				board.AddMove(Move(square, board.enPassantTarget, epCapture));
@@ -465,6 +465,22 @@ static void GenKingMoves(Board &board, bool color) {
 		board.AddMove(Move(square, targetSquare, capture));
 
 		captures.PopBit(targetSquare);
+	}
+
+	if (board.castlingRights[color * 2 + 1]) {
+		U64 QueenSide = color ? 0x1f00000000000000 : 0x1f;
+		int targetSquare = color ? c8 : c1;
+		if ((Bitboard(QueenSide) & board.occupied).popCount() == 2) {
+			board.AddMove(Move(square, targetSquare, queenCastle));
+		}
+	}
+
+	if (board.castlingRights[color * 2]) {
+		U64 KingSide = color ? 0xf000000000000000 : 0xf0;
+		int targetSquare = color ? g8 : g1;
+		if ((Bitboard(KingSide) & board.occupied).popCount() == 2) {
+			board.AddMove(Move(square, targetSquare, kingCastle));
+		}
 	}
 }
 

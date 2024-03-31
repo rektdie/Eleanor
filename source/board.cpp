@@ -123,13 +123,13 @@ void Board::SetByFen(const char* fen) {
 			castlingRights[White] = true;
 			break;
 		case 'Q':
-			castlingRights[White + 2] = true;
+			castlingRights[White + 1] = true;
 			break;
 		case 'k':
-			castlingRights[Black] = true;
+			castlingRights[Black * 2] = true;
 			break;
 		case 'q':
-			castlingRights[Black + 2] = true;
+			castlingRights[Black * 2 + 1] = true;
 			break;
 		default:
 			if (*fen != '-') {
@@ -292,6 +292,7 @@ void Board::DoMove(Move move) {
 
 	int direction = attackerColor ? south : north;
 
+
 	pieces[attackerType].PopBit(move.moveFrom);
 	colors[attackerColor].PopBit(move.moveFrom);
 	occupied.PopBit(move.moveFrom);
@@ -306,6 +307,46 @@ void Board::DoMove(Move move) {
 	} else if (moveType == capture || moveType == epCapture) {
 		pieces[targetType].PopBit(move.moveTo);
 		colors[!attackerColor].PopBit(move.moveTo);
+	} else if (moveType == queenCastle) {
+		int rookSquare = attackerColor ? a8 : a1;
+
+		// Removing rook from old position
+		pieces[Rook].PopBit(rookSquare);
+		colors[attackerColor].PopBit(rookSquare);
+		occupied.PopBit(rookSquare);
+
+		// Setting rook on new position
+		pieces[Rook].SetBit(rookSquare + 3);
+		colors[attackerColor].SetBit(rookSquare + 3);
+		occupied.SetBit(rookSquare);
+	} else if (moveType == kingCastle) {
+		int rookSquare = attackerColor ? h8 : h1;
+		std::cout << squareCoords[rookSquare - 2] << '\n';
+		
+		// Removing rook from old position
+		pieces[Rook].PopBit(rookSquare);
+		colors[attackerColor].PopBit(rookSquare);
+		occupied.PopBit(rookSquare);
+
+		// Setting rook on new position
+		pieces[Rook].SetBit(rookSquare - 2);
+		colors[attackerColor].SetBit(rookSquare - 2);
+		occupied.SetBit(rookSquare);
+	}
+
+	// Removing the right to castle on king movement
+	if (attackerType == King) {
+		castlingRights[attackerColor * 2] = false;
+		castlingRights[attackerColor * 2 + 1] = false;
+	}
+
+	// Removing the right to castle on rook movement
+	if (attackerType == Rook) {
+		if ((Bitboard::GetSquare(move.moveFrom) & files[A] & (ranks[r_1] | ranks[r_8])).GetBoard()) {
+			castlingRights[attackerColor * 2 + 1] = false;
+		} else if ((Bitboard::GetSquare(move.moveFrom) & files[H] & (ranks[r_1] | ranks[r_8])).GetBoard()) {
+			castlingRights[attackerColor * 2] = false;
+		}
 	}
 
 	halfMoves++;
