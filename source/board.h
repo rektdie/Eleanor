@@ -40,5 +40,6 @@ public:
 
 	bool InCheck(bool side);
 
+	void Promote(int square, int pieceType, int color, bool isCapture);
 	void DoMove(Move move);
 };

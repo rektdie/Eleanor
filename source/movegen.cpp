@@ -275,6 +275,7 @@ static void GenPawnMoves(Board &board, bool color) {
 	while (pawns.GetBoard()) {
 		int square = pawns.getLS1BIndex();
 		int direction = color ? south : north;
+		int lastRank = color ? r_1 : r_8;
 
 		Bitboard attacks = pawnAttacks[color][square];
 
@@ -292,28 +293,46 @@ static void GenPawnMoves(Board &board, bool color) {
 		Bitboard firstAhead = Bitboard::GetSquare(square + direction) & ~board.occupied;
 		Bitboard secondAhead = Bitboard::GetSquare(square + 2 * direction) & ~board.occupied;
 		
-		while (attacks.GetBoard()) {
-			int targetSquare = attacks.getLS1BIndex();
-			
-			board.AddMove(Move(square, targetSquare, capture));
+		if ((attacks & ranks[lastRank]).GetBoard()) {
+			while (attacks.GetBoard()) {
+				int targetSquare = attacks.getLS1BIndex();
+				
+				for (int type = knightPromoCapture; type <= queenPromoCapture; type++) {
+					board.AddMove(Move(square, targetSquare, type));
+				}
 
-			attacks.PopBit(targetSquare);
+				attacks.PopBit(targetSquare);
+			}
+		} else {
+			while (attacks.GetBoard()) {
+				int targetSquare = attacks.getLS1BIndex();
+				
+				board.AddMove(Move(square, targetSquare, capture));
+
+				attacks.PopBit(targetSquare);
+			}
 		}
 
 		if (firstAhead.GetBoard()) {
-			board.AddMove(Move(square, firstAhead.getLS1BIndex(), quiet));
-
-			if (color == White) {
-				if (Bitboard::GetSquare(firstAhead.getLS1BIndex() & RANKS::r_2).GetBoard()) {
-					if ((secondAhead).GetBoard()) {
-						board.AddMove(Move(square, secondAhead.getLS1BIndex(), doublePawnPush));
-					}
+			if ((firstAhead & ranks[lastRank]).GetBoard()) {
+				for (int type = knightPromotion; type <= queenPromotion; type++) {
+					board.AddMove(Move(square, firstAhead.getLS1BIndex(), type));
 				}
 			} else {
-				if (Bitboard::GetSquare(firstAhead.getLS1BIndex() & RANKS::r_7).GetBoard()) {
-					if ((secondAhead).GetBoard()) {
-						board.AddMove(Move(square, secondAhead.getLS1BIndex(), doublePawnPush));
-					}
+				board.AddMove(Move(square, firstAhead.getLS1BIndex(), quiet));
+			}
+		}
+
+		if (color == White) {
+			if (Bitboard::GetSquare(firstAhead.getLS1BIndex() & RANKS::r_2).GetBoard()) {
+				if ((secondAhead).GetBoard()) {
+					board.AddMove(Move(square, secondAhead.getLS1BIndex(), doublePawnPush));
+				}
+			}
+		} else {
+			if (Bitboard::GetSquare(firstAhead.getLS1BIndex() & RANKS::r_7).GetBoard()) {
+				if ((secondAhead).GetBoard()) {
+					board.AddMove(Move(square, secondAhead.getLS1BIndex(), doublePawnPush));
 				}
 			}
 		}

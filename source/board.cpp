@@ -282,6 +282,20 @@ bool Board::InCheck(bool side) {
 	return false;
 }
 
+void Board::Promote(int square, int pieceType, int color, bool isCapture) {
+	if (isCapture) {
+		int targetType = GetPieceType(square);
+		std::cout << targetType << '\n';
+
+		pieces[targetType].PopBit(square);
+		colors[!color].PopBit(square);
+	}
+
+	occupied.SetBit(square);
+	pieces[pieceType].SetBit(square);
+	colors[color].SetBit(square);
+}
+
 void Board::DoMove(Move move) {
 	enPassantTarget = a1; // resetting (a1 is impossible)
 	uint16_t moveType = move.moveFlags;
@@ -292,13 +306,15 @@ void Board::DoMove(Move move) {
 
 	int direction = attackerColor ? south : north;
 
-
 	pieces[attackerType].PopBit(move.moveFrom);
 	colors[attackerColor].PopBit(move.moveFrom);
 	occupied.PopBit(move.moveFrom);
 
-	pieces[attackerType].SetBit(move.moveTo);
-	colors[attackerColor].SetBit(move.moveTo);
+	if (moveType < knightPromotion) {
+		pieces[attackerType].SetBit(move.moveTo);
+		colors[attackerColor].SetBit(move.moveTo);
+	}
+
 	if (moveType == quiet) {
 		occupied.SetBit(move.moveTo);
 	} else if (moveType == doublePawnPush) {
@@ -332,6 +348,22 @@ void Board::DoMove(Move move) {
 		pieces[Rook].SetBit(rookSquare - 2);
 		colors[attackerColor].SetBit(rookSquare - 2);
 		occupied.SetBit(rookSquare);
+	} else if (moveType == knightPromotion) {
+		Promote(move.moveTo, Knight, attackerColor, false);
+	} else if (moveType == bishopPromotion) {
+		Promote(move.moveTo, Bishop, attackerColor, false);
+	} else if (moveType == rookPromotion) {
+		Promote(move.moveTo, Rook, attackerColor, false);
+	} else if (moveType == queenPromotion) {
+		Promote(move.moveTo, Queen, attackerColor, false);
+	} else if (moveType == knightPromoCapture) {
+		Promote(move.moveTo, Knight, attackerColor, true);
+	} else if (moveType == bishopPromoCapture) {
+		Promote(move.moveTo, Bishop, attackerColor, true);
+	} else if (moveType == rookPromoCapture) {
+		Promote(move.moveTo, Rook, attackerColor, true);
+	} else if (moveType == queenPromoCapture) {
+		Promote(move.moveTo, Queen, attackerColor, true);
 	}
 
 	// Removing the right to castle on king movement
