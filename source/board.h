@@ -21,7 +21,7 @@ public:
 	int halfMoves = 0;
 	int fullMoves = 0;
 
-	Move lastMove;
+	LastMove lastMove;
 
 	std::array<bool, 4> castlingRights = { false, false, false, false };
 	int enPassantTarget;
@@ -42,4 +42,5 @@ public:
 
 	void Promote(int square, int pieceType, int color, bool isCapture);
 	void DoMove(Move move);
+	void UnmakeMove();
 };

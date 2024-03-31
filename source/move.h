@@ -32,3 +32,31 @@ public:
         std::cout << '(' << moveTypes[moveFlags] << ")\n";
     }
 };
+
+struct LastMove {
+public:
+    int moveFrom;
+    int moveTo;
+    uint16_t moveFlags;
+
+    int attackerPiece;
+    int capturedPiece;
+    int capturedColor;
+    int enPassantTarget;
+    std::array<bool, 4> castlingRights;
+
+    LastMove(){}
+    LastMove(const Move move, const int capturedPiece,
+        const int capturedColor, const int enPassantTarget, 
+        const std::array<bool, 4> castlingRights, int attackerPiece) {
+        moveFrom = move.moveFrom;
+        moveTo = move.moveTo;
+        moveFlags = move.moveFlags;
+
+        LastMove::capturedPiece = capturedPiece;
+        LastMove::capturedColor = capturedColor;
+        LastMove::enPassantTarget = enPassantTarget;
+        LastMove::castlingRights = castlingRights;
+        LastMove::attackerPiece = attackerPiece;
+    }
+};

@@ -297,6 +297,7 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 }
 
 void Board::DoMove(Move move) {
+	int oldEPTarget = enPassantTarget;
 	enPassantTarget = a1; // resetting (a1 is impossible)
 	uint16_t moveType = move.moveFlags;
 	int attackerType = GetPieceType(move.moveFrom);
@@ -310,9 +311,11 @@ void Board::DoMove(Move move) {
 	colors[attackerColor].PopBit(move.moveFrom);
 	occupied.PopBit(move.moveFrom);
 
+	colors[attackerColor].SetBit(move.moveTo);
+
+	// if the move is NOT a promotion
 	if (moveType < knightPromotion) {
 		pieces[attackerType].SetBit(move.moveTo);
-		colors[attackerColor].SetBit(move.moveTo);
 	}
 
 	if (moveType == quiet) {
@@ -334,7 +337,7 @@ void Board::DoMove(Move move) {
 		// Setting rook on new position
 		pieces[Rook].SetBit(rookSquare + 3);
 		colors[attackerColor].SetBit(rookSquare + 3);
-		occupied.SetBit(rookSquare);
+		occupied.SetBit(rookSquare + 3);
 	} else if (moveType == kingCastle) {
 		int rookSquare = attackerColor ? h8 : h1;
 		std::cout << squareCoords[rookSquare - 2] << '\n';
@@ -347,7 +350,7 @@ void Board::DoMove(Move move) {
 		// Setting rook on new position
 		pieces[Rook].SetBit(rookSquare - 2);
 		colors[attackerColor].SetBit(rookSquare - 2);
-		occupied.SetBit(rookSquare);
+		occupied.SetBit(rookSquare - 2);
 	} else if (moveType == knightPromotion) {
 		Promote(move.moveTo, Knight, attackerColor, false);
 	} else if (moveType == bishopPromotion) {
@@ -382,8 +385,72 @@ void Board::DoMove(Move move) {
 	}
 
 	halfMoves++;
-
 	if (halfMoves & 2 == 0) fullMoves++;
-	lastMove = move;
 	sideToMove = !attackerColor;
+	lastMove = LastMove(move, targetType, !attackerColor, oldEPTarget, castlingRights, attackerType);
+}
+
+void Board::UnmakeMove() {
+	enPassantTarget = lastMove.enPassantTarget;
+	uint16_t moveType = lastMove.moveFlags;
+
+	// Setting back the attacker
+	pieces[lastMove.attackerPiece].SetBit(lastMove.moveFrom);
+	colors[!lastMove.capturedColor].SetBit(lastMove.moveFrom);
+	occupied.SetBit(lastMove.moveFrom);
+
+	colors[!lastMove.capturedColor].PopBit(lastMove.moveTo);
+
+	// if the move was NOT a promotion
+	if (moveType < knightPromotion) {
+		pieces[lastMove.attackerPiece].PopBit(lastMove.moveTo);
+	}
+
+	// Setting back the target
+	if (moveType == quiet || moveType == doublePawnPush) {
+		occupied.PopBit(lastMove.moveTo);
+	} else if (moveType == capture || moveType == epCapture) {
+		pieces[lastMove.capturedPiece].SetBit(lastMove.moveTo);
+		colors[lastMove.capturedColor].SetBit(lastMove.moveTo);
+	} else if (moveType == queenCastle) {
+		int rookSquare = !lastMove.capturedColor ? a8 : a1;
+
+		// Removing rook from new position
+		pieces[Rook].PopBit(rookSquare + 3);
+		colors[!lastMove.capturedColor].PopBit(rookSquare + 3);
+		occupied.PopBit(rookSquare + 3);
+
+		// Setting rook back on old position
+		pieces[Rook].SetBit(rookSquare);
+		colors[!lastMove.capturedColor].SetBit(rookSquare);
+		occupied.SetBit(rookSquare);
+	}  else if (moveType == kingCastle) {
+		int rookSquare = !lastMove.capturedColor ? a8 : a1;
+
+		// Removing rook from new position
+		pieces[Rook].PopBit(rookSquare - 2);
+		colors[!lastMove.capturedColor].PopBit(rookSquare - 2);
+		occupied.PopBit(rookSquare - 2);
+
+		// Setting rook back on old position
+		pieces[Rook].SetBit(rookSquare);
+		colors[!lastMove.capturedColor].SetBit(rookSquare); 
+		occupied.SetBit(rookSquare);
+	} else if (moveType == rookPromotion) {
+		for (int piece = Pawn; piece <= King; piece++) {
+			pieces[piece].PopBit(lastMove.moveTo);
+		}
+		occupied.PopBit(lastMove.moveTo);
+	} else if (moveType >= knightPromoCapture) {
+		for (int piece = Pawn; piece <= King; piece++) {
+			pieces[piece].PopBit(lastMove.moveTo);
+		}
+		colors[lastMove.capturedColor].SetBit(lastMove.moveTo);
+		pieces[lastMove.capturedPiece].SetBit(lastMove.moveTo);
+	}
+
+	castlingRights = lastMove.castlingRights;
+	if (halfMoves & 2 == 0) fullMoves--;
+	halfMoves--;
+	sideToMove = !lastMove.capturedColor;
 }
