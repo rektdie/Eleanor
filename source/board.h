@@ -40,7 +40,10 @@ public:
 
 	bool InCheck(bool side);
 
+	void SetPiece(int piece, int square, bool color);
+	void RemovePiece(int piece, int square, bool color);
+
 	void Promote(int square, int pieceType, int color, bool isCapture);
-	void DoMove(Move move);
+	void MakeMove(Move move);
 	void UnmakeMove();
 };
