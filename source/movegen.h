@@ -204,4 +204,4 @@ Bitboard getBishopAttack(int square, U64 occupancy);
 Bitboard getRookAttack(int square, U64 occupancy);
 Bitboard getQueenAttack(int square, U64 occupancy);
 
-void GenerateMoves(Board &board);
+void GenerateMoves(Board &board, bool side);

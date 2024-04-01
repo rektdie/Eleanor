@@ -394,6 +394,9 @@ void Board::UnmakeMove() {
 
 	int direction = lastMove.capturedColor ? south : north;
 
+	// Removing attacker piece from new square
+	RemovePiece(lastMove.attackerPiece, lastMove.moveTo, !lastMove.capturedColor);
+
 	// Setting back the attacker
 	SetPiece(lastMove.attackerPiece, lastMove.moveFrom, !lastMove.capturedColor);
 
@@ -430,9 +433,6 @@ void Board::UnmakeMove() {
 		}
 		SetPiece(lastMove.capturedPiece, lastMove.moveTo, lastMove.capturedColor);
 	}
-
-	// Removing attacker piece from new square
-	RemovePiece(lastMove.attackerPiece, lastMove.moveTo, !lastMove.capturedColor);
 
 	castlingRights = lastMove.castlingRights;
 	if (halfMoves & 2 == 0) fullMoves--;

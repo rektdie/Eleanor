@@ -314,24 +314,14 @@ static void GenPawnMoves(Board &board, bool color) {
 		}
 
 		if (firstAhead.GetBoard()) {
+			int secondRank = color ? r_7 : r_2;
 			if ((firstAhead & ranks[lastRank]).GetBoard()) {
 				for (int type = knightPromotion; type <= queenPromotion; type++) {
 					board.AddMove(Move(square, firstAhead.getLS1BIndex(), type));
 				}
 			} else {
 				board.AddMove(Move(square, firstAhead.getLS1BIndex(), quiet));
-			}
-		}
-
-		if (color == White) {
-			if (Bitboard::GetSquare(firstAhead.getLS1BIndex() & RANKS::r_2).GetBoard()) {
-				if ((secondAhead).GetBoard()) {
-					board.AddMove(Move(square, secondAhead.getLS1BIndex(), doublePawnPush));
-				}
-			}
-		} else {
-			if (Bitboard::GetSquare(firstAhead.getLS1BIndex() & RANKS::r_7).GetBoard()) {
-				if ((secondAhead).GetBoard()) {
+				if (secondAhead.GetBoard() && Bitboard(ranks[secondRank]).IsSet(square)) {
 					board.AddMove(Move(square, secondAhead.getLS1BIndex(), doublePawnPush));
 				}
 			}
@@ -503,44 +493,48 @@ static void GenKingMoves(Board &board, bool color) {
 	}
 }
 
-bool isLegalMove(Board &board, Move move) {
-	board.MakeMove(move);
-	if (board.InCheck(!board.sideToMove)) {
+static bool isLegalMove(Board &board, Move move) {
+	if (board.InCheck(board.sideToMove)) {
+		if (move.moveFlags == kingCastle || move.moveFlags == queenCastle) {
+			return false;
+		}
+		board.MakeMove(move);
+		if (board.InCheck(!board.sideToMove)) {
+			board.UnmakeMove();
+			return false;
+		}
 		board.UnmakeMove();
-		return false;
+	} else {
+		board.MakeMove(move);
+		if (board.InCheck(!board.sideToMove)) {
+			board.UnmakeMove();
+			return false;
+		}
+		board.UnmakeMove();
 	}
-	board.UnmakeMove();
 	return true;
 }
 
-void GenerateMoves(Board &board) {
+void GenerateMoves(Board &board, bool side) {
 	board.moveList.clear();
 
-	GenPawnMoves(board, White);
-	GenPawnMoves(board, Black);
+	GenPawnMoves(board, side);
 
-	GenKnightMoves(board, White);
-	GenKnightMoves(board, Black);
+	GenKnightMoves(board, side);
 
-	GenRookMoves(board, White);
-	GenRookMoves(board, Black);
+	GenRookMoves(board, side);
 
-	GenBishopMoves(board, White);
-	GenBishopMoves(board, Black);
+	GenBishopMoves(board, side);
 
-	GenQueenMoves(board, White);
-	GenQueenMoves(board, Black);
+	GenQueenMoves(board, side);
 
-	GenKingMoves(board, White);
-	GenKingMoves(board, Black);
+	GenKingMoves(board, side);
 
-	int listSize = sizeof(board.moveList);
+	int listSize = board.moveList.size();
 	// Filtering illegal moves
-	for (int i = 0; i < listSize; i++) {
-		int removedCount = 0;
+	for (int i = listSize - 1; i >= 0; --i) {
 		if (!isLegalMove(board, board.moveList[i])) {
-			board.moveList.erase(board.moveList.begin() + i - removedCount);
-			removedCount++;
+			board.moveList.erase(board.moveList.begin() + i);
 		}
-	}
+    }
 }
