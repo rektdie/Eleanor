@@ -241,8 +241,11 @@ void Board::ResetMoves() {
 }
 
 void Board::ListMoves() {
+	int count = 1;
 	for (Move move : moveList) {
+		std::cout << count << ". ";
 		move.PrintMove();
+		count++;
 	}
 }
 
@@ -320,8 +323,11 @@ void Board::MakeMove(Move move) {
 
 	if (moveType == doublePawnPush) {
 		enPassantTarget = move.moveFrom + direction;
-	} else if (moveType == capture || moveType == epCapture) {
+	} else if (moveType == capture) {
 		RemovePiece(targetType, move.moveTo, !attackerColor);
+	} else if (moveType == epCapture) {
+		targetType = Pawn;
+		RemovePiece(targetType, move.moveTo - direction, !attackerColor);
 	} else if (moveType == queenCastle) {
 		int rookSquare = attackerColor ? a8 : a1;
 
@@ -386,14 +392,18 @@ void Board::UnmakeMove() {
 	enPassantTarget = lastMove.enPassantTarget;
 	uint16_t moveType = lastMove.moveFlags;
 
+	int direction = lastMove.capturedColor ? south : north;
+
 	// Setting back the attacker
 	SetPiece(lastMove.attackerPiece, lastMove.moveFrom, !lastMove.capturedColor);
 
 	// Setting back the target
 	if (moveType == quiet || moveType == doublePawnPush) {
 		RemovePiece(lastMove.attackerPiece, lastMove.moveTo, !lastMove.capturedColor);
-	} else if (moveType == capture || moveType == epCapture) {
+	} else if (moveType == capture) {
 		SetPiece(lastMove.capturedPiece, lastMove.moveTo, lastMove.capturedColor);
+	} else if (moveType == epCapture) {
+		SetPiece(lastMove.capturedPiece, lastMove.moveTo + direction, lastMove.capturedColor);
 	} else if (moveType == queenCastle) {
 		int rookSquare = !lastMove.capturedColor ? a8 : a1;
 

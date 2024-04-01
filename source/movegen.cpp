@@ -503,6 +503,16 @@ static void GenKingMoves(Board &board, bool color) {
 	}
 }
 
+bool isLegalMove(Board &board, Move move) {
+	board.MakeMove(move);
+	if (board.InCheck(!board.sideToMove)) {
+		board.UnmakeMove();
+		return false;
+	}
+	board.UnmakeMove();
+	return true;
+}
+
 void GenerateMoves(Board &board) {
 	board.moveList.clear();
 
@@ -523,4 +533,14 @@ void GenerateMoves(Board &board) {
 
 	GenKingMoves(board, White);
 	GenKingMoves(board, Black);
+
+	int listSize = sizeof(board.moveList);
+	// Filtering illegal moves
+	for (int i = 0; i < listSize; i++) {
+		int removedCount = 0;
+		if (!isLegalMove(board, board.moveList[i])) {
+			board.moveList.erase(board.moveList.begin() + i - removedCount);
+			removedCount++;
+		}
+	}
 }

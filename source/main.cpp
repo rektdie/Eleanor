@@ -9,6 +9,8 @@ int main() {
 
 	Board board;
 	GenerateMoves(board);
+	board.ListMoves();
+	board.PrintBoard();
 
 	return 0;
 }
