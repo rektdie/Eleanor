@@ -29,7 +29,6 @@ public:
 
     void PrintMove() {
 	    std::cout << squareCoords[moveFrom] << squareCoords[moveTo];
-        std::cout << '(' << moveTypes[moveFlags] << ")\n";
     }
 };
 
