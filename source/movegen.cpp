@@ -478,17 +478,48 @@ static void GenKingMoves(Board &board, bool color) {
 
 	if (board.castlingRights[color * 2 + 1]) {
 		U64 QueenSide = color ? 0x1f00000000000000 : 0x1f;
+		U64 mask = color ? 0x1c00000000000000 : 0x1c;
 		int targetSquare = color ? c8 : c1;
-		if ((Bitboard(QueenSide) & board.occupied).popCount() == 2) {
+		if ((Bitboard(QueenSide) & board.occupied).popCount() == 2
+			&& !(mask & board.GetAttackMaps(!color))) {
 			board.AddMove(Move(square, targetSquare, queenCastle));
 		}
 	}
 
 	if (board.castlingRights[color * 2]) {
 		U64 KingSide = color ? 0xf000000000000000 : 0xf0;
+		U64 mask = color ? 0x7000000000000000 : 0x70;
 		int targetSquare = color ? g8 : g1;
-		if ((Bitboard(KingSide) & board.occupied).popCount() == 2) {
+		if ((Bitboard(KingSide) & board.occupied).popCount() == 2
+			&& !(mask & board.GetAttackMaps(!color))) {
 			board.AddMove(Move(square, targetSquare, kingCastle));
+		}
+	}
+}
+
+void GenAttackMaps(Board &board) {
+	for (int color = White; color <= Black; color++) {
+		for (int type = Pawn; type <= King; type++) {
+			board.attackMaps[color][type] = 0ULL;
+			Bitboard pieces = board.pieces[type] & board.colors[color];
+
+			while (pieces.GetBoard()) {
+				int square = pieces.getLS1BIndex();
+				if (type == Pawn) {
+					board.attackMaps[color][type] |= pawnAttacks[color][square].GetBoard();
+				} else if (type == Knight) {
+					board.attackMaps[color][type] |= knightAttacks[square].GetBoard();
+				} else if (type == King) {
+					board.attackMaps[color][type] |= kingAttacks[square].GetBoard();
+				} else if (type == Rook) {
+					board.attackMaps[color][type] |= getRookAttack(square, board.occupied.GetBoard()).GetBoard();
+				} else if (type == Bishop) {
+					board.attackMaps[color][type] |= getBishopAttack(square, board.occupied.GetBoard()).GetBoard();
+				} else if (type == Queen) {
+					board.attackMaps[color][type] |= getQueenAttack(square, board.occupied.GetBoard()).GetBoard();
+				}
+				pieces.PopBit(square);
+			}
 		}
 	}
 }

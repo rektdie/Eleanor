@@ -13,7 +13,6 @@ void Board::Reset() {
 	fullMoves = 0;
 	sideToMove = White;
 	occupied = 0ULL;
-	std::cout << '\n';
 
 	pieces = std::array<Bitboard, 6>();
 	colors = std::array<Bitboard, 2>();
@@ -180,6 +179,7 @@ void Board::SetByFen(const char* fen) {
 	}
 
 	occupied = (colors[White] | colors[Black]);
+	GenAttackMaps(*this);
 }
 
 void Board::PrintBoard() {
@@ -261,26 +261,18 @@ int Board::GetPieceColor(int square) {
 	return (colors[Black].IsSet(square));
 }
 
+U64 Board::GetAttackMaps(bool side) {
+	U64 combined = 0ULL;
+	for (int type = Pawn; type <= King; type++) {
+		combined |= attackMaps[side][type];
+	}
+	return combined;
+}
+
 bool Board::InCheck(bool side) {
 	Bitboard myKingSquare = colors[side] & pieces[King];
 
-	for (int square = a1; square <= h8; square++) {
-		for (int piece = Pawn; piece <= King; piece++) {
-			if ((colors[!side] & pieces[piece]).IsSet(square)) {
-				if (piece == Pawn) {
-					if ((pawnAttacks[!side][square] & myKingSquare).GetBoard()) return true;
-				} else if (piece == Knight) {
-					if ((knightAttacks[square] & myKingSquare).GetBoard()) return true;
-				} else if (piece == Bishop) {
-					if ((getBishopAttack(square, occupied.GetBoard()) & myKingSquare).GetBoard()) return true;
-				} else if (piece == Rook) {
-					if ((getRookAttack(square, occupied.GetBoard()) & myKingSquare).GetBoard()) return true;
-				} else if (piece == Queen) {
-					if ((getQueenAttack(square, occupied.GetBoard()) & myKingSquare).GetBoard()) return true;
-				}
-			}
-		}
-	}
+	return GetAttackMaps(!side) & myKingSquare.GetBoard();
 
 	return false;
 }
@@ -382,6 +374,8 @@ void Board::MakeMove(Move move) {
 		}
 	}
 
+	GenAttackMaps(*this);
+
 	halfMoves++;
 	if (halfMoves & 2 == 0) fullMoves++;
 	sideToMove = !attackerColor;
@@ -433,6 +427,8 @@ void Board::UnmakeMove() {
 		}
 		SetPiece(lastMove.capturedPiece, lastMove.moveTo, lastMove.capturedColor);
 	}
+
+	GenAttackMaps(*this);
 
 	castlingRights = lastMove.castlingRights;
 	if (halfMoves & 2 == 0) fullMoves--;

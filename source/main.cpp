@@ -9,6 +9,7 @@ int main() {
 	initSliderAttacks();
 
 	Board board;
+
 	Perft(board, 2);
 
 	return 0;

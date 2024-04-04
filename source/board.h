@@ -13,6 +13,8 @@ public:
 
 	std::array<Bitboard, 6> pieces;
 	std::array<Bitboard, 2> colors;
+	U64 attackMaps[2][64];
+
 	Bitboard occupied;
 
 	std::vector<Move> moveList;
@@ -38,6 +40,7 @@ public:
 	int GetPieceType(int square);
 	int GetPieceColor(int square);
 
+	U64 GetAttackMaps(bool side);
 	bool InCheck(bool side);
 
 	void SetPiece(int piece, int square, bool color);
