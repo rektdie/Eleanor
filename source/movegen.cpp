@@ -270,231 +270,27 @@ Bitboard getQueenAttack(int square, U64 occupancy) {
 }
 
 static void GenPawnMoves(Board &board, bool color) {
-	Bitboard pawns = board.colors[color] & board.pieces[Pawn];
-
-	while (pawns.GetBoard()) {
-		int square = pawns.getLS1BIndex();
-		int direction = color ? south : north;
-		int lastRank = color ? r_1 : r_8;
-
-		Bitboard attacks = pawnAttacks[color][square];
-
-		// Checking for possible en passant
-		if (board.enPassantTarget) {
-			if ((attacks & Bitboard::GetSquare(board.enPassantTarget)).GetBoard()
-				&& board.sideToMove == color) {
-					
-				board.AddMove(Move(square, board.enPassantTarget, epCapture));
-			}
-		}
-
-		attacks &= board.colors[!color];
-
-		Bitboard firstAhead = Bitboard::GetSquare(square + direction) & ~board.occupied;
-		Bitboard secondAhead = Bitboard::GetSquare(square + 2 * direction) & ~board.occupied;
-		
-		if ((attacks & ranks[lastRank]).GetBoard()) {
-			while (attacks.GetBoard()) {
-				int targetSquare = attacks.getLS1BIndex();
-				
-				for (int type = knightPromoCapture; type <= queenPromoCapture; type++) {
-					board.AddMove(Move(square, targetSquare, type));
-				}
-
-				attacks.PopBit(targetSquare);
-			}
-		} else {
-			while (attacks.GetBoard()) {
-				int targetSquare = attacks.getLS1BIndex();
-				
-				board.AddMove(Move(square, targetSquare, capture));
-
-				attacks.PopBit(targetSquare);
-			}
-		}
-
-		if (firstAhead.GetBoard()) {
-			int secondRank = color ? r_7 : r_2;
-			if ((firstAhead & ranks[lastRank]).GetBoard()) {
-				for (int type = knightPromotion; type <= queenPromotion; type++) {
-					board.AddMove(Move(square, firstAhead.getLS1BIndex(), type));
-				}
-			} else {
-				board.AddMove(Move(square, firstAhead.getLS1BIndex(), quiet));
-				if (secondAhead.GetBoard() && Bitboard(ranks[secondRank]).IsSet(square)) {
-					board.AddMove(Move(square, secondAhead.getLS1BIndex(), doublePawnPush));
-				}
-			}
-		}
-
-		pawns.PopBit(square);
-	}
+	
 }
 
 static void GenKnightMoves(Board &board, bool color) {
-	Bitboard knights = board.colors[color] & board.pieces[Knight];
-
-	while (knights.GetBoard()) {
-		int square = knights.getLS1BIndex();
-
-		Bitboard attacks = knightAttacks[square] & ~board.colors[color];
-		Bitboard captures = attacks & board.colors[!color];
-		attacks &= ~captures;
-
-		while (attacks.GetBoard()) {
-			int targetSquare = attacks.getLS1BIndex();
-			
-			board.AddMove(Move(square, targetSquare, quiet));
-
-			attacks.PopBit(targetSquare);
-		}
-
-		while (captures.GetBoard()) {
-			int targetSquare = captures.getLS1BIndex();
-			
-			board.AddMove(Move(square, targetSquare, capture));
-
-			captures.PopBit(targetSquare);
-		}
-
-		knights.PopBit(square);
-	}
+	
 }
 
 static void GenRookMoves(Board &board, bool color) {
-	Bitboard rooks = board.colors[color] & board.pieces[Rook];
-
-	while (rooks.GetBoard()) {
-		int square = rooks.getLS1BIndex();
-
-		Bitboard attacks = getRookAttack(square, board.occupied.GetBoard()) & ~board.colors[color];
-		Bitboard captures = attacks & board.colors[!color];
-		attacks &= ~captures;
-
-		while (attacks.GetBoard()) {
-			int targetSquare = attacks.getLS1BIndex();
-			
-			board.AddMove(Move(square, targetSquare, quiet));
-
-			attacks.PopBit(targetSquare);
-		}
-
-		while (captures.GetBoard()) {
-			int targetSquare = captures.getLS1BIndex();
-			
-			board.AddMove(Move(square, targetSquare, capture));
-
-			captures.PopBit(targetSquare);
-		}
-
-		rooks.PopBit(square);
-	}
+	
 }
 
 static void GenBishopMoves(Board &board, bool color) {
-	Bitboard bishops = board.colors[color] & board.pieces[Bishop];
-
-	while (bishops.GetBoard()) {
-		int square = bishops.getLS1BIndex();
-
-		Bitboard attacks = getBishopAttack(square, board.occupied.GetBoard()) & ~board.colors[color];
-		Bitboard captures = attacks & board.colors[!color];
-		attacks &= ~captures;
-
-		while (attacks.GetBoard()) {
-			int targetSquare = attacks.getLS1BIndex();
-			
-			board.AddMove(Move(square, targetSquare, quiet));
-
-			attacks.PopBit(targetSquare);
-		}
-
-		while (captures.GetBoard()) {
-			int targetSquare = captures.getLS1BIndex();
-			
-			board.AddMove(Move(square, targetSquare, capture));
-
-			captures.PopBit(targetSquare);
-		}
-
-		bishops.PopBit(square);
-	}
+	
 }
 
 static void GenQueenMoves(Board &board, bool color) {
-	Bitboard queens = board.colors[color] & board.pieces[Queen];
-
-	while (queens.GetBoard()) {
-		int square = queens.getLS1BIndex();
-
-		Bitboard attacks = getQueenAttack(square, board.occupied.GetBoard()) & ~board.colors[color];
-		Bitboard captures = attacks & board.colors[!color];
-		attacks &= ~captures;
-
-		while (attacks.GetBoard()) {
-			int targetSquare = attacks.getLS1BIndex();
-			
-			board.AddMove(Move(square, targetSquare, quiet));
-
-			attacks.PopBit(targetSquare);
-		}
-
-		while (captures.GetBoard()) {
-			int targetSquare = captures.getLS1BIndex();
-			
-			board.AddMove(Move(square, targetSquare, capture));
-
-			captures.PopBit(targetSquare);
-		}
-
-		queens.PopBit(square);
-	}
+	
 }
 
 static void GenKingMoves(Board &board, bool color) {
-	Bitboard king = board.colors[color] & board.pieces[King];
-
-	int square = king.getLS1BIndex();
-
-	Bitboard attacks = kingAttacks[square] & ~board.colors[color];
-	Bitboard captures = attacks & board.colors[!color];
-	attacks &= ~captures;
-
-	while (attacks.GetBoard()) {
-		int targetSquare = attacks.getLS1BIndex();
-		
-		board.AddMove(Move(square, targetSquare, quiet));
-
-		attacks.PopBit(targetSquare);
-	}
-
-	while (captures.GetBoard()) {
-		int targetSquare = captures.getLS1BIndex();
-		
-		board.AddMove(Move(square, targetSquare, capture));
-
-		captures.PopBit(targetSquare);
-	}
-
-	if (board.castlingRights[color * 2 + 1]) {
-		U64 QueenSide = color ? 0x1f00000000000000 : 0x1f;
-		U64 mask = color ? 0x1c00000000000000 : 0x1c;
-		int targetSquare = color ? c8 : c1;
-		if ((Bitboard(QueenSide) & board.occupied).popCount() == 2
-			&& !(mask & board.GetAttackMaps(!color))) {
-			board.AddMove(Move(square, targetSquare, queenCastle));
-		}
-	}
-
-	if (board.castlingRights[color * 2]) {
-		U64 KingSide = color ? 0xf000000000000000 : 0xf0;
-		U64 mask = color ? 0x7000000000000000 : 0x70;
-		int targetSquare = color ? g8 : g1;
-		if ((Bitboard(KingSide) & board.occupied).popCount() == 2
-			&& !(mask & board.GetAttackMaps(!color))) {
-			board.AddMove(Move(square, targetSquare, kingCastle));
-		}
-	}
+	
 }
 
 void GenAttackMaps(Board &board) {
@@ -524,27 +320,9 @@ void GenAttackMaps(Board &board) {
 	}
 }
 
-static bool isLegalMove(Board &board, Move move) {
-	if (board.InCheck(board.sideToMove)) {
-		if (move.moveFlags == kingCastle || move.moveFlags == queenCastle) {
-			return false;
-		}
-		board.MakeMove(move);
-		if (board.InCheck(!board.sideToMove)) {
-			board.UnmakeMove();
-			return false;
-		}
-		board.UnmakeMove();
-	} else {
-		board.MakeMove(move);
-		if (board.InCheck(!board.sideToMove)) {
-			board.UnmakeMove();
-			return false;
-		}
-		board.UnmakeMove();
-	}
-	return true;
-}
+// static bool isLegalMove(Board &board, Move move) {
+	
+// }
 
 void GenerateMoves(Board &board, bool side) {
 	board.moveList.clear();
@@ -560,12 +338,4 @@ void GenerateMoves(Board &board, bool side) {
 	GenQueenMoves(board, side);
 
 	GenKingMoves(board, side);
-
-	int listSize = board.moveList.size();
-	// Filtering illegal moves
-	for (int i = listSize - 1; i >= 0; --i) {
-		if (!isLegalMove(board, board.moveList[i])) {
-			board.moveList.erase(board.moveList.begin() + i);
-		}
-    }
 }
