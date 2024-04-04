@@ -31,8 +31,15 @@ void Perft(Board &board, int depth) {
         std::cout << ": " << nodeCount << '\n';
     }
 
+    auto start = std::chrono::steady_clock::now();
     U64 nodes = HelperPerft(board, depth);
+    auto finish = std::chrono::steady_clock::now();
+
+    double elapsed_seconds = std::chrono::duration_cast<
+        std::chrono::duration<double>>(finish - start).count();
 
     std::cout << "\nDepth: " << depth << '\n';
     std::cout << "Total nodes: " << totalNodes << '\n';
+    std::cout << "Time took: " << elapsed_seconds << "s (";
+    std::cout << nodes / elapsed_seconds << " nodes/sec)\n";
 }
