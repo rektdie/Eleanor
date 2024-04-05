@@ -290,7 +290,28 @@ static void GenQueenMoves(Board &board, bool color) {
 }
 
 static void GenKingMoves(Board &board, bool color) {
-	
+	int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
+
+	Bitboard moves = (kingAttacks[kingSquare] & ~board.GetAttackMaps(!color)) & ~board.colors[color];
+	Bitboard captures = moves & board.colors[!color];
+	moves &= ~board.colors[!color];
+
+	while (moves.GetBoard()) {
+		int square = moves.getLS1BIndex();
+
+		board.AddMove(Move(kingSquare, square, quiet));
+
+		moves.PopBit(square);
+	}
+
+	while (captures.GetBoard()) {
+		int square = captures.getLS1BIndex();
+
+		Move move(kingSquare, square, capture);
+		board.AddMove(move);
+
+		captures.PopBit(square);
+	}
 }
 
 void GenAttackMaps(Board &board) {
@@ -308,11 +329,14 @@ void GenAttackMaps(Board &board) {
 				} else if (type == King) {
 					board.attackMaps[color][type] |= kingAttacks[square].GetBoard();
 				} else if (type == Rook) {
-					board.attackMaps[color][type] |= getRookAttack(square, board.occupied.GetBoard()).GetBoard();
+					board.attackMaps[color][type] |= getRookAttack(square, (board.occupied 
+						& ~(board.colors[!color] & board.pieces[King])).GetBoard()).GetBoard();
 				} else if (type == Bishop) {
-					board.attackMaps[color][type] |= getBishopAttack(square, board.occupied.GetBoard()).GetBoard();
+					board.attackMaps[color][type] |= getBishopAttack(square, (board.occupied 
+						& ~(board.colors[!color] & board.pieces[King])).GetBoard()).GetBoard();
 				} else if (type == Queen) {
-					board.attackMaps[color][type] |= getQueenAttack(square, board.occupied.GetBoard()).GetBoard();
+					board.attackMaps[color][type] |= getQueenAttack(square, (board.occupied 
+						& ~(board.colors[!color] & board.pieces[King])).GetBoard()).GetBoard();
 				}
 				pieces.PopBit(square);
 			}

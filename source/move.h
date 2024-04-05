@@ -3,7 +3,6 @@
 
 constexpr short moveFromMask = 0x3F;
 constexpr short moveToMask = 0xFC0;
-constexpr short moveFlagsMask = 0xF000;
 
 enum MOVE_FLAGS {
     quiet, doublePawnPush,
@@ -22,15 +21,17 @@ constexpr std::array<const char*, 14> moveTypes {
 };
 
 struct Move {
-public:
+private:
     uint16_t m_move;
-
-    Move(){}
+public:
+    Move() {
+        m_move = 0;
+    }
 
     Move(int from, int to, int flags) {
-         m_move |= from;
-         m_move |= to << 6;
-         m_move |= flags << 12;
+        m_move = from;
+        m_move |= to << 6;
+        m_move |= flags << 12;
     }
 
     int MoveFrom() {
@@ -42,7 +43,7 @@ public:
     }
 
     int GetFlags() {
-        return (m_move & moveFlagsMask) >> 12;
+        return m_move >> 12;
     }
 
     void PrintMove() {

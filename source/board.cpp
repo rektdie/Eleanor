@@ -243,7 +243,9 @@ void Board::ResetMoves() {
 void Board::ListMoves() {
 	int count = 1;
 	for (Move move : moveList) {
-		
+		std::cout << count << ". ";
+		move.PrintMove();
+		count++;
 	}
 }
 
