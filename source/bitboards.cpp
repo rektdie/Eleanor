@@ -41,24 +41,15 @@ void Bitboard::PopBit(int square) {
 	}
 }
 
-int Bitboard::popCount() const {
-	U64 board = m_board;
-	int count = 0;
-
-	while (board) {
-		board &= board - 1;
-
-		count++;
-	}
-
-	return count;
+int Bitboard::PopCount() const {
+	return __builtin_popcountll(m_board);
 }
 
 // LS1B = least significant first bit
 int Bitboard::getLS1BIndex() const {
 	if (m_board) {
 		// count trailing bits before LS1B
-		return Bitboard((m_board & -m_board) - 1).popCount();
+		return Bitboard((m_board & -m_board) - 1).PopCount();
 	}
 
 	return -1;
@@ -66,7 +57,7 @@ int Bitboard::getLS1BIndex() const {
 
 Bitboard Bitboard::getOccupancy(int index, Bitboard attackMask) {
 	Bitboard occupancy;
-	int squareCount = attackMask.popCount();
+	int squareCount = attackMask.PopCount();
 	
 	for (int count = 0; count < squareCount; count++) {
 		int square = attackMask.getLS1BIndex();

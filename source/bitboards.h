@@ -18,7 +18,7 @@ public:
 	void PopBit(int square);
 	void PrintBoard() const;
 
-	int popCount() const;
+	int PopCount() const;
 	int getLS1BIndex() const;
 	static Bitboard getOccupancy(int index, Bitboard attackMask);
 
