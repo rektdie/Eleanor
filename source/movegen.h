@@ -204,6 +204,10 @@ Bitboard getBishopAttack(int square, U64 occupancy);
 Bitboard getRookAttack(int square, U64 occupancy);
 Bitboard getQueenAttack(int square, U64 occupancy);
 
+// Returns Bitboard of piece attacks from given square
+// Returns attacks regardless of board (so occupancy is 0ULL)
+Bitboard getPieceAttacks(int square, int piece, int color);
+
 void GenAttackMaps(Board &board);
 
 void GenerateMoves(Board &board, bool side);

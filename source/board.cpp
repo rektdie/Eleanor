@@ -273,8 +273,6 @@ bool Board::InCheck(bool side) {
 	Bitboard myKingSquare = colors[side] & pieces[King];
 
 	return GetAttackMaps(!side) & myKingSquare.GetBoard();
-
-	return false;
 }
 
 void Board::SetPiece(int piece, int square, bool color) {

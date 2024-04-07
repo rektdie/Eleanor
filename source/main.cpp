@@ -9,6 +9,9 @@ int main() {
 	initSliderAttacks();
 
 	Board board;
+	board.PrintBoard();
+	GenerateMoves(board, board.sideToMove);
+	board.ListMoves();
 
 	return 0;
 }

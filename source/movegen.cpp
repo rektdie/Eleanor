@@ -269,6 +269,120 @@ Bitboard getQueenAttack(int square, U64 occupancy) {
 	return rookAttacks[square][rookOccupancy] | bishopAttacks[square][bishopOccupancy];
 }
 
+Bitboard getPieceAttacks(int square, int piece, int color, U64 occupancy) {
+	if (piece == Pawn) {
+		return pawnAttacks[color][square];
+	} else if (piece == Knight) {
+		return knightAttacks[square];
+	} else if (piece == King) {
+		return kingAttacks[square];
+	} else if (piece == Bishop) {
+		return getBishopAttack(square, occupancy);
+	} else if (piece == Rook) {
+		return getRookAttack(square, occupancy);
+	} else {
+		return getQueenAttack(square, occupancy);
+	}
+}
+
+static Bitboard getPawnPushes(int square, bool color, Bitboard &occupancy) {
+	Bitboard pushes;
+
+	int direction = color ? south : north;
+	Bitboard secondRank = color ? ranks[r_7] : ranks[r_2];
+
+	if (!occupancy.IsSet(square + direction)) {
+		pushes.SetBit(square + direction);
+
+		if (secondRank.IsSet(square) && !occupancy.IsSet(square + 2 * direction)) {
+			pushes.SetBit(square + 2 * direction);
+		} 
+	}
+
+	return pushes;
+}
+
+// Returns bitboard of checkers
+static Bitboard Checkers(Board &board, bool color) {
+	int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
+	Bitboard checkerBoard = 0ULL;
+
+	for (int type = Pawn; type < King; type++) {
+		Bitboard targets = getPieceAttacks(kingSquare, type, color, board.occupied.GetBoard());
+		checkerBoard |= targets & board.pieces[type];
+	}
+	return checkerBoard;
+}
+
+// Returns the direction to target from square
+static int GetDirection(int square, int target) {
+	int difference = target - square;
+
+	if (difference % north == 0) {
+		return north;
+	} else if (difference % south == 0) {
+		return south;
+	} else if (difference % noWe == 0) {
+		return noWe;
+	} else if (difference % noEa == 0) {
+		return noEa;
+	} else if (difference % soWe == 0) {
+		return soWe;
+	} else if (difference % soEa == 0) {
+		return soEa;
+	} else if (difference < 0 && difference > -8) {
+		return west;
+	} else if (difference > 0 && difference < 8) {
+		return east;
+	}
+
+	return 0;
+}
+
+// Returns a bitboard of the squares from attacker to target
+static Bitboard SliderRaysToSquare(int attacker, int target) {
+	Bitboard ray;
+	
+	int direction = GetDirection(attacker, target);
+
+	int square = attacker;
+	
+	if (direction) {
+		while (square <= target) {
+			ray.SetBit(square);
+			square += direction;
+		}
+	}
+
+	return ray;
+}
+
+static bool IsPinned(Board &board, int square, int color) {
+	int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
+	int directionToKing = GetDirection(square, kingSquare);
+
+	int currentSquare = square - directionToKing;
+	bool pinner = false;
+	
+	if (directionToKing) {
+		while (currentSquare < 64 && currentSquare >= 0) {
+			if (board.occupied.IsSet(currentSquare)) {
+				int attackerColor = board.GetPieceColor(currentSquare);
+				int attackerType = board.GetPieceType(currentSquare);
+
+				if (attackerColor == !color && (attackerType == Rook
+					|| attackerType == Bishop || attackerType == Queen)) {
+					pinner = true;
+					break;
+				}
+			}
+			currentSquare += -directionToKing;
+		}
+	}
+
+	return pinner;
+}
+
 static void GenPawnMoves(Board &board, bool color) {
 	
 }
@@ -314,6 +428,72 @@ static void GenKingMoves(Board &board, bool color) {
 	}
 }
 
+// Generates moves to get out of check
+static void GenCheckEvasions(Board &board, bool color) {
+	int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
+
+	// Adding moves that step out of check
+	GenKingMoves(board, color);
+
+	Bitboard captureMask = Checkers(board, color); // Checker locations
+	Bitboard pushMask; // Where blockers can move to
+
+	if (captureMask.PopCount() == 1) {
+		int checkerSquare = captureMask.getLS1BIndex();
+		int checkerType = board.GetPieceType(checkerSquare);
+		
+		if (checkerType == Rook || checkerType == Bishop || checkerType == Queen) {
+			pushMask = SliderRaysToSquare(checkerSquare, kingSquare)
+				& ~(Bitboard::GetSquare(kingSquare) | Bitboard::GetSquare(checkerSquare));
+		}
+
+		// looping through own pieces to add captures and blocks
+		for (int type = Pawn; type < King; type++) {
+			Bitboard currentPiece = board.colors[color] & board.pieces[type];
+
+			while (currentPiece.GetBoard()) {
+				Bitboard captures;
+				Bitboard pushes;
+
+				int square = currentPiece.getLS1BIndex();
+
+				if (IsPinned(board, square, color)) {
+					currentPiece.PopBit(square);
+					continue;
+				}
+
+				if (type == Pawn) {
+					pushes |= getPawnPushes(square, color, board.occupied) & pushMask;
+				} else {
+					pushes |= getPieceAttacks(square, type, color, board.occupied.GetBoard()) & pushMask;
+				}
+
+				captures |= getPieceAttacks(square, type, color, board.occupied.GetBoard()) & captureMask;
+
+				while (captures.GetBoard()) {
+					int captureSquare = captures.getLS1BIndex();
+
+					board.AddMove(Move(square, captureSquare, capture));
+
+					captures.PopBit(captureSquare);
+				}
+
+				while (pushes.GetBoard()) {
+					int pushSquare = pushes.getLS1BIndex();
+
+					board.AddMove(Move(square, pushSquare, quiet));
+
+					pushes.PopBit(pushSquare);
+				}
+
+				currentPiece.PopBit(square);
+			}
+		}
+	} else { // We can only step out of double check
+		return;
+	}
+}
+
 void GenAttackMaps(Board &board) {
 	for (int color = White; color <= Black; color++) {
 		for (int type = Pawn; type <= King; type++) {
@@ -344,12 +524,13 @@ void GenAttackMaps(Board &board) {
 	}
 }
 
-// static bool isLegalMove(Board &board, Move move) {
-	
-// }
-
 void GenerateMoves(Board &board, bool side) {
 	board.moveList.clear();
+
+	if (board.InCheck(side)) {
+		GenCheckEvasions(board, side);
+		return;
+	}
 
 	GenPawnMoves(board, side);
 
