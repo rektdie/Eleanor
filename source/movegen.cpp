@@ -373,8 +373,8 @@ static bool IsPinned(Board &board, int square, int color) {
 				if (attackerColor == !color && (attackerType == Rook
 					|| attackerType == Bishop || attackerType == Queen)) {
 					pinner = true;
-					break;
 				}
+				break;
 			}
 			currentSquare += -directionToKing;
 		}
@@ -452,15 +452,15 @@ static void GenCheckEvasions(Board &board, bool color) {
 			Bitboard currentPiece = board.colors[color] & board.pieces[type];
 
 			while (currentPiece.GetBoard()) {
-				Bitboard captures;
-				Bitboard pushes;
-
 				int square = currentPiece.getLS1BIndex();
 
 				if (IsPinned(board, square, color)) {
 					currentPiece.PopBit(square);
 					continue;
 				}
+
+				Bitboard captures;
+				Bitboard pushes;
 
 				if (type == Pawn) {
 					pushes |= getPawnPushes(square, color, board.occupied) & pushMask;
