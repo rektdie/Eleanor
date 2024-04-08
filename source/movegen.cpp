@@ -344,13 +344,11 @@ static Bitboard SliderRaysToSquare(int attacker, int target) {
 	Bitboard ray;
 	
 	int direction = GetDirection(attacker, target);
-
-	int square = attacker;
 	
 	if (direction) {
-		while (square <= target) {
-			ray.SetBit(square);
-			square += direction;
+		while (attacker <= target) {
+			ray.SetBit(attacker);
+			attacker += direction;
 		}
 	}
 
@@ -473,10 +471,15 @@ static void GenCheckEvasions(Board &board, bool color) {
 
 				if (type == Pawn) {
 					pushes |= getPawnPushes(square, color, board.occupied) & pushMask;
-				} else {
-					pushes |= getPieceAttacks(square, type, color, board.occupied.GetBoard()) & pushMask;
+
+					// Checking for en passant capture
+					if ((pawnAttacks[color][square]
+						& Bitboard::GetSquare(board.enPassantTarget)).GetBoard()) {
+						board.AddMove(Move(square, board.enPassantTarget, epCapture));
+					}
 				}
 
+				pushes |= getPieceAttacks(square, type, color, board.occupied.GetBoard()) & pushMask;
 				captures |= getPieceAttacks(square, type, color, board.occupied.GetBoard()) & captureMask;
 
 				while (captures.GetBoard()) {
