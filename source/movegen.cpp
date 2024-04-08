@@ -400,9 +400,9 @@ static bool IsLegalEnPassant(Board &board, int square) {
 
 	// Looking for horizontal checks
 	if (!(kingSquare.GetBoard() & files[A])) {
-		int currentSq = kingSquare.getLS1BIndex() + west;
+		int currentSq = kingSquare.getLS1BIndex() + east;
 
-		while (!Bitboard(files[H]).IsSet(currentSq)) {
+		while (!Bitboard(files[A]).IsSet(currentSq)) {
 			if (newOccupancy.IsSet(currentSq)) {
 				int attackerColor = board.GetPieceColor(currentSq);
 				int attackerType = board.GetPieceType(currentSq);
@@ -411,9 +411,9 @@ static bool IsLegalEnPassant(Board &board, int square) {
 					|| attackerType == Bishop || attackerType == Queen)) {
 					return false;
 				}
-				break;
+				return true;
 			}
-			currentSq += west;
+			currentSq += east;
 		}
 	}
 
@@ -429,7 +429,7 @@ static bool IsLegalEnPassant(Board &board, int square) {
 					|| attackerType == Bishop || attackerType == Queen)) {
 					return false;
 				}
-				break;
+				return true;
 			}
 			currentSq += east;
 		}
