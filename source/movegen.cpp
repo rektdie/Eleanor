@@ -309,7 +309,7 @@ static Bitboard Checkers(Board &board, bool color) {
 
 	for (int type = Pawn; type < King; type++) {
 		Bitboard targets = getPieceAttacks(kingSquare, type, color, board.occupied.GetBoard());
-		checkerBoard |= targets & board.pieces[type];
+		checkerBoard |= targets & board.pieces[type] & board.colors[!color];
 	}
 	return checkerBoard;
 }
@@ -357,30 +357,40 @@ static Bitboard SliderRaysToSquare(int attacker, int target) {
 	return ray;
 }
 
+static Bitboard GetPinningRay(Board &board, int square, int direction) {
+	Bitboard ray;
+
+	if (direction) {
+		while (square < 64 && square >= 0) {
+			ray.SetBit(square);
+			if (board.occupied.IsSet(square)) {
+				int attackerColor = board.GetPieceColor(square);
+				int attackerType = board.GetPieceType(square);
+
+				if (attackerColor == !board.sideToMove && (attackerType == Rook
+					|| attackerType == Bishop || attackerType == Queen)) {
+					return ray;
+				}
+				return 0ULL;
+			}
+			square += direction;
+		}
+	}
+
+	return 0ULL;
+}
+
 static bool IsPinned(Board &board, int square, int color) {
 	int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
 	int directionToKing = GetDirection(square, kingSquare);
 
-	int currentSquare = square - directionToKing;
-	bool pinner = false;
-	
-	if (directionToKing) {
-		while (currentSquare < 64 && currentSquare >= 0) {
-			if (board.occupied.IsSet(currentSquare)) {
-				int attackerColor = board.GetPieceColor(currentSquare);
-				int attackerType = board.GetPieceType(currentSquare);
-
-				if (attackerColor == !color && (attackerType == Rook
-					|| attackerType == Bishop || attackerType == Queen)) {
-					pinner = true;
-				}
-				break;
-			}
-			currentSquare += -directionToKing;
-		}
+	if (SliderRaysToSquare(square, kingSquare).PopCount() != 2) {
+		return false;
 	}
 
-	return pinner;
+	int currentSquare = square - directionToKing;
+	
+	return GetPinningRay(board, currentSquare, -directionToKing).GetBoard();
 }
 
 static void GenPawnMoves(Board &board, bool color) {
@@ -437,7 +447,6 @@ static void GenCheckEvasions(Board &board, bool color) {
 
 	Bitboard captureMask = Checkers(board, color); // Checker locations
 	Bitboard pushMask; // Where blockers can move to
-
 	if (captureMask.PopCount() == 1) {
 		int checkerSquare = captureMask.getLS1BIndex();
 		int checkerType = board.GetPieceType(checkerSquare);
