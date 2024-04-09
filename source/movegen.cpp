@@ -346,12 +346,11 @@ static Bitboard SliderRaysToSquare(int attacker, int target) {
 	int direction = GetDirection(attacker, target);
 	
 	if (direction) {
-		while (attacker <= target) {
+		while (attacker != target) {
 			ray.SetBit(attacker);
 			attacker += direction;
 		}
 	}
-
 	return ray;
 }
 
@@ -382,7 +381,7 @@ static bool IsPinned(Board &board, int square, int color) {
 	int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
 	int directionToKing = GetDirection(square, kingSquare);
 
-	if (SliderRaysToSquare(square, kingSquare).PopCount() != 2) {
+	if ((SliderRaysToSquare(square, kingSquare) & board.occupied).GetBoard()) {
 		return false;
 	}
 
