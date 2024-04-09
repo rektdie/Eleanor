@@ -732,7 +732,7 @@ static void GenQueenMoves(Board &board, bool color) {
 	}
 }
 
-static void GenKingMoves(Board &board, bool color) {
+static void GenKingMoves(Board &board, bool color, bool isInCheck) {
 	int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
 
 	Bitboard moves = (kingAttacks[kingSquare] & ~board.GetAttackMaps(!color)) & ~board.colors[color];
@@ -755,6 +755,29 @@ static void GenKingMoves(Board &board, bool color) {
 
 		captures.PopBit(square);
 	}
+
+	// Generating castles
+	if (!isInCheck) {
+		if (board.castlingRights[color * 2 + 1]) {
+			U64 QueenSide = color ? 0x1f00000000000000 : 0x1f;
+			U64 mask = color ? 0x1c00000000000000 : 0x1c;
+			int targetSquare = color ? c8 : c1;
+			if ((Bitboard(QueenSide) & board.occupied).PopCount() == 2
+				&& !(mask & board.GetAttackMaps(!color))) {
+				board.AddMove(Move(kingSquare, targetSquare, queenCastle));
+			}
+		}
+
+		if (board.castlingRights[color * 2]) {
+			U64 KingSide = color ? 0xf000000000000000 : 0xf0;
+			U64 mask = color ? 0x7000000000000000 : 0x70;
+			int targetSquare = color ? g8 : g1;
+			if ((Bitboard(KingSide) & board.occupied).PopCount() == 2
+				&& !(mask & board.GetAttackMaps(!color))) {
+				board.AddMove(Move(kingSquare, targetSquare, kingCastle));
+			}
+		}
+	}
 }
 
 // Generates moves to get out of check
@@ -762,7 +785,7 @@ static void GenCheckEvasions(Board &board, bool color) {
 	int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
 
 	// Adding moves that step out of check
-	GenKingMoves(board, color);
+	GenKingMoves(board, color, true);
 
 	Bitboard captureMask = Checkers(board, color); // Checker locations
 	Bitboard pushMask; // Where blockers can move to
@@ -875,5 +898,5 @@ void GenerateMoves(Board &board, bool side) {
 
 	GenQueenMoves(board, side);
 
-	GenKingMoves(board, side);
+	GenKingMoves(board, side, false);
 }
