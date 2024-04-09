@@ -497,18 +497,36 @@ static void GenPawnMoves(Board &board, bool color) {
 		// Removing own pieces from capture mask
 		captures &= board.colors[!color];
 
+		Bitboard lastRank = color ? ranks[r_1] : ranks[r_8];
+
 		while (pushes.GetBoard()) {
 			int pushSquare = pushes.getLS1BIndex();
 
-			board.AddMove(Move(square, pushSquare, quiet));
+			// Checking for promotion
+			if (lastRank.IsSet(pushSquare)) {
+				board.AddMove(Move(square, pushSquare, knightPromotion));
+				board.AddMove(Move(square, pushSquare, bishopPromotion));
+				board.AddMove(Move(square, pushSquare, rookPromotion));
+				board.AddMove(Move(square, pushSquare, queenPromotion));
+			} else {
+				board.AddMove(Move(square, pushSquare, quiet));
+			}
 
 			pushes.PopBit(pushSquare);
 		}
 
 		while (captures.GetBoard()) {
-			int targetSquare = pushes.getLS1BIndex();
+			int targetSquare = captures.getLS1BIndex();
 
-			board.AddMove(Move(square, targetSquare, capture));
+			// Checking for promotion
+			if (lastRank.IsSet(targetSquare)) {
+				board.AddMove(Move(square, targetSquare, knightPromoCapture));
+				board.AddMove(Move(square, targetSquare, bishopPromoCapture));
+				board.AddMove(Move(square, targetSquare, rookPromoCapture));
+				board.AddMove(Move(square, targetSquare, queenPromoCapture));
+			} else {
+				board.AddMove(Move(square, targetSquare, capture));
+			}
 
 			captures.PopBit(targetSquare);
 		}
