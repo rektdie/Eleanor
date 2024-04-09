@@ -297,5 +297,99 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 }
 
 void Board::MakeMove(Move move) {
-	
+	int attackerPiece = GetPieceType(move.MoveFrom());
+	int attackerColor = GetPieceColor(move.MoveFrom());
+
+	int targetPiece = GetPieceType(move.MoveTo());
+	int direction = attackerColor ? south : north;
+
+	// Removing attacker piece from old position
+	RemovePiece(attackerPiece, move.MoveFrom(), attackerColor);
+
+	switch (move.GetFlags())
+	{
+	case quiet:
+		SetPiece(attackerPiece, move.MoveTo(), attackerColor);
+		break;
+	case doublePawnPush:
+		SetPiece(attackerPiece, move.MoveTo(), attackerColor);
+		enPassantTarget = move.MoveFrom() + direction;
+		break;
+	case capture:
+		RemovePiece(targetPiece, move.MoveTo(), !attackerColor);
+		SetPiece(attackerPiece, move.MoveTo(), attackerColor);
+		break;
+	case epCapture:
+		RemovePiece(Pawn, move.MoveTo() - direction, !attackerColor);
+		SetPiece(attackerPiece, move.MoveTo(), attackerColor);
+		break;
+	case kingCastle:
+		{
+			int rookSquare = attackerColor ? h8 : h1;
+			
+			// Removing rook from old position
+			RemovePiece(Rook, rookSquare, attackerColor);
+
+			// Setting rook on new position
+			SetPiece(Rook, rookSquare - 2, attackerColor);
+
+			SetPiece(attackerPiece, move.MoveTo(), attackerColor);
+			break;
+		}
+	case queenCastle:
+		{
+			int rookSquare = attackerColor ? a8 : a1;
+
+			// Removing rook from old position
+			RemovePiece(Rook, rookSquare, attackerColor);
+
+			// Setting rook on new position
+			SetPiece(Rook, rookSquare + 3, attackerColor);
+
+			SetPiece(attackerPiece, move.MoveTo(), attackerColor);
+			break;
+		}
+	case knightPromotion:
+		Promote(move.MoveTo(), Knight, attackerColor, false);
+		break;
+	case bishopPromotion:
+		Promote(move.MoveTo(), Bishop, attackerColor, false);
+		break;
+	case rookPromotion:
+		Promote(move.MoveTo(), Rook, attackerColor, false);
+		break;
+	case queenPromotion:
+		Promote(move.MoveTo(), Queen, attackerColor, false);
+		break;
+	case knightPromoCapture:
+		Promote(move.MoveTo(), Knight, attackerColor, true);
+		break;
+	case bishopPromoCapture:
+		Promote(move.MoveTo(), Bishop, attackerColor, true);
+		break;
+	case rookPromoCapture:
+		Promote(move.MoveTo(), Rook, attackerColor, true);
+		break;
+	case queenPromoCapture:
+		Promote(move.MoveTo(), Queen, attackerColor, true);
+		break;
+	default:
+		break;
+	}
+
+	// Removing the right to castle on king and rook movement
+	if (attackerPiece == King) {
+		castlingRights[attackerColor * 2] = false;
+		castlingRights[attackerColor * 2 + 1] = false;
+	} else if (attackerPiece == Rook) {
+		if ((Bitboard::GetSquare(move.MoveFrom()) & files[A] & (ranks[r_1] | ranks[r_8])).GetBoard()) {
+			castlingRights[attackerColor * 2 + 1] = false;
+		} else if ((Bitboard::GetSquare(move.MoveFrom()) & files[H] & (ranks[r_1] | ranks[r_8])).GetBoard()) {
+			castlingRights[attackerColor * 2] = false;
+		}
+	}
+
+	halfMoves++;
+	if (halfMoves & 2 == 0) fullMoves++;
+	sideToMove = !attackerColor;
 }
