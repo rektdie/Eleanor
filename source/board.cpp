@@ -113,10 +113,14 @@ void Board::SetByFen(const char* fen) {
 			section++;
 			continue;
 		case 'w':
-			sideToMove = White;
+			if (section == 0) {
+				sideToMove = White;
+			}
 			break;
 		case 'b':
-			sideToMove = Black;
+			if (section == 0) {
+				sideToMove = Black;
+			}
 			break;
 		case 'K':
 			castlingRights[White] = true;

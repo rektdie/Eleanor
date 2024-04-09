@@ -318,21 +318,21 @@ static Bitboard Checkers(Board &board, bool color) {
 static int GetDirection(int square, int target) {
 	int difference = target - square;
 
-	if (difference % north == 0) {
+	if (difference - north == 0) {
 		return north;
-	} else if (difference % south == 0) {
+	} else if (difference - south == 0) {
 		return south;
-	} else if (difference % noWe == 0) {
+	} else if (difference - noWe == 0) {
 		return noWe;
-	} else if (difference % noEa == 0) {
+	} else if (difference - noEa == 0) {
 		return noEa;
-	} else if (difference % soWe == 0) {
+	} else if (difference - soWe == 0) {
 		return soWe;
-	} else if (difference % soEa == 0) {
+	} else if (difference - soEa == 0) {
 		return soEa;
-	} else if (difference < 0 && difference > -8) {
+	} else if (ranks[square / 8] == ranks[target / 8] && target < square) {
 		return west;
-	} else if (difference > 0 && difference < 8) {
+	} else if (ranks[square / 8] == ranks[target / 8] && target > square) {
 		return east;
 	}
 
@@ -344,6 +344,7 @@ static Bitboard SliderRaysToSquare(int attacker, int target) {
 	Bitboard ray;
 	
 	int direction = GetDirection(attacker, target);
+	attacker += direction;
 	
 	if (direction) {
 		while (attacker != target) {
@@ -358,7 +359,13 @@ static Bitboard GetPinningRay(Board &board, int square, int direction) {
 	Bitboard ray;
 
 	if (direction) {
+		int previousRank = (square - direction) / 7;
 		while (square < 64 && square >= 0) {
+			int currentRank = square / 7;
+
+			if (abs(currentRank - previousRank) > 1) break;
+			previousRank = currentRank;
+
 			ray.SetBit(square);
 			if (board.occupied.IsSet(square)) {
 				int attackerColor = board.GetPieceColor(square);
@@ -386,7 +393,6 @@ static bool IsPinned(Board &board, int square, int color) {
 	}
 
 	int currentSquare = square - directionToKing;
-	
 	return GetPinningRay(board, currentSquare, -directionToKing).GetBoard();
 }
 
@@ -811,8 +817,7 @@ static void GenCheckEvasions(Board &board, bool color) {
 		int checkerType = board.GetPieceType(checkerSquare);
 		
 		if (checkerType == Rook || checkerType == Bishop || checkerType == Queen) {
-			pushMask = SliderRaysToSquare(checkerSquare, kingSquare)
-				& ~(Bitboard::GetSquare(kingSquare) | Bitboard::GetSquare(checkerSquare));
+			pushMask = SliderRaysToSquare(checkerSquare, kingSquare);
 		}
 
 		// looping through own pieces to add captures and blocks
