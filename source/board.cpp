@@ -8,7 +8,7 @@ void Board::Init() {
 
 void Board::Reset() {
 	castlingRights = { false, false, false, false };
-	enPassantTarget = 0;
+	enPassantTarget = -1;
 	halfMoves = 0;
 	fullMoves = 0;
 	sideToMove = White;

@@ -9,9 +9,9 @@ int main() {
 	initSliderAttacks();
 
 	Board board;
-	board.SetByFen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
+	board.SetByFen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1R1K b kq - 1 1");
 	board.PrintBoard();
-	Perft(board, 1);
+	Perft(board, 2);
 
 	return 0;
 }

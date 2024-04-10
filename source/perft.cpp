@@ -32,6 +32,19 @@ void Perft(Board &board, int depth) {
         totalNodes += nodeCount;
         std::cout << squareCoords[board.moveList[i].MoveFrom()]
             << squareCoords[board.moveList[i].MoveTo()];
+        
+        // Promotions
+        int flags = board.moveList[i].GetFlags();
+        if (flags == knightPromotion || flags == knightPromoCapture) {
+            std::cout << 'n';
+        } else if (flags == bishopPromotion || flags == bishopPromoCapture) {
+            std::cout << 'b';
+        } else if (flags == rookPromotion || flags == rookPromoCapture) {
+            std::cout << 'r';
+        } else if (flags == queenPromotion || flags == queenPromoCapture) {
+            std::cout << 'q';
+        }
+
         std::cout << ": " << nodeCount << '\n';
     }
     auto finish = std::chrono::steady_clock::now();
