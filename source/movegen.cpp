@@ -824,6 +824,7 @@ static void GenCheckEvasions(Board &board, bool color) {
 		
 		if (checkerType == Rook || checkerType == Bishop || checkerType == Queen) {
 			pushMask = SliderRayToSquare(checkerSquare, kingSquare);
+			pushMask.PopBit(kingSquare);
 		}
 
 		// looping through own pieces to add captures and blocks
@@ -843,15 +844,15 @@ static void GenCheckEvasions(Board &board, bool color) {
 
 				if (type == Pawn) {
 					pushes |= getPawnPushes(square, color, board.occupied) & pushMask;
-
 					// Checking for en passant capture
 					if ((pawnAttacks[color][square]
 						& Bitboard::GetSquare(board.enPassantTarget)).GetBoard()) {
 						board.AddMove(Move(square, board.enPassantTarget, epCapture));
 					}
+				} else {
+					pushes |= getPieceAttacks(square, type, color, board.occupied.GetBoard()) & pushMask;
 				}
 
-				pushes |= getPieceAttacks(square, type, color, board.occupied.GetBoard()) & pushMask;
 				captures |= getPieceAttacks(square, type, color, board.occupied.GetBoard()) & captureMask;
 
 				while (captures.GetBoard()) {
