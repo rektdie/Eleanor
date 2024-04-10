@@ -9,7 +9,8 @@ int main() {
 	initSliderAttacks();
 
 	Board board;
-	Perft(board, 4);
+	board.PrintBoard();
+	Perft(board, 3);
 
 	return 0;
 }

@@ -318,17 +318,17 @@ static Bitboard Checkers(Board &board, bool color) {
 static int GetDirection(int square, int target) {
 	int difference = target - square;
 
-	if (difference - north == 0) {
+	if (difference % north == 0 && difference > 0) {
 		return north;
-	} else if (difference - south == 0) {
+	} else if (difference % south == 0 && difference < 0) {
 		return south;
-	} else if (difference - noWe == 0) {
+	} else if (difference % noWe == 0 && difference > 0) {
 		return noWe;
-	} else if (difference - noEa == 0) {
+	} else if (difference % noEa == 0 && difference > 0) {
 		return noEa;
-	} else if (difference - soWe == 0) {
+	} else if (difference % soWe == 0 && difference < 0) {
 		return soWe;
-	} else if (difference - soEa == 0) {
+	} else if (difference % soEa == 0 && difference < 0) {
 		return soEa;
 	} else if (ranks[square / 8] == ranks[target / 8] && target < square) {
 		return west;
@@ -340,60 +340,66 @@ static int GetDirection(int square, int target) {
 }
 
 // Returns a bitboard of the squares from attacker to target
-static Bitboard SliderRaysToSquare(int attacker, int target) {
+static Bitboard SliderRayToSquare(int attacker, int target) {
 	Bitboard ray;
-	
 	int direction = GetDirection(attacker, target);
-	attacker += direction;
-	
+
 	if (direction) {
 		while (attacker != target) {
 			ray.SetBit(attacker);
 			attacker += direction;
 		}
+		ray.SetBit(target);
 	}
+
 	return ray;
 }
 
 static Bitboard GetPinningRay(Board &board, int square, int direction) {
 	Bitboard ray;
+	int previousRank = square / 8;
 
-	if (direction) {
-		int previousRank = (square - direction) / 7;
-		while (square < 64 && square >= 0) {
-			int currentRank = square / 7;
+	square += direction;
+	while (square < 64 && square >= 0) {
+		int currentRank = square / 8;
 
-			if (abs(currentRank - previousRank) > 1) break;
-			previousRank = currentRank;
+		if (abs(currentRank - previousRank) > 1) break;
+		previousRank = currentRank;
 
-			ray.SetBit(square);
-			if (board.occupied.IsSet(square)) {
-				int attackerColor = board.GetPieceColor(square);
-				int attackerType = board.GetPieceType(square);
+		ray.SetBit(square);
+		if (board.occupied.IsSet(square)) {
+			int attackerType = board.GetPieceType(square);
+			int attackerColor = board.GetPieceColor(square);
 
-				if (attackerColor == !board.sideToMove && (attackerType == Rook
-					|| attackerType == Bishop || attackerType == Queen)) {
+			if (attackerColor != board.sideToMove) {
+				if (attackerType == Rook|| attackerType == Bishop
+					|| attackerType == Queen) {
 					return ray;
 				}
-				return 0ULL;
 			}
-			square += direction;
+			break;
 		}
+		square += direction;
 	}
 
 	return 0ULL;
 }
 
-static bool IsPinned(Board &board, int square, int color) {
-	int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
+static bool IsPinned(Board &board, int square) {
+	int kingSquare = (board.colors[board.sideToMove] & board.pieces[King]).getLS1BIndex();
 	int directionToKing = GetDirection(square, kingSquare);
 
-	if ((SliderRaysToSquare(square, kingSquare) & board.occupied).GetBoard()) {
-		return false;
+	if (directionToKing) {
+		// Checking if there are any pieces between square and kingSquare
+		if ((SliderRayToSquare(square, kingSquare)
+			& board.occupied).PopCount() != 2) {
+			return false;
+		}
+
+		return GetPinningRay(board, square, -directionToKing).PopCount();
 	}
 
-	int currentSquare = square - directionToKing;
-	return GetPinningRay(board, currentSquare, -directionToKing).GetBoard();
+	return false;
 }
 
 static bool IsLegalEnPassant(Board &board, int square) {
@@ -452,7 +458,7 @@ static void GenPawnMoves(Board &board, bool color) {
 		Bitboard pushes = getPawnPushes(square, color, board.occupied);
 		Bitboard captures = pawnAttacks[color][square];
 
-		if (IsPinned(board, square, color)) {
+		if (IsPinned(board, square)) {
 			int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
 			int directionToKing = GetDirection(square, kingSquare);
 
@@ -546,7 +552,7 @@ static void GenKnightMoves(Board &board, bool color) {
 	while (knights.GetBoard()) {
 		int square = knights.getLS1BIndex();
 
-		if (IsPinned(board, square, color)) {
+		if (IsPinned(board, square)) {
 			knights.PopBit(square);
 			continue;
 		}
@@ -585,7 +591,7 @@ static void GenRookMoves(Board &board, bool color) {
 		Bitboard captures = moves & board.colors[!color];
 		moves &= ~captures;
 
-		if (IsPinned(board, square, color)) {
+		if (IsPinned(board, square)) {
 			int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
 			int directionToKing = GetDirection(square, kingSquare);
 
@@ -645,7 +651,7 @@ static void GenBishopMoves(Board &board, bool color) {
 		Bitboard captures = moves & board.colors[!color];
 		moves &= ~captures;
 
-		if (IsPinned(board, square, color)) {
+		if (IsPinned(board, square)) {
 			int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
 			int directionToKing = GetDirection(square, kingSquare);
 
@@ -705,7 +711,7 @@ static void GenQueenMoves(Board &board, bool color) {
 		Bitboard captures = moves & board.colors[!color];
 		moves &= ~captures;
 
-		if (IsPinned(board, square, color)) {
+		if (IsPinned(board, square)) {
 			int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
 			int directionToKing = GetDirection(square, kingSquare);
 
@@ -817,7 +823,7 @@ static void GenCheckEvasions(Board &board, bool color) {
 		int checkerType = board.GetPieceType(checkerSquare);
 		
 		if (checkerType == Rook || checkerType == Bishop || checkerType == Queen) {
-			pushMask = SliderRaysToSquare(checkerSquare, kingSquare);
+			pushMask = SliderRayToSquare(checkerSquare, kingSquare);
 		}
 
 		// looping through own pieces to add captures and blocks
@@ -827,7 +833,7 @@ static void GenCheckEvasions(Board &board, bool color) {
 			while (currentPiece.GetBoard()) {
 				int square = currentPiece.getLS1BIndex();
 
-				if (IsPinned(board, square, color)) {
+				if (IsPinned(board, square)) {
 					currentPiece.PopBit(square);
 					continue;
 				}
@@ -911,14 +917,9 @@ void GenerateMoves(Board &board, bool side) {
 	}
 
 	GenPawnMoves(board, side);
-
 	GenKnightMoves(board, side);
-
-	GenRookMoves(board, side);
-
-	GenBishopMoves(board, side);
-
-	GenQueenMoves(board, side);
-
 	GenKingMoves(board, side, false);
+	GenBishopMoves(board, side);
+	GenRookMoves(board, side);
+	GenQueenMoves(board, side);
 }
