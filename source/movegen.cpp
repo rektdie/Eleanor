@@ -467,13 +467,9 @@ static void GenPawnMoves(Board &board, bool color) {
 
 		if (IsPinned(board, square)) {
 			int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
-			if (square == g2) {
-				GetPinningRay(board, square, -GetDirection(square, kingSquare)).PrintBoard();
-			}
 			int directionToKing = GetDirection(square, kingSquare);
 
-			Bitboard pinningRay = GetPinningRay(board, square - directionToKing, -directionToKing);
-
+			Bitboard pinningRay = GetPinningRay(board, square, -directionToKing);
 			pushes &= pinningRay;
 			captures &= pinningRay;
 
@@ -496,7 +492,7 @@ static void GenPawnMoves(Board &board, bool color) {
 			}
 
 			while (captures.GetBoard()) {
-				int targetSquare = pushes.getLS1BIndex();
+				int targetSquare = captures.getLS1BIndex();
 
 				board.AddMove(Move(square, targetSquare, capture));
 
@@ -605,7 +601,7 @@ static void GenRookMoves(Board &board, bool color) {
 			int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
 			int directionToKing = GetDirection(square, kingSquare);
 
-			Bitboard pinningRay = GetPinningRay(board, square - directionToKing, -directionToKing);
+			Bitboard pinningRay = GetPinningRay(board, square, -directionToKing);
 
 			moves &= pinningRay;
 			captures &= pinningRay;
@@ -665,7 +661,7 @@ static void GenBishopMoves(Board &board, bool color) {
 			int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
 			int directionToKing = GetDirection(square, kingSquare);
 
-			Bitboard pinningRay = GetPinningRay(board, square - directionToKing, -directionToKing);
+			Bitboard pinningRay = GetPinningRay(board, square, -directionToKing);
 
 			moves &= pinningRay;
 			captures &= pinningRay;
@@ -725,7 +721,7 @@ static void GenQueenMoves(Board &board, bool color) {
 			int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
 			int directionToKing = GetDirection(square, kingSquare);
 
-			Bitboard pinningRay = GetPinningRay(board, square - directionToKing, -directionToKing);
+			Bitboard pinningRay = GetPinningRay(board, square, -directionToKing);
 
 			moves &= pinningRay;
 			captures &= pinningRay;
