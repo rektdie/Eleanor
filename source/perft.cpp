@@ -55,5 +55,5 @@ void Perft(Board &board, int depth) {
     std::cout << "\nDepth: " << depth << '\n';
     std::cout << "Total nodes: " << totalNodes << '\n';
     std::cout << "Time took: " << elapsed_seconds << "s (";
-    std::cout << int(totalNodes / elapsed_seconds * 1000) << " nodes/sec)\n";
+    std::cout << int(totalNodes / elapsed_seconds) << " nodes/sec)\n";
 }

@@ -363,7 +363,14 @@ static Bitboard GetPinningRay(Board &board, int square, int direction) {
 	while (square < 64 && square >= 0) {
 		int currentRank = square / 8;
 
-		if (abs(currentRank - previousRank) > 1) break;
+		int difference = abs(currentRank - previousRank);
+
+		if ((abs(direction) == 7 || abs(direction) == 9)
+			&& difference != 1) {
+				break;
+		} else if (abs(direction) == 1 && difference) {
+			break;
+		}
 		previousRank = currentRank;
 
 		ray.SetBit(square);
