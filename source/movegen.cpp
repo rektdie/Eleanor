@@ -372,9 +372,16 @@ static Bitboard GetPinningRay(Board &board, int square, int direction) {
 			int attackerColor = board.GetPieceColor(square);
 
 			if (attackerColor != board.sideToMove) {
-				if (attackerType == Rook|| attackerType == Bishop
-					|| attackerType == Queen) {
-					return ray;
+				// Pinned by rook or queen
+				if (abs(direction) == 1 || abs(direction) == 8) {
+					if (attackerType == Rook || attackerType == Queen) {
+						return ray;
+					}
+				// Pinned by bishop or queen
+				} else if (direction % 2 != 0) {
+					if (attackerType == Bishop || attackerType == Queen) {
+						return ray;
+					}
 				}
 			}
 			break;
@@ -460,6 +467,9 @@ static void GenPawnMoves(Board &board, bool color) {
 
 		if (IsPinned(board, square)) {
 			int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
+			if (square == g2) {
+				GetPinningRay(board, square, -GetDirection(square, kingSquare)).PrintBoard();
+			}
 			int directionToKing = GetDirection(square, kingSquare);
 
 			Bitboard pinningRay = GetPinningRay(board, square - directionToKing, -directionToKing);
