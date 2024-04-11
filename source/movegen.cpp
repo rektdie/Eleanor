@@ -825,6 +825,7 @@ static void GenCheckEvasions(Board &board, bool color) {
 		if (checkerType == Rook || checkerType == Bishop || checkerType == Queen) {
 			pushMask = SliderRayToSquare(checkerSquare, kingSquare);
 			pushMask.PopBit(kingSquare);
+			pushMask.PopBit(checkerSquare);
 		}
 
 		// looping through own pieces to add captures and blocks
@@ -854,7 +855,6 @@ static void GenCheckEvasions(Board &board, bool color) {
 				}
 
 				captures |= getPieceAttacks(square, type, color, board.occupied.GetBoard()) & captureMask;
-
 				while (captures.GetBoard()) {
 					int captureSquare = captures.getLS1BIndex();
 

@@ -396,4 +396,6 @@ void Board::MakeMove(Move move) {
 	halfMoves++;
 	if (halfMoves & 2 == 0) fullMoves++;
 	sideToMove = !attackerColor;
+
+	GenAttackMaps(*this);
 }
