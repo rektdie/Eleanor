@@ -357,11 +357,12 @@ static Bitboard SliderRayToSquare(int attacker, int target) {
 
 static Bitboard GetPinningRay(Board &board, int square, int direction) {
 	Bitboard ray;
-	int previousRank = square / 8;
+	int currentSquare = (board.pieces[King] & board.colors[board.sideToMove]).getLS1BIndex();
+	int previousRank = currentSquare / 8;
 
-	square += direction;
-	while (square < 64 && square >= 0) {
-		int currentRank = square / 8;
+	currentSquare += direction;
+	while (currentSquare < 64 && currentSquare >= 0) {
+		int currentRank = currentSquare / 8;
 
 		int difference = abs(currentRank - previousRank);
 
@@ -373,10 +374,14 @@ static Bitboard GetPinningRay(Board &board, int square, int direction) {
 		}
 		previousRank = currentRank;
 
-		ray.SetBit(square);
-		if (board.occupied.IsSet(square)) {
-			int attackerType = board.GetPieceType(square);
-			int attackerColor = board.GetPieceColor(square);
+		ray.SetBit(currentSquare);
+		if (board.occupied.IsSet(currentSquare)) {
+			if (currentSquare == square) {
+				currentSquare += direction;
+				continue;
+			}
+			int attackerType = board.GetPieceType(currentSquare);
+			int attackerColor = board.GetPieceColor(currentSquare);
 
 			if (attackerColor != board.sideToMove) {
 				// Pinned by rook or queen
@@ -393,7 +398,7 @@ static Bitboard GetPinningRay(Board &board, int square, int direction) {
 			}
 			break;
 		}
-		square += direction;
+		currentSquare += direction;
 	}
 
 	return 0ULL;
@@ -409,7 +414,7 @@ static bool IsPinned(Board &board, int square) {
 			& board.occupied).PopCount() != 2) {
 			return false;
 		}
-
+		
 		return GetPinningRay(board, square, -directionToKing).PopCount();
 	}
 

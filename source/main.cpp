@@ -10,7 +10,7 @@ int main() {
 
 	Board board;
 	board.SetByFen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
-	Perft(board, 2);
+	Perft(board, 3);
 
 	return 0;
 }
