@@ -222,7 +222,7 @@ void Board::PrintBoard() {
 	} else {
 		std::cout << "Black\n";
 	}
-	if (enPassantTarget != 0) {
+	if (enPassantTarget >= 0) {
 		std::cout << "      En Passant square: " << squareCoords[enPassantTarget] << '\n';
 	} else {
 		std::cout << "      En Passant square: None" << '\n';
@@ -322,6 +322,13 @@ void Board::MakeMove(Move move) {
 	case capture:
 		RemovePiece(targetPiece, move.MoveTo(), !attackerColor);
 		SetPiece(attackerPiece, move.MoveTo(), attackerColor);
+
+		if (targetPiece == Rook) {
+			int queenSide = move.MoveTo() % 8 == 0;
+
+			castlingRights[!attackerColor * 2 + queenSide] = false;
+		}
+
 		break;
 	case epCapture:
 		RemovePiece(Pawn, move.MoveTo() - direction, !attackerColor);
