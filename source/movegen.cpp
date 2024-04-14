@@ -538,11 +538,7 @@ static void GenPawnMoves(Board &board, bool color) {
 				board.AddMove(Move(square, pushSquare, rookPromotion));
 				board.AddMove(Move(square, pushSquare, queenPromotion));
 			} else {
-				if (abs(pushSquare - square) == 16) {
-					board.AddMove(Move(square, pushSquare, doublePawnPush));
-				} else {
-					board.AddMove(Move(square, pushSquare, quiet));
-				}
+				board.AddMove(Move(square, pushSquare, quiet));
 			}
 
 			pushes.PopBit(pushSquare);
@@ -888,11 +884,7 @@ static void GenCheckEvasions(Board &board, bool color) {
 				while (pushes.GetBoard()) {
 					int pushSquare = pushes.getLS1BIndex();
 
-					if (type == Pawn && abs(pushSquare - square) == 16) {
-						board.AddMove(Move(square, pushSquare, doublePawnPush));
-					} else {
-						board.AddMove(Move(square, pushSquare, quiet));
-					}
+					board.AddMove(Move(square, pushSquare, quiet));
 
 					pushes.PopBit(pushSquare);
 				}
