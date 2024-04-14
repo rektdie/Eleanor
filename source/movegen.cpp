@@ -498,7 +498,11 @@ static void GenPawnMoves(Board &board, bool color) {
 			while (pushes.GetBoard()) {
 				int pushSquare = pushes.getLS1BIndex();
 
-				board.AddMove(Move(square, pushSquare, quiet));
+				if (abs(square - pushSquare) == 16) {
+					board.AddMove(Move(square, pushSquare, doublePawnPush));
+				} else {
+					board.AddMove(Move(square, pushSquare, quiet));
+				}
 
 				pushes.PopBit(pushSquare);
 			}
@@ -538,7 +542,11 @@ static void GenPawnMoves(Board &board, bool color) {
 				board.AddMove(Move(square, pushSquare, rookPromotion));
 				board.AddMove(Move(square, pushSquare, queenPromotion));
 			} else {
-				board.AddMove(Move(square, pushSquare, quiet));
+				if (abs(square - pushSquare) == 16) {
+					board.AddMove(Move(square, pushSquare, doublePawnPush));
+				} else {
+					board.AddMove(Move(square, pushSquare, quiet));
+				}
 			}
 
 			pushes.PopBit(pushSquare);
@@ -884,7 +892,11 @@ static void GenCheckEvasions(Board &board, bool color) {
 				while (pushes.GetBoard()) {
 					int pushSquare = pushes.getLS1BIndex();
 
-					board.AddMove(Move(square, pushSquare, quiet));
+					if (type == Pawn && abs(square - pushSquare) == 16) {
+						board.AddMove(Move(square, pushSquare, doublePawnPush));
+					} else {
+						board.AddMove(Move(square, pushSquare, quiet));
+					}
 
 					pushes.PopBit(pushSquare);
 				}

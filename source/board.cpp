@@ -291,10 +291,25 @@ void Board::RemovePiece(int piece, int square, bool color) {
 	occupied.PopBit(square);
 }
 
+// Updates castling rights on capturing (only if needed)
+static void UpdateCastlingRights(Board &board, int targetPiece, int targetSquare, int attackerColor) {
+	if (targetPiece == Rook) {
+		int queenSideRook = attackerColor ? a1 : a8;
+		int kingSideRook = attackerColor ? a8 : h8;
+
+		if (targetSquare == queenSideRook) {
+			board.castlingRights[!attackerColor * 2 + 1] = false;
+		} else if (targetSquare == kingSideRook) {
+			board.castlingRights[!attackerColor * 2] = false;
+		}
+	}
+}
+
 void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 	if (isCapture) {
 		int targetType = GetPieceType(square);
 		RemovePiece(targetType, square, !color);
+		UpdateCastlingRights(*this, targetType, square, color);
 	}
 
 	SetPiece(pieceType, square, color);
@@ -307,6 +322,8 @@ void Board::MakeMove(Move move) {
 	int targetPiece = GetPieceType(move.MoveTo());
 	int direction = attackerColor ? south : north;
 
+	int newEpTarget = -1;
+
 	// Removing attacker piece from old position
 	RemovePiece(attackerPiece, move.MoveFrom(), attackerColor);
 
@@ -317,17 +334,13 @@ void Board::MakeMove(Move move) {
 		break;
 	case doublePawnPush:
 		SetPiece(attackerPiece, move.MoveTo(), attackerColor);
-		enPassantTarget = move.MoveFrom() + direction;
+		newEpTarget = move.MoveFrom() + direction;
 		break;
 	case capture:
 		RemovePiece(targetPiece, move.MoveTo(), !attackerColor);
 		SetPiece(attackerPiece, move.MoveTo(), attackerColor);
 
-		if (targetPiece == Rook) {
-			int queenSide = move.MoveTo() % 8 == 0;
-
-			castlingRights[!attackerColor * 2 + queenSide] = false;
-		}
+		UpdateCastlingRights(*this, targetPiece, move.MoveTo(), attackerColor);
 
 		break;
 	case epCapture:
@@ -403,6 +416,7 @@ void Board::MakeMove(Move move) {
 	halfMoves++;
 	if (halfMoves & 2 == 0) fullMoves++;
 	sideToMove = !attackerColor;
+	enPassantTarget = newEpTarget;
 
 	GenAttackMaps(*this);
 }
