@@ -295,7 +295,7 @@ void Board::RemovePiece(int piece, int square, bool color) {
 static void UpdateCastlingRights(Board &board, int targetPiece, int targetSquare, int attackerColor) {
 	if (targetPiece == Rook) {
 		int queenSideRook = attackerColor ? a1 : a8;
-		int kingSideRook = attackerColor ? a8 : h8;
+		int kingSideRook = attackerColor ? h1 : h8;
 
 		if (targetSquare == queenSideRook) {
 			board.castlingRights[!attackerColor * 2 + 1] = false;

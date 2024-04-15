@@ -316,24 +316,31 @@ static Bitboard Checkers(Board &board, bool color) {
 
 // Returns the direction to target from square
 static int GetDirection(int square, int target) {
-	int difference = target - square;
+	int rankDiff = (target / 8) - (square / 8);
+	int fileDiff = (target % 8) - (square % 8);
 
-	if (difference % north == 0 && difference > 0) {
-		return north;
-	} else if (difference % south == 0 && difference < 0) {
-		return south;
-	} else if (difference % noWe == 0 && difference > 0) {
-		return noWe;
-	} else if (difference % noEa == 0 && difference > 0) {
-		return noEa;
-	} else if (difference % soWe == 0 && difference < 0) {
-		return soWe;
-	} else if (difference % soEa == 0 && difference < 0) {
-		return soEa;
-	} else if (ranks[square / 8] == ranks[target / 8] && target < square) {
+	// Main directions
+	if (rankDiff == 0 && fileDiff < 0) {
 		return west;
-	} else if (ranks[square / 8] == ranks[target / 8] && target > square) {
+	} else if (rankDiff == 0 && fileDiff > 0) {
 		return east;
+	} else if (rankDiff < 0 && fileDiff == 0) {
+		return south;
+	} else if (rankDiff > 0 && fileDiff == 0) {
+		return north;
+	}
+
+	// Diagonals
+	if (abs(rankDiff) == abs(fileDiff)) {
+		if (rankDiff < 0 && fileDiff < 0) {
+			return soWe;
+		} else if (rankDiff < 0 && fileDiff > 0) {
+			return soEa;
+		} else if (rankDiff > 0 && fileDiff < 0) {
+			return noWe;
+		} else if (rankDiff > 0 && fileDiff > 0) {
+			return noEa;
+		}
 	}
 
 	return 0;
@@ -853,7 +860,7 @@ static void GenCheckEvasions(Board &board, bool color) {
 			pushMask.PopBit(kingSquare);
 			pushMask.PopBit(checkerSquare);
 		}
-
+		
 		// looping through own pieces to add captures and blocks
 		for (int type = Pawn; type < King; type++) {
 			Bitboard currentPiece = board.colors[color] & board.pieces[type];
