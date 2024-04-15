@@ -879,9 +879,20 @@ static void GenCheckEvasions(Board &board, bool color) {
 				if (type == Pawn) {
 					pushes |= getPawnPushes(square, color, board.occupied) & pushMask;
 					// Checking for en passant capture
-					if ((pawnAttacks[color][square]
-						& Bitboard::GetSquare(board.enPassantTarget)).GetBoard()) {
-						board.AddMove(Move(square, board.enPassantTarget, epCapture));
+					Bitboard attackedSquare = pawnAttacks[color][square]
+						& Bitboard::GetSquare(board.enPassantTarget);
+					if (attackedSquare.GetBoard()) {
+						// Checking if it's legal
+						if (IsLegalEnPassant(board, square)) {
+							int direction = color ? south : north;
+							int targetSquare = captureMask.getLS1BIndex() + direction;
+							captureMask.SetBit(targetSquare);
+							if ((attackedSquare & pushMask).GetBoard()
+								|| (attackedSquare & captureMask).GetBoard()) {
+								board.AddMove(Move(square, board.enPassantTarget, epCapture));
+							}
+							captureMask.PopBit(targetSquare);
+						}
 					}
 				} else {
 					pushes |= getPieceAttacks(square, type, color, board.occupied.GetBoard()) & pushMask;
