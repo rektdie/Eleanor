@@ -899,10 +899,25 @@ static void GenCheckEvasions(Board &board, bool color) {
 				}
 
 				captures |= getPieceAttacks(square, type, color, board.occupied.GetBoard()) & captureMask;
+
+				Bitboard lastRank = color ? ranks[r_1] : ranks[r_8];
+
 				while (captures.GetBoard()) {
 					int captureSquare = captures.getLS1BIndex();
 
-					board.AddMove(Move(square, captureSquare, capture));
+					// Checking for promotion
+					if (type == Pawn) {
+						if (lastRank.IsSet(captureSquare)) {
+							board.AddMove(Move(square, captureSquare, knightPromoCapture));
+							board.AddMove(Move(square, captureSquare, bishopPromoCapture));
+							board.AddMove(Move(square, captureSquare, rookPromoCapture));
+							board.AddMove(Move(square, captureSquare, queenPromoCapture));
+						} else {
+							board.AddMove(Move(square, captureSquare, capture));
+						}
+					} else {
+						board.AddMove(Move(square, captureSquare, capture));
+					}
 
 					captures.PopBit(captureSquare);
 				}
@@ -910,8 +925,20 @@ static void GenCheckEvasions(Board &board, bool color) {
 				while (pushes.GetBoard()) {
 					int pushSquare = pushes.getLS1BIndex();
 
-					if (type == Pawn && abs(square - pushSquare) == 16) {
-						board.AddMove(Move(square, pushSquare, doublePawnPush));
+					if (type == Pawn) {
+						// Checking for promotion
+						if (lastRank.IsSet(pushSquare)) {
+							board.AddMove(Move(square, pushSquare, knightPromotion));
+							board.AddMove(Move(square, pushSquare, bishopPromotion));
+							board.AddMove(Move(square, pushSquare, rookPromotion));
+							board.AddMove(Move(square, pushSquare, queenPromotion));
+						} else {
+							if (abs(square - pushSquare) == 16) {
+								board.AddMove(Move(square, pushSquare, doublePawnPush));
+							} else {
+								board.AddMove(Move(square, pushSquare, quiet));
+							}
+						}
 					} else {
 						board.AddMove(Move(square, pushSquare, quiet));
 					}
