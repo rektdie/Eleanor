@@ -440,7 +440,7 @@ static bool IsLegalEnPassant(Board &board, int square) {
 
 	// Either east or west
 	if (abs(directionToKing) == 1) {
-		int currentSq = square - directionToKing;
+		int currentSq = kingSquare.getLS1BIndex() - directionToKing;
 		
 		Bitboard endingFile = directionToKing > 0 ? files[H] : files[A];
 
