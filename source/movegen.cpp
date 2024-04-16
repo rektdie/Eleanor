@@ -436,39 +436,27 @@ static bool IsLegalEnPassant(Board &board, int square) {
 	newOccupancy.PopBit(board.enPassantTarget - pushDirection);
 
 	// Looking for horizontal checks
-	if (!(kingSquare.GetBoard() & files[A])) {
-		int currentSq = kingSquare.getLS1BIndex() + west;
+	int directionToKing = GetDirection(square, kingSquare.getLS1BIndex());
 
-		while (!Bitboard(files[H]).IsSet(currentSq)) {
+	// Either east or west
+	if (abs(directionToKing) == 1) {
+		int currentSq = square - directionToKing;
+		
+		Bitboard endingFile = directionToKing > 0 ? files[H] : files[A];
+
+		while (!endingFile.IsSet(currentSq)) {
 			if (newOccupancy.IsSet(currentSq)) {
-				int attackerColor = board.GetPieceColor(currentSq);
-				int attackerType = board.GetPieceType(currentSq);
+				int squareColor = board.GetPieceColor(currentSq);
+				int squarePiece = board.GetPieceType(currentSq);
 
-				if (attackerColor != board.sideToMove && (attackerType == Rook
-					|| attackerType == Bishop || attackerType == Queen)) {
-					return false;
+				if (squareColor != board.sideToMove) {
+					if (squarePiece == Rook || squarePiece == Queen) {
+						return false;
+					}
 				}
-				return true;
+				break;
 			}
-			currentSq += west;
-		}
-	}
-
-	if (!(kingSquare.GetBoard() & files[H])) {
-		int currentSq = kingSquare.getLS1BIndex() + east;
-
-		while (!Bitboard(files[A]).IsSet(currentSq)) {
-			if (newOccupancy.IsSet(currentSq)) {
-				int attackerColor = board.GetPieceColor(currentSq);
-				int attackerType = board.GetPieceType(currentSq);
-
-				if (attackerColor != board.sideToMove && (attackerType == Rook
-					|| attackerType == Bishop || attackerType == Queen)) {
-					return false;
-				}
-				return true;
-			}
-			currentSq += east;
+			currentSq -= directionToKing;
 		}
 	}
 
