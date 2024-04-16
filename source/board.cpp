@@ -291,17 +291,20 @@ void Board::RemovePiece(int piece, int square, bool color) {
 	occupied.PopBit(square);
 }
 
-// Updates castling rights on capturing (only if needed)
-static void UpdateCastlingRights(Board &board, int targetPiece, int targetSquare, int attackerColor) {
-	if (targetPiece == Rook) {
-		int queenSideRook = attackerColor ? a1 : a8;
-		int kingSideRook = attackerColor ? h1 : h8;
+// Updates castling rights
+static void UpdateCastlingRights(Board &board, int square, int type, int color) {
+	if (type == Rook) {
+		int queenSideRook = color ? a8 : a1;
+		int kingSideRook = color ? h8 : h1;
 
-		if (targetSquare == queenSideRook) {
-			board.castlingRights[!attackerColor * 2 + 1] = false;
-		} else if (targetSquare == kingSideRook) {
-			board.castlingRights[!attackerColor * 2] = false;
+		if (square == queenSideRook) {
+			board.castlingRights[color * 2 + 1] = false;
+		} else if (square == kingSideRook) {
+			board.castlingRights[color * 2] = false;
 		}
+	} else if (type == King) {
+		board.castlingRights[color * 2 + 1] = false;
+		board.castlingRights[color * 2] = false;
 	}
 }
 
@@ -309,7 +312,7 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 	if (isCapture) {
 		int targetType = GetPieceType(square);
 		RemovePiece(targetType, square, !color);
-		UpdateCastlingRights(*this, targetType, square, color);
+		UpdateCastlingRights(*this, square, targetType, !color);
 	}
 
 	SetPiece(pieceType, square, color);
@@ -340,7 +343,7 @@ void Board::MakeMove(Move move) {
 		RemovePiece(targetPiece, move.MoveTo(), !attackerColor);
 		SetPiece(attackerPiece, move.MoveTo(), attackerColor);
 
-		UpdateCastlingRights(*this, targetPiece, move.MoveTo(), attackerColor);
+		UpdateCastlingRights(*this, move.MoveTo(), targetPiece, !attackerColor);
 
 		break;
 	case epCapture:
@@ -402,16 +405,7 @@ void Board::MakeMove(Move move) {
 	}
 
 	// Removing the right to castle on king and rook movement
-	if (attackerPiece == King) {
-		castlingRights[attackerColor * 2] = false;
-		castlingRights[attackerColor * 2 + 1] = false;
-	} else if (attackerPiece == Rook) {
-		if ((Bitboard::GetSquare(move.MoveFrom()) & files[A] & (ranks[r_1] | ranks[r_8])).GetBoard()) {
-			castlingRights[attackerColor * 2 + 1] = false;
-		} else if ((Bitboard::GetSquare(move.MoveFrom()) & files[H] & (ranks[r_1] | ranks[r_8])).GetBoard()) {
-			castlingRights[attackerColor * 2] = false;
-		}
-	}
+	UpdateCastlingRights(*this, move.MoveFrom(), attackerPiece, attackerColor);
 
 	halfMoves++;
 	if (halfMoves & 2 == 0) fullMoves++;
