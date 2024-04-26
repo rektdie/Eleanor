@@ -9,9 +9,9 @@ int main() {
 	initLeaperAttacks();
 	initSliderAttacks();
 
-	Board board;	
-
+	Board board;
+	
 	std::cout << Evaluate(board) << '\n';
-
+	
 	return 0;
 }
