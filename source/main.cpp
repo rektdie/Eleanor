@@ -10,8 +10,6 @@ int main() {
 	initSliderAttacks();
 
 	Board board;
-	
-	std::cout << Evaluate(board) << '\n';
-	
+
 	return 0;
 }

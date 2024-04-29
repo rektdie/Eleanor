@@ -39,5 +39,5 @@ int Evaluate(Board &board) {
         }
     }
 
-    return score;
+    return board.sideToMove ? -score : score;
 }
