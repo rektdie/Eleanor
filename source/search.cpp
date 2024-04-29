@@ -2,7 +2,7 @@
 #include "movegen.h"
 #include "evaluate.h"
 
-int NegaMax(Board &board, int depth) {
+int NegaMax(Board board, int depth) {
     if (depth == 0) return Evaluate(board);
 
     GenerateMoves(board, board.sideToMove);
