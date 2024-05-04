@@ -3,8 +3,7 @@
 #include "board.h"
 #include "movegen.h"
 #include "perft.h"
-#include "evaluate.h"
-#include "search.h"
+#include "uci.h"
 
 int main() {
 	initLeaperAttacks();
@@ -12,7 +11,8 @@ int main() {
 
 	Board board;
 
-	SearchPosition(board, 3);
+	ParsePosition(board, "position startpos moves a2a4 b7b6");
+	board.PrintBoard();
 
 	return 0;
 }

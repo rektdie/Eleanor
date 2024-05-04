@@ -1,5 +1,7 @@
 #pragma once
 #include <array>
+#include <iostream>
+#include "types.h"
 
 constexpr short moveFromMask = 0x3F;
 constexpr short moveToMask = 0xFC0;
