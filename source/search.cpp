@@ -54,6 +54,7 @@ Move NegaMaxHandler(Board &board, int depth) {
 }
 
 void SearchPosition(Board &board, int depth) {
-    std::cout << "best move: ";
-    NegaMaxHandler(board, depth).PrintMove();
+    Move bestMove = NegaMaxHandler(board, depth);
+    std::cout << "bestmove " << squareCoords[bestMove.MoveFrom()]
+        << squareCoords[bestMove.MoveTo()] <<  '\n';
 }

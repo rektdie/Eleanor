@@ -11,8 +11,7 @@ int main() {
 
 	Board board;
 
-	ParsePosition(board, "position startpos moves a2a4 b7b6");
-	board.PrintBoard();
+	UCILoop(board);
 
 	return 0;
 }
