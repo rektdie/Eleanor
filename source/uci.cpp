@@ -147,6 +147,8 @@ void ParseGo(Board &board, const char* command) {
         command += 9;
 
         depth = atoi(command);
+    } else { // other command parameters
+        depth = 5;
     }
 
     // search position
