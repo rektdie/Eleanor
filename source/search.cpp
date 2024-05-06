@@ -2,12 +2,14 @@
 #include "movegen.h"
 #include "evaluate.h"
 
+static int ply = 0;
+
 int NegaMax(Board board, int depth, int alpha, int beta) {
     GenerateMoves(board, board.sideToMove);
     if (board.moveList.size() == 0) {
         // Checkmate
         if (board.InCheck(board.sideToMove)) {
-            return -4900000;
+            return -4900000 + ply;
         } else { // Stalemate
             return 0;
         }
@@ -20,8 +22,10 @@ int NegaMax(Board board, int depth, int alpha, int beta) {
     for (Move move : board.moveList) {
         Board copy = board;
         board.MakeMove(move);
+        ply++;
         int score = -NegaMax(board, depth - 1, -beta, -alpha);
         board = copy;
+        ply--;
 
         if (score >= beta) {
             return beta;
@@ -49,8 +53,10 @@ Move NegaMaxHandler(Board &board, int depth) {
     for (Move move : board.moveList) {
         Board copy = board;
         board.MakeMove(move);
+        ply++;
         int score = -NegaMax(board, depth - 1, -5000000, 5000000);
         board = copy;
+        ply--;
 
         if (score > max) {
             max = score;
