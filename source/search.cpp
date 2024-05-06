@@ -3,11 +3,19 @@
 #include "evaluate.h"
 
 int NegaMax(Board board, int depth, int alpha, int beta) {
+    GenerateMoves(board, board.sideToMove);
+    if (board.moveList.size() == 0) {
+        // Checkmate
+        if (board.InCheck(board.sideToMove)) {
+            return -4900000;
+        } else { // Stalemate
+            return 0;
+        }
+    }
+    
     if (depth == 0) return Evaluate(board);
 
-    GenerateMoves(board, board.sideToMove);
-
-    int max = -50000000;
+    int max = -5000000;
 
     for (Move move : board.moveList) {
         Board copy = board;
@@ -36,7 +44,7 @@ Move NegaMaxHandler(Board &board, int depth) {
 
     GenerateMoves(board, board.sideToMove);
 
-    int max = -50000000;
+    int max = -5000000;
 
     for (Move move : board.moveList) {
         Board copy = board;
