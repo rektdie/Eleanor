@@ -17,7 +17,7 @@ int Quiescence(Board board, int alpha, int beta) {
         alpha = staticScore;
     }
 
-    GenerateMoves(board, board.sideToMove);
+    GenerateMoves(board);
 
     for (Move move : board.moveList) {
         if (move.IsCapture()) {
@@ -40,7 +40,7 @@ int Quiescence(Board board, int alpha, int beta) {
 }
 
 int NegaMax(Board board, int depth, int alpha, int beta, bool isRoot) {
-    GenerateMoves(board, board.sideToMove);
+    GenerateMoves(board);
 
     if (board.moveList.size() == 0) {
         if (board.InCheck(board.sideToMove)) { // checkmate

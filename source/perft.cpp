@@ -2,7 +2,7 @@
 #include "perft.h"
 
 U64 HelperPerft(Board board, int depth) {
-    GenerateMoves(board, board.sideToMove);
+    GenerateMoves(board);
 
     if (depth == 1) return board.moveList.size();
     if (depth == 0) return 1ULL;
@@ -19,7 +19,7 @@ U64 HelperPerft(Board board, int depth) {
 }
 
 void Perft(Board &board, int depth) {
-    GenerateMoves(board, board.sideToMove);
+    GenerateMoves(board);
 
     U64 totalNodes = 0;
 

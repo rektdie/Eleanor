@@ -11,7 +11,9 @@ int main() {
 
 	Board board;
 
-	UCILoop(board);
+	// UCILoop(board);
+
+	Perft(board, 10);
 
 	return 0;
 }

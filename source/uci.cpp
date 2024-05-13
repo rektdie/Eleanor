@@ -7,7 +7,7 @@
 #include "search.h"
 
 Move ParseMove(Board &board, const char* moveString) {
-    GenerateMoves(board, board.sideToMove);
+    GenerateMoves(board);
 
     // Source square
     std::string fromString = "";

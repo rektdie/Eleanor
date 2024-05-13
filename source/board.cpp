@@ -183,7 +183,6 @@ void Board::SetByFen(const char* fen) {
 	}
 
 	occupied = (colors[White] | colors[Black]);
-	GenAttackMaps(*this);
 }
 
 void Board::PrintBoard() {
@@ -411,6 +410,4 @@ void Board::MakeMove(Move move) {
 	if (halfMoves & 2 == 0) fullMoves++;
 	sideToMove = !attackerColor;
 	enPassantTarget = newEpTarget;
-
-	GenAttackMaps(*this);
 }

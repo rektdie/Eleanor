@@ -208,6 +208,4 @@ Bitboard getQueenAttack(int square, U64 occupancy);
 // Returns attacks regardless of board (so occupancy is 0ULL)
 Bitboard getPieceAttacks(int square, int piece, int color);
 
-void GenAttackMaps(Board &board);
-
-void GenerateMoves(Board &board, bool side);
+void GenerateMoves(Board &board);
