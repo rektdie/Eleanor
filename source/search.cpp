@@ -2,28 +2,66 @@
 #include "movegen.h"
 #include "evaluate.h"
 
-static int ply = 0;
+static inline int ply = 0;
+static inline Move bestMove = Move();
+static inline int bestScore = -50000;
 
-int NegaMax(Board board, int depth, int alpha, int beta) {
+int Quiescence(Board board, int alpha, int beta) {
+    int staticScore = Evaluate(board);
+
+    if (staticScore >= beta) {
+        return beta;
+    }
+
+    if (staticScore > alpha) {
+        alpha = staticScore;
+    }
+
     GenerateMoves(board, board.sideToMove);
+
+    for (Move move : board.moveList) {
+        if (move.IsCapture()) {
+            Board copy = board;
+            board.MakeMove(move);
+            int score = -Quiescence(board, -beta, -alpha);
+            board = copy;
+
+            if (score >= beta) {
+                return beta;
+            }
+
+            if (score > alpha) {
+                alpha = score;
+            }
+        }
+    }
+
+    return alpha;
+}
+
+int NegaMax(Board board, int depth, int alpha, int beta, bool isRoot) {
+    GenerateMoves(board, board.sideToMove);
+
     if (board.moveList.size() == 0) {
-        // Checkmate
-        if (board.InCheck(board.sideToMove)) {
-            return -4900000 + ply;
-        } else { // Stalemate
+        if (board.InCheck(board.sideToMove)) { // checkmate
+            return -49000 + ply;
+        } else { // stalemate
             return 0;
         }
     }
-    
-    if (depth == 0) return Evaluate(board);
 
-    int max = -5000000;
+    if (depth == 0) {
+        return Quiescence(board, -50000, 50000);
+        //return Evaluate(board);
+    }
+
+    int max = -50000;
 
     for (Move move : board.moveList) {
         Board copy = board;
         board.MakeMove(move);
         ply++;
-        int score = -NegaMax(board, depth - 1, -beta, -alpha);
+        int score = -NegaMax(board, depth - 1, -beta, -alpha, false);
         board = copy;
         ply--;
 
@@ -38,37 +76,21 @@ int NegaMax(Board board, int depth, int alpha, int beta) {
         if (score > max) {
             max = score;
         }
-    }
 
+        if (isRoot) {
+            if (max > bestScore) {
+                bestScore = max;
+                bestMove = move;
+            }
+        }
+    }
     return max;
 }
 
-Move NegaMaxHandler(Board &board, int depth) {
-    Move bestMove = Move();
-
-    GenerateMoves(board, board.sideToMove);
-
-    int max = -5000000;
-
-    for (Move move : board.moveList) {
-        Board copy = board;
-        board.MakeMove(move);
-        ply++;
-        int score = -NegaMax(board, depth - 1, -5000000, 5000000);
-        board = copy;
-        ply--;
-
-        if (score > max) {
-            max = score;
-            bestMove = move;
-        }
-    }
-
-    return bestMove;
-}
-
 void SearchPosition(Board &board, int depth) {
-    Move bestMove = NegaMaxHandler(board, depth);
+    bestScore = -50000;
+    bestMove = Move();
+    NegaMax(board, depth, -50000, 50000, true); 
     std::cout << "bestmove " << squareCoords[bestMove.MoveFrom()]
         << squareCoords[bestMove.MoveTo()] <<  '\n';
 }

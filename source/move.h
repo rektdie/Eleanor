@@ -48,6 +48,12 @@ public:
         return m_move >> 12;
     }
 
+    int IsCapture() {
+        return (GetFlags() == capture || GetFlags() == epCapture
+            || GetFlags() == knightPromoCapture || GetFlags() == bishopPromoCapture
+            || GetFlags() == rookPromoCapture || GetFlags() == queenPromoCapture);
+    }
+
     void PrintMove() {
         std::cout << squareCoords[MoveFrom()] << squareCoords[MoveTo()];
         std::cout << " (" << moveTypes[GetFlags()] << ")\n";
