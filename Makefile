@@ -17,7 +17,7 @@ OBJS := $(addprefix $(OBJ_DIR)/, $(notdir $(SRCS:.cpp=.o)))
 
 # Target executable
 Eleanor$(EXE_EXT): $(OBJS)
-	g++ -o $@ $^
+	g++ -o $@ $^ 
 # Rule to compile source files to object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(SRC_DIR)/types.h | $(OBJ_DIR)
 	g++ -c -o $@ $<

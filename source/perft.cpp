@@ -4,16 +4,15 @@
 U64 HelperPerft(Board board, int depth) {
     GenerateMoves(board);
 
-    if (depth == 1) return board.moveList.size();
+    if (depth == 1) return board.currentMoveIndex;
     if (depth == 0) return 1ULL;
 
     U64 nodes = 0;
 
-    for (int i = 0; i < board.moveList.size(); i++) {
+    for (int i = 0; i < board.currentMoveIndex; i++) {
         Board copy = board;
-        board.MakeMove(board.moveList[i]);
-        nodes += HelperPerft(board, depth - 1);
-        board = copy;
+        copy.MakeMove(board.moveList[i]);
+        nodes += HelperPerft(copy, depth - 1);
     }
     return nodes;
 }
@@ -24,11 +23,10 @@ void Perft(Board &board, int depth) {
     U64 totalNodes = 0;
 
     auto start = std::chrono::steady_clock::now();
-    for (int i = 0; i < board.moveList.size(); i++) {
+    for (int i = 0; i < board.currentMoveIndex; i++) {
         Board copy = board;
-        board.MakeMove(board.moveList[i]);
-        U64 nodeCount = HelperPerft(board, depth - 1);
-        board = copy;
+        copy.MakeMove(board.moveList[i]);
+        U64 nodeCount = HelperPerft(copy, depth - 1);
         totalNodes += nodeCount;
         std::cout << squareCoords[board.moveList[i].MoveFrom()]
             << squareCoords[board.moveList[i].MoveTo()];

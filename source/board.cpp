@@ -1,5 +1,4 @@
 #include "board.h"
-#include "movegen.h"
 #include <iostream>
 
 void Board::Init() {
@@ -16,6 +15,8 @@ void Board::Reset() {
 
 	pieces = std::array<Bitboard, 6>();
 	colors = std::array<Bitboard, 2>();
+
+    moveList = std::array<Move, 218>();
 }
 
 void Board::SetByFen(const char* fen) {
@@ -79,7 +80,7 @@ void Board::SetByFen(const char* fen) {
 			pieceColor = White;
 			break;
 		case '/':
-			currentSquare = currentSquare >> 8 + digits;
+			currentSquare = currentSquare >> (8 + digits);
 			digits = 0;
 			fen++;
 			continue;
@@ -236,18 +237,19 @@ void Board::PrintBoard() {
 }
 
 void Board::AddMove(Move move) {
-	moveList.push_back(move);
+    moveList[currentMoveIndex] = move;
+    currentMoveIndex++;
 }
 
 void Board::ResetMoves() {
-	moveList.clear();
+    currentMoveIndex = 0;
 }
 
 void Board::ListMoves() {
 	int count = 1;
-	for (Move move : moveList) {
+	for (int i = 0; i < currentMoveIndex; i++) {
 		std::cout << count << ". ";
-		move.PrintMove();
+		moveList[i].PrintMove();
 		count++;
 	}
 }

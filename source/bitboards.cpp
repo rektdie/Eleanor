@@ -36,9 +36,7 @@ void Bitboard::SetBit(int square) {
 }
 
 void Bitboard::PopBit(int square) {
-	if (Bitboard(m_board).IsSet(square)) {
-		m_board &= (~Bitboard::GetSquare(square)).GetBoard(); 
-	}
+    m_board &= ~(1ULL << square);
 }
 
 int Bitboard::PopCount() const {

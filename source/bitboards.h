@@ -11,7 +11,7 @@ public:
 
 	Bitboard(const U64& board)
 		: m_board(board) {}
-
+    
 	U64 GetBoard() const;
 	bool IsSet(int square) const;
 	void SetBit(int square);
@@ -21,10 +21,6 @@ public:
 	int PopCount() const;
 	int getLS1BIndex() const;
 	static Bitboard getOccupancy(int index, Bitboard attackMask);
-
-	static Bitboard GetSquare(int square) {
-		return (1ULL << square);
-	};
 
 	Bitboard operator&(const Bitboard& other) const;
 	Bitboard operator|(const Bitboard& other) const;
