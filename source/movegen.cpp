@@ -18,7 +18,7 @@ static Bitboard notHGfile = notHfile & ~files[G];
 
 Bitboard maskPawnAttacks(int side, int square) {
 	Bitboard attacks;
-	Bitboard attacker = (1ULL << square); 
+	Bitboard attacker = Bitboard::GetSquare(square); 
 
 	// White
 	if (!side) {
@@ -35,7 +35,7 @@ Bitboard maskPawnAttacks(int side, int square) {
 
 Bitboard maskKnightAttacks(int square) {
 	Bitboard attacks;
-	Bitboard attacker = (1ULL << square); 
+	Bitboard attacker = Bitboard::GetSquare(square); 
 
 	if (((attacker << noEa + north) & notAfile).GetBoard()) attacks |= (attacker << noEa + north);
 	if (((attacker << noWe + north) & notHfile).GetBoard()) attacks |= (attacker << noWe + north);
@@ -52,7 +52,7 @@ Bitboard maskKnightAttacks(int square) {
 
 Bitboard maskKingAttacks(int square) {
 	Bitboard attacks;
-	Bitboard attacker = (1ULL << square); 
+	Bitboard attacker = Bitboard::GetSquare(square); 
 
 	attacks |= (attacker << north);
 	attacks |= (attacker << south);

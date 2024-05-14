@@ -22,6 +22,10 @@ public:
 	int getLS1BIndex() const;
 	static Bitboard getOccupancy(int index, Bitboard attackMask);
 
+    static Bitboard GetSquare(int square) {
+		return (1ULL << square);
+	};
+
 	Bitboard operator&(const Bitboard& other) const;
 	Bitboard operator|(const Bitboard& other) const;
 	Bitboard operator^(const Bitboard& other) const;

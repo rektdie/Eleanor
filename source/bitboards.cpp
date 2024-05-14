@@ -28,15 +28,15 @@ U64 Bitboard::GetBoard() const {
 }
 
 bool Bitboard::IsSet(int square) const {
-	return (1ULL << square) & m_board;
+	return GetSquare(square).GetBoard() & m_board;
 }
 
 void Bitboard::SetBit(int square) {
-	m_board |= (1ULL << square);
+	m_board |= GetSquare(square).GetBoard();
 }
 
 void Bitboard::PopBit(int square) {
-    m_board &= ~(1ULL << square);
+    m_board &= ~GetSquare(square).GetBoard();
 }
 
 int Bitboard::PopCount() const {
