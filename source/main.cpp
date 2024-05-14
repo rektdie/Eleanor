@@ -1,8 +1,5 @@
-#include <iostream>
-#include "types.h"
 #include "board.h"
 #include "movegen.h"
-#include "perft.h"
 #include "uci.h"
 
 int main() {
@@ -11,7 +8,7 @@ int main() {
 
 	Board board;
 
-	UCILoop(board);
+    UCILoop(board);
 
 	return 0;
 }

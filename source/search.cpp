@@ -40,6 +40,11 @@ int Quiescence(Board board, int alpha, int beta) {
 }
 
 int NegaMax(Board board, int depth, int alpha, int beta, bool isRoot) {
+    if (depth == 0) {
+        return Quiescence(board, -50000, 50000);
+        //return Evaluate(board);
+    }
+
     GenerateMoves(board, board.sideToMove);
 
     if (board.moveList.size() == 0) {
@@ -50,10 +55,6 @@ int NegaMax(Board board, int depth, int alpha, int beta, bool isRoot) {
         }
     }
 
-    if (depth == 0) {
-        return Quiescence(board, -50000, 50000);
-        //return Evaluate(board);
-    }
 
     int max = -50000;
 
