@@ -277,7 +277,7 @@ U64 Board::GetAttackMaps(bool side) {
 bool Board::InCheck(bool side) {
 	Bitboard myKingSquare = colors[side] & pieces[King];
 
-	return GetAttackMaps(!side) & myKingSquare.GetBoard();
+	return GetAttackMaps(!side) & myKingSquare;
 }
 
 void Board::SetPiece(int piece, int square, bool color) {
