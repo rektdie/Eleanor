@@ -6,7 +6,7 @@ void Board::Init() {
 }
 
 void Board::Reset() {
-	castlingRights = { false, false, false, false };
+	castlingRights = 0;
 	enPassantTarget = -1;
 	halfMoves = 0;
 	fullMoves = 0;
@@ -124,16 +124,16 @@ void Board::SetByFen(const char* fen) {
 			}
 			break;
 		case 'K':
-			castlingRights[White] = true;
+			castlingRights |= whiteKingRight;
 			break;
 		case 'Q':
-			castlingRights[White + 1] = true;
+			castlingRights |= whiteQueenRight;
 			break;
 		case 'k':
-			castlingRights[Black * 2] = true;
+			castlingRights |= blackKingRight;
 			break;
 		case 'q':
-			castlingRights[Black * 2 + 1] = true;
+			castlingRights |= blackQueenRight;
 			break;
 		default:
 			if (*fen != '-') {
@@ -229,10 +229,10 @@ void Board::PrintBoard() {
 	}
 
 	std::cout << "      Castling rights: ";
-	if (castlingRights[0]) std::cout << "K"; else std::cout << "-";
-	if (castlingRights[1]) std::cout << "Q"; else std::cout << "-";
-	if (castlingRights[2]) std::cout << "k"; else std::cout << "-";
-	if (castlingRights[3]) std::cout << "q"; else std::cout << "-";
+	if (castlingRights & whiteKingRight) std::cout << "K"; else std::cout << "-";
+	if (castlingRights & whiteQueenRight) std::cout << "Q"; else std::cout << "-";
+	if (castlingRights & blackKingRight) std::cout << "k"; else std::cout << "-";
+	if (castlingRights & blackQueenRight) std::cout << "q"; else std::cout << "-";
 	std::cout << '\n';
 }
 
@@ -266,18 +266,8 @@ int Board::GetPieceColor(int square) {
 	return (colors[Black].IsSet(square));
 }
 
-U64 Board::GetAttackMaps(bool side) {
-	U64 combined = 0ULL;
-	for (int type = Pawn; type <= King; type++) {
-		combined |= attackMaps[side][type];
-	}
-	return combined;
-}
-
 bool Board::InCheck(bool side) {
-	Bitboard myKingSquare = colors[side] & pieces[King];
 
-	return GetAttackMaps(!side) & myKingSquare;
 }
 
 void Board::SetPiece(int piece, int square, bool color) {
@@ -299,13 +289,13 @@ static void UpdateCastlingRights(Board &board, int square, int type, int color) 
 		int kingSideRook = color ? h8 : h1;
 
 		if (square == queenSideRook) {
-			board.castlingRights[color * 2 + 1] = false;
+			board.castlingRights &= color ? blackQueenRight : whiteQueenRight;
 		} else if (square == kingSideRook) {
-			board.castlingRights[color * 2] = false;
+			board.castlingRights &= color ? blackKingRight : whiteKingRight;
 		}
 	} else if (type == King) {
-		board.castlingRights[color * 2 + 1] = false;
-		board.castlingRights[color * 2] = false;
+        board.castlingRights &= color ? blackQueenRight : whiteQueenRight;
+        board.castlingRights &= color ? blackKingRight : whiteKingRight;
 	}
 }
 
@@ -409,7 +399,7 @@ void Board::MakeMove(Move move) {
 	UpdateCastlingRights(*this, move.MoveFrom(), attackerPiece, attackerColor);
 
 	halfMoves++;
-	if (halfMoves & 2 == 0) fullMoves++;
+	if (halfMoves % 2 == 0) fullMoves++;
 	sideToMove = !attackerColor;
 	enPassantTarget = newEpTarget;
 }

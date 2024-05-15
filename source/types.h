@@ -20,6 +20,13 @@ enum PIECE {
 	King
 };
 
+enum CASTLING_RIGHTS {
+    whiteKingRight = 1,
+    whiteQueenRight = 2,
+    blackKingRight = 4,
+    blackQueenRight = 8
+};
+
 constexpr std::array<const char, 12> PIECE_LETTERS = {
 	'P', 'p',
 	'N', 'n',

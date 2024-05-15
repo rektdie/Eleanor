@@ -3,7 +3,6 @@
 #include "bitboards.h"
 #include "types.h"
 #include "move.h"
-#include <vector>
 
 class Board {
 public:
@@ -13,7 +12,6 @@ public:
 
 	std::array<Bitboard, 6> pieces;
 	std::array<Bitboard, 2> colors;
-	U64 attackMaps[2][64];
 
 	Bitboard occupied;
 
@@ -24,7 +22,7 @@ public:
 	int halfMoves = 0;
 	int fullMoves = 0;
 
-	std::array<bool, 4> castlingRights = { false, false, false, false };
+    uint8_t castlingRights = 0;
 	int enPassantTarget;
 
 	void Init();
@@ -39,7 +37,6 @@ public:
 	int GetPieceType(int square);
 	int GetPieceColor(int square);
 
-	U64 GetAttackMaps(bool side);
 	bool InCheck(bool side);
 
 	void SetPiece(int piece, int square, bool color);

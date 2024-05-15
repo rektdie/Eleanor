@@ -510,7 +510,7 @@ static void GenKingMoves(Board &board, bool color) {
     }
 
     // Checking for king side castle
-    if (board.castlingRights[color * 2]) {
+    if (board.castlingRights & (whiteKingRight | blackKingRight)) {
         Bitboard mask = color ? 0xe000000000000000 : 0xe0;
 
         if ((board.occupied & mask).PopCount() == 1) {
@@ -518,8 +518,8 @@ static void GenKingMoves(Board &board, bool color) {
         }
     }
 
-    // Checking for quuen side castle
-    if (board.castlingRights[color * 2 + 1]) {
+    // Checking for queen side castle
+    if (board.castlingRights & (whiteQueenRight | blackQueenRight)) {
         Bitboard mask = color ? 0xf00000000000000 : 0xf;
 
         if ((board.occupied & mask).PopCount() == 1) {
