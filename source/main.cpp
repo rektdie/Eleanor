@@ -13,7 +13,7 @@ int main() {
 
 	// UCILoop(board);
 
-	Perft(board, 10);
+    Perft(board, 6);
 
 	return 0;
 }
