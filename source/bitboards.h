@@ -12,7 +12,6 @@ public:
 	Bitboard(const U64& board)
 		: m_board(board) {}
 
-	U64 GetBoard() const;
 	bool IsSet(int square) const;
 	void SetBit(int square);
 	void PopBit(int square);
@@ -31,11 +30,21 @@ public:
 	Bitboard operator^(const Bitboard& other) const;
 	Bitboard operator*(const Bitboard& other) const;
 
+    Bitboard operator&(const uint64_t& other) const;
+	Bitboard operator|(const uint64_t& other) const;
+	Bitboard operator^(const uint64_t& other) const;
+	Bitboard operator*(const uint64_t& other) const;
+
 	Bitboard operator&=(const Bitboard& other);
 	Bitboard operator|=(const Bitboard& other);
 	Bitboard operator^=(const Bitboard& other);
 
+    Bitboard operator&=(const uint64_t& other);
+	Bitboard operator|=(const uint64_t& other);
+	Bitboard operator^=(const uint64_t& other);
+
 	Bitboard operator<<(int other);
 	Bitboard operator>>(int other);
 	Bitboard operator~();
+    operator uint64_t();
 };

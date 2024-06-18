@@ -22,13 +22,13 @@ Bitboard maskPawnAttacks(int side, int square) {
 
 	// White
 	if (!side) {
-		if (((attacker << noEa) & notAfile).GetBoard()) attacks |= (attacker << noEa);
-		if (((attacker << noWe) & notHfile).GetBoard()) attacks |= (attacker << noWe);
+		if (((attacker << noEa) & notAfile)) attacks |= (attacker << noEa);
+		if (((attacker << noWe) & notHfile)) attacks |= (attacker << noWe);
 	}
 	// Black
 	else {
-		if (((attacker << soEa) & notAfile).GetBoard()) attacks |= (attacker << soEa);
-		if (((attacker << soWe) & notHfile).GetBoard()) attacks |= (attacker << soWe);
+		if (((attacker << soEa) & notAfile)) attacks |= (attacker << soEa);
+		if (((attacker << soWe) & notHfile)) attacks |= (attacker << soWe);
 	}
 	return attacks;
 }
@@ -37,15 +37,15 @@ Bitboard maskKnightAttacks(int square) {
 	Bitboard attacks;
 	Bitboard attacker = Bitboard::GetSquare(square);
 
-	if (((attacker << noEa + north) & notAfile).GetBoard()) attacks |= (attacker << noEa + north);
-	if (((attacker << noWe + north) & notHfile).GetBoard()) attacks |= (attacker << noWe + north);
-	if (((attacker << noWe + west) & notHGfile).GetBoard()) attacks |= (attacker << noWe + west);
-	if (((attacker << noEa + east) & notABfile).GetBoard()) attacks |= (attacker << noEa + east);
+	if (((attacker << noEa + north) & notAfile)) attacks |= (attacker << noEa + north);
+	if (((attacker << noWe + north) & notHfile)) attacks |= (attacker << noWe + north);
+	if (((attacker << noWe + west) & notHGfile)) attacks |= (attacker << noWe + west);
+	if (((attacker << noEa + east) & notABfile)) attacks |= (attacker << noEa + east);
 
-	if (((attacker << soWe + south) & notHfile).GetBoard()) attacks |= (attacker << soWe + south);
-	if (((attacker << soEa + south) & notAfile).GetBoard()) attacks |= (attacker << soEa + south);
-	if (((attacker << soEa + east) & notABfile).GetBoard()) attacks |= (attacker << soEa + east);
-	if (((attacker << soWe + west) & notHGfile).GetBoard()) attacks |= (attacker << soWe + west);
+	if (((attacker << soWe + south) & notHfile)) attacks |= (attacker << soWe + south);
+	if (((attacker << soEa + south) & notAfile)) attacks |= (attacker << soEa + south);
+	if (((attacker << soEa + east) & notABfile)) attacks |= (attacker << soEa + east);
+	if (((attacker << soWe + west) & notHGfile)) attacks |= (attacker << soWe + west);
 
 	return attacks;
 }
@@ -57,12 +57,12 @@ Bitboard maskKingAttacks(int square) {
 	attacks |= (attacker << north);
 	attacks |= (attacker << south);
 	
-	if (((attacker << west) & notHfile).GetBoard()) attacks |= (attacker << west);
-	if (((attacker << soWe) & notHfile).GetBoard()) attacks |= (attacker << soWe);
-	if (((attacker << soEa) & notAfile).GetBoard()) attacks |= (attacker << soEa);
-	if (((attacker << east) & notAfile).GetBoard()) attacks |= (attacker << east);
-	if (((attacker << noEa) & notAfile).GetBoard()) attacks |= (attacker << noEa);
-	if (((attacker << noWe) & notHfile).GetBoard()) attacks |= (attacker << noWe);
+	if (((attacker << west) & notHfile)) attacks |= (attacker << west);
+	if (((attacker << soWe) & notHfile)) attacks |= (attacker << soWe);
+	if (((attacker << soEa) & notAfile)) attacks |= (attacker << soEa);
+	if (((attacker << east) & notAfile)) attacks |= (attacker << east);
+	if (((attacker << noEa) & notAfile)) attacks |= (attacker << noEa);
+	if (((attacker << noWe) & notHfile)) attacks |= (attacker << noWe);
 
 	return attacks;
 }
@@ -140,25 +140,25 @@ Bitboard bishopAttacksOnTheFly(int square, Bitboard block) {
 	for (int r = tr + 1, f = tf - 1; r <= 7 && f >= 0; r++, f--) {
 		currentSquare = (1ULL << (r * 8 + f));
 		attacks |= currentSquare;
-		if ((currentSquare & block).GetBoard()) break;
+		if ((currentSquare & block)) break;
 	}
 	// North East
 	for (int r = tr + 1, f = tf + 1; r <= 7 && f <= 7; r++, f++) {
 		currentSquare = (1ULL << (r * 8 + f));
 		attacks |= currentSquare;
-		if ((currentSquare & block).GetBoard()) break;
+		if ((currentSquare & block)) break;
 	}
 	//South West
 	for (int r = tr - 1, f = tf - 1; r >= 0 && f >= 0; r--, f--) {
 		currentSquare = (1ULL << (r * 8 + f));
 		attacks |= currentSquare;
-		if ((currentSquare & block).GetBoard()) break;
+		if ((currentSquare & block)) break;
 	}
 	//South East
 	for (int r = tr - 1, f = tf + 1; r >= 0 && f <= 7; r--, f++) {
 		currentSquare = (1ULL << (r * 8 + f));
 		attacks |= currentSquare;
-		if ((currentSquare & block).GetBoard()) break;
+		if ((currentSquare & block)) break;
 	}
 
 	return attacks;
@@ -179,25 +179,25 @@ Bitboard rookAttacksOnTheFly(int square, Bitboard block) {
 	for (int r = tr + 1; r <= 7; r++) {
 		currentSquare = (1ULL << (r * 8 + tf));
 		attacks |= currentSquare;
-		if ((currentSquare & block).GetBoard()) break;
+		if ((currentSquare & block)) break;
 	}
 	// South
 	for (int r = tr - 1; r >= 0; r--) {
 		currentSquare = (1ULL << (r * 8 + tf));
 		attacks |= currentSquare;
-		if ((currentSquare & block).GetBoard()) break;
+		if ((currentSquare & block)) break;
 	}
 	// East
 	for (int f = tf + 1; f <= 7; f++) {
 		currentSquare = (1ULL << (tr * 8 + f));
 		attacks |= currentSquare;
-		if ((currentSquare & block).GetBoard()) break;
+		if ((currentSquare & block)) break;
 	}
 	// West
 	for (int f = tf - 1; f >= 0; f--) {
 		currentSquare = (1ULL << (tr * 8 + f));
 		attacks |= currentSquare;
-		if ((currentSquare & block).GetBoard()) break;
+		if ((currentSquare & block)) break;
 	}
 
 	return attacks;
@@ -221,7 +221,7 @@ void initSliderAttacks() {
 		for (int index = 0; index < 512; index++) {
 			Bitboard occupancy = Bitboard::getOccupancy(index, bishopMasks[square]);
 
-			int magicIndex = (occupancy.GetBoard() * bishopMagicNumbers[square])
+			int magicIndex = (occupancy * bishopMagicNumbers[square])
 			>> (64 - bishopRelevantBits[square]);
 
 			bishopAttacks[square][magicIndex] = bishopAttacksOnTheFly(square, occupancy);
@@ -230,7 +230,7 @@ void initSliderAttacks() {
 		for (int index = 0; index < 4096; index++) {
 			Bitboard occupancy = Bitboard::getOccupancy(index, rookMasks[square]);
 
-			int magicIndex = (occupancy.GetBoard() * rookMagicNumbers[square])
+			int magicIndex = (occupancy * rookMagicNumbers[square])
 			>> (64 - rookRelevantBits[square]);
 
 			rookAttacks[square][magicIndex] = rookAttacksOnTheFly(square, occupancy);
@@ -239,7 +239,7 @@ void initSliderAttacks() {
 }
 
 Bitboard getBishopAttack(int square, U64 occupancy) {
-	occupancy &= bishopMasks[square].GetBoard();
+	occupancy &= bishopMasks[square];
 	occupancy *= bishopMagicNumbers[square];
 	occupancy >>= (64 - bishopRelevantBits[square]);
 
@@ -247,7 +247,7 @@ Bitboard getBishopAttack(int square, U64 occupancy) {
 }
 
 Bitboard getRookAttack(int square, U64 occupancy) {
-	occupancy &= rookMasks[square].GetBoard();
+	occupancy &= rookMasks[square];
 	occupancy *= rookMagicNumbers[square];
 	occupancy >>= (64 - rookRelevantBits[square]);
 
@@ -258,11 +258,11 @@ Bitboard getQueenAttack(int square, U64 occupancy) {
 	U64 bishopOccupancy = occupancy;
 	U64 rookOccupancy = occupancy;
 
-	bishopOccupancy &= bishopMasks[square].GetBoard();
+	bishopOccupancy &= bishopMasks[square];
 	bishopOccupancy *= bishopMagicNumbers[square];
 	bishopOccupancy >>= (64 - bishopRelevantBits[square]);
 
-	rookOccupancy &= rookMasks[square].GetBoard();
+	rookOccupancy &= rookMasks[square];
 	rookOccupancy *= rookMagicNumbers[square];
 	rookOccupancy >>= (64 - rookRelevantBits[square]);
 
@@ -308,7 +308,7 @@ static Bitboard Checkers(Board &board, bool color) {
 	Bitboard checkerBoard = 0ULL;
 
 	for (int type = Pawn; type < King; type++) {
-		Bitboard targets = getPieceAttacks(kingSquare, type, color, board.occupied.GetBoard());
+		Bitboard targets = getPieceAttacks(kingSquare, type, color, board.occupied);
 		checkerBoard |= targets & board.pieces[type] & board.colors[!color];
 	}
 	return checkerBoard;
@@ -466,7 +466,7 @@ static bool IsLegalEnPassant(Board &board, int square) {
 static void GenPawnMoves(Board &board, bool color) {
 	Bitboard pawns = board.colors[color] & board.pieces[Pawn];
 
-	while (pawns.GetBoard()) {
+	while (pawns) {
 		int square = pawns.getLS1BIndex();
 
 		Bitboard pushes = getPawnPushes(square, color, board.occupied);
@@ -490,7 +490,7 @@ static void GenPawnMoves(Board &board, bool color) {
 			// Removing own pieces from capture mask
 			captures &= board.colors[!color];
 
-			while (pushes.GetBoard()) {
+			while (pushes) {
 				int pushSquare = pushes.getLS1BIndex();
 
 				if (abs(square - pushSquare) == 16) {
@@ -502,7 +502,7 @@ static void GenPawnMoves(Board &board, bool color) {
 				pushes.PopBit(pushSquare);
 			}
 
-			while (captures.GetBoard()) {
+			while (captures) {
 				int targetSquare = captures.getLS1BIndex();
 
 				board.AddMove(Move(square, targetSquare, capture));
@@ -527,7 +527,7 @@ static void GenPawnMoves(Board &board, bool color) {
 
 		Bitboard lastRank = color ? ranks[r_1] : ranks[r_8];
 
-		while (pushes.GetBoard()) {
+		while (pushes) {
 			int pushSquare = pushes.getLS1BIndex();
 
 			// Checking for promotion
@@ -547,7 +547,7 @@ static void GenPawnMoves(Board &board, bool color) {
 			pushes.PopBit(pushSquare);
 		}
 
-		while (captures.GetBoard()) {
+		while (captures) {
 			int targetSquare = captures.getLS1BIndex();
 
 			// Checking for promotion
@@ -570,7 +570,7 @@ static void GenPawnMoves(Board &board, bool color) {
 static void GenKnightMoves(Board &board, bool color) {
 	Bitboard knights = board.colors[color] & board.pieces[Knight];
 
-	while (knights.GetBoard()) {
+	while (knights) {
 		int square = knights.getLS1BIndex();
 
 		if (IsPinned(board, square)) {
@@ -582,7 +582,7 @@ static void GenKnightMoves(Board &board, bool color) {
 		Bitboard captures = moves & board.colors[!color];
 		moves &= ~captures;
 
-		while (moves.GetBoard()) {
+		while (moves) {
 			int targetSquare = moves.getLS1BIndex();
 
 			board.AddMove(Move(square, targetSquare, quiet));
@@ -590,7 +590,7 @@ static void GenKnightMoves(Board &board, bool color) {
 			moves.PopBit(targetSquare);
 		}
 
-		while (captures.GetBoard()) {
+		while (captures) {
 			int targetSquare = captures.getLS1BIndex();
 
 			board.AddMove(Move(square, targetSquare, capture));
@@ -605,10 +605,10 @@ static void GenKnightMoves(Board &board, bool color) {
 static void GenRookMoves(Board &board, bool color) {
 	Bitboard rooks = board.colors[color] & board.pieces[Rook];
 
-	while (rooks.GetBoard()) {
+	while (rooks) {
 		int square = rooks.getLS1BIndex();
 
-		Bitboard moves = getRookAttack(square, board.occupied.GetBoard()) & ~board.colors[color];
+		Bitboard moves = getRookAttack(square, board.occupied) & ~board.colors[color];
 		Bitboard captures = moves & board.colors[!color];
 		moves &= ~captures;
 
@@ -621,7 +621,7 @@ static void GenRookMoves(Board &board, bool color) {
 			moves &= pinningRay;
 			captures &= pinningRay;
 
-			while (moves.GetBoard()) {
+			while (moves) {
 				int targetSquare = moves.getLS1BIndex();
 
 				board.AddMove(Move(square, targetSquare, quiet));
@@ -629,7 +629,7 @@ static void GenRookMoves(Board &board, bool color) {
 				moves.PopBit(targetSquare);
 			}
 
-			while (captures.GetBoard()) {
+			while (captures) {
 				int targetSquare = captures.getLS1BIndex();
 
 				board.AddMove(Move(square, targetSquare, capture));
@@ -642,7 +642,7 @@ static void GenRookMoves(Board &board, bool color) {
 		}
 
 
-		while (moves.GetBoard()) {
+		while (moves) {
 			int targetSquare = moves.getLS1BIndex();
 
 			board.AddMove(Move(square, targetSquare, quiet));
@@ -650,7 +650,7 @@ static void GenRookMoves(Board &board, bool color) {
 			moves.PopBit(targetSquare);
 		}
 
-		while (captures.GetBoard()) {
+		while (captures) {
 			int targetSquare = captures.getLS1BIndex();
 
 			board.AddMove(Move(square, targetSquare, capture));
@@ -665,10 +665,10 @@ static void GenRookMoves(Board &board, bool color) {
 static void GenBishopMoves(Board &board, bool color) {
 	Bitboard bishops = board.colors[color] & board.pieces[Bishop];
 
-	while (bishops.GetBoard()) {
+	while (bishops) {
 		int square = bishops.getLS1BIndex();
 
-		Bitboard moves = getBishopAttack(square, board.occupied.GetBoard()) & ~board.colors[color];
+		Bitboard moves = getBishopAttack(square, board.occupied) & ~board.colors[color];
 		Bitboard captures = moves & board.colors[!color];
 		moves &= ~captures;
 
@@ -681,7 +681,7 @@ static void GenBishopMoves(Board &board, bool color) {
 			moves &= pinningRay;
 			captures &= pinningRay;
 
-			while (moves.GetBoard()) {
+			while (moves) {
 				int targetSquare = moves.getLS1BIndex();
 
 				board.AddMove(Move(square, targetSquare, quiet));
@@ -689,7 +689,7 @@ static void GenBishopMoves(Board &board, bool color) {
 				moves.PopBit(targetSquare);
 			}
 
-			while (captures.GetBoard()) {
+			while (captures) {
 				int targetSquare = captures.getLS1BIndex();
 
 				board.AddMove(Move(square, targetSquare, capture));
@@ -702,7 +702,7 @@ static void GenBishopMoves(Board &board, bool color) {
 		}
 
 
-		while (moves.GetBoard()) {
+		while (moves) {
 			int targetSquare = moves.getLS1BIndex();
 
 			board.AddMove(Move(square, targetSquare, quiet));
@@ -710,7 +710,7 @@ static void GenBishopMoves(Board &board, bool color) {
 			moves.PopBit(targetSquare);
 		}
 
-		while (captures.GetBoard()) {
+		while (captures) {
 			int targetSquare = captures.getLS1BIndex();
 
 			board.AddMove(Move(square, targetSquare, capture));
@@ -725,10 +725,10 @@ static void GenBishopMoves(Board &board, bool color) {
 static void GenQueenMoves(Board &board, bool color) {
 	Bitboard queens = board.colors[color] & board.pieces[Queen];
 
-	while (queens.GetBoard()) {
+	while (queens) {
 		int square = queens.getLS1BIndex();
 
-		Bitboard moves = getQueenAttack(square, board.occupied.GetBoard()) & ~board.colors[color];
+		Bitboard moves = getQueenAttack(square, board.occupied) & ~board.colors[color];
 		Bitboard captures = moves & board.colors[!color];
 		moves &= ~captures;
 
@@ -741,7 +741,7 @@ static void GenQueenMoves(Board &board, bool color) {
 			moves &= pinningRay;
 			captures &= pinningRay;
 
-			while (moves.GetBoard()) {
+			while (moves) {
 				int targetSquare = moves.getLS1BIndex();
 
 				board.AddMove(Move(square, targetSquare, quiet));
@@ -749,7 +749,7 @@ static void GenQueenMoves(Board &board, bool color) {
 				moves.PopBit(targetSquare);
 			}
 
-			while (captures.GetBoard()) {
+			while (captures) {
 				int targetSquare = captures.getLS1BIndex();
 
 				board.AddMove(Move(square, targetSquare, capture));
@@ -762,7 +762,7 @@ static void GenQueenMoves(Board &board, bool color) {
 		}
 
 
-		while (moves.GetBoard()) {
+		while (moves) {
 			int targetSquare = moves.getLS1BIndex();
 
 			board.AddMove(Move(square, targetSquare, quiet));
@@ -770,7 +770,7 @@ static void GenQueenMoves(Board &board, bool color) {
 			moves.PopBit(targetSquare);
 		}
 
-		while (captures.GetBoard()) {
+		while (captures) {
 			int targetSquare = captures.getLS1BIndex();
 
 			board.AddMove(Move(square, targetSquare, capture));
@@ -789,7 +789,7 @@ static void GenKingMoves(Board &board, bool color, bool isInCheck) {
 	Bitboard captures = moves & board.colors[!color];
 	moves &= ~board.colors[!color];
 
-	while (moves.GetBoard()) {
+	while (moves) {
 		int square = moves.getLS1BIndex();
 
 		board.AddMove(Move(kingSquare, square, quiet));
@@ -797,7 +797,7 @@ static void GenKingMoves(Board &board, bool color, bool isInCheck) {
 		moves.PopBit(square);
 	}
 
-	while (captures.GetBoard()) {
+	while (captures) {
 		int square = captures.getLS1BIndex();
 
 		Move move(kingSquare, square, capture);
@@ -853,7 +853,7 @@ static void GenCheckEvasions(Board &board, bool color) {
 		for (int type = Pawn; type < King; type++) {
 			Bitboard currentPiece = board.colors[color] & board.pieces[type];
 
-			while (currentPiece.GetBoard()) {
+			while (currentPiece) {
 				int square = currentPiece.getLS1BIndex();
 
 				if (IsPinned(board, square)) {
@@ -869,28 +869,28 @@ static void GenCheckEvasions(Board &board, bool color) {
 					// Checking for en passant capture
 					Bitboard attackedSquare = pawnAttacks[color][square]
 						& Bitboard::GetSquare(board.enPassantTarget);
-					if (attackedSquare.GetBoard()) {
+					if (attackedSquare) {
 						// Checking if it's legal
 						if (IsLegalEnPassant(board, square)) {
 							int direction = color ? south : north;
 							int targetSquare = captureMask.getLS1BIndex() + direction;
 							captureMask.SetBit(targetSquare);
-							if ((attackedSquare & pushMask).GetBoard()
-								|| (attackedSquare & captureMask).GetBoard()) {
+							if ((attackedSquare & pushMask)
+								|| (attackedSquare & captureMask)) {
 								board.AddMove(Move(square, board.enPassantTarget, epCapture));
 							}
 							captureMask.PopBit(targetSquare);
 						}
 					}
 				} else {
-					pushes |= getPieceAttacks(square, type, color, board.occupied.GetBoard()) & pushMask;
+					pushes |= getPieceAttacks(square, type, color, board.occupied) & pushMask;
 				}
 
-				captures |= getPieceAttacks(square, type, color, board.occupied.GetBoard()) & captureMask;
+				captures |= getPieceAttacks(square, type, color, board.occupied) & captureMask;
 
 				Bitboard lastRank = color ? ranks[r_1] : ranks[r_8];
 
-				while (captures.GetBoard()) {
+				while (captures) {
 					int captureSquare = captures.getLS1BIndex();
 
 					// Checking for promotion
@@ -910,7 +910,7 @@ static void GenCheckEvasions(Board &board, bool color) {
 					captures.PopBit(captureSquare);
 				}
 
-				while (pushes.GetBoard()) {
+				while (pushes) {
 					int pushSquare = pushes.getLS1BIndex();
 
 					if (type == Pawn) {
@@ -948,23 +948,23 @@ void GenAttackMaps(Board &board) {
 			board.attackMaps[color][type] = 0ULL;
 			Bitboard pieces = board.pieces[type] & board.colors[color];
 
-			while (pieces.GetBoard()) {
+			while (pieces) {
 				int square = pieces.getLS1BIndex();
 				if (type == Pawn) {
-					board.attackMaps[color][type] |= pawnAttacks[color][square].GetBoard();
+					board.attackMaps[color][type] |= pawnAttacks[color][square];
 				} else if (type == Knight) {
-					board.attackMaps[color][type] |= knightAttacks[square].GetBoard();
+					board.attackMaps[color][type] |= knightAttacks[square];
 				} else if (type == King) {
-					board.attackMaps[color][type] |= kingAttacks[square].GetBoard();
+					board.attackMaps[color][type] |= kingAttacks[square];
 				} else if (type == Rook) {
-					board.attackMaps[color][type] |= getRookAttack(square, (board.occupied 
-						& ~(board.colors[!color] & board.pieces[King])).GetBoard()).GetBoard();
+					board.attackMaps[color][type] |= getRookAttack(square, board.occupied 
+						& ~(board.colors[!color] & board.pieces[King]));
 				} else if (type == Bishop) {
-					board.attackMaps[color][type] |= getBishopAttack(square, (board.occupied 
-						& ~(board.colors[!color] & board.pieces[King])).GetBoard()).GetBoard();
+					board.attackMaps[color][type] |= getBishopAttack(square, board.occupied 
+						& ~(board.colors[!color] & board.pieces[King]));
 				} else if (type == Queen) {
-					board.attackMaps[color][type] |= getQueenAttack(square, (board.occupied 
-						& ~(board.colors[!color] & board.pieces[King])).GetBoard()).GetBoard();
+					board.attackMaps[color][type] |= getQueenAttack(square, board.occupied 
+						& ~(board.colors[!color] & board.pieces[King]));
 				}
 				pieces.PopBit(square);
 			}

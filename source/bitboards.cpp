@@ -23,22 +23,16 @@ void Bitboard::PrintBoard() const {
 	std::cout << "     Board: 0x" << std::hex << m_board << '\n';
 }
 
-U64 Bitboard::GetBoard() const {
-	return m_board;
-}
-
 bool Bitboard::IsSet(int square) const {
-	return (1ULL << square) & m_board;
+	return GetSquare(square) & m_board;
 }
 
 void Bitboard::SetBit(int square) {
-	m_board |= (1ULL << square);
+	m_board |= GetSquare(square);
 }
 
 void Bitboard::PopBit(int square) {
-	if (Bitboard(m_board).IsSet(square)) {
-		m_board &= (~Bitboard::GetSquare(square)).GetBoard(); 
-	}
+    m_board &= ~GetSquare(square);
 }
 
 int Bitboard::PopCount() const {
@@ -86,6 +80,19 @@ Bitboard Bitboard::operator*(const Bitboard& other) const {
 	return m_board * other.m_board;
 }
 
+Bitboard Bitboard::operator&(const uint64_t& other) const {
+	return m_board & other;
+}
+Bitboard Bitboard::operator|(const uint64_t& other) const {
+	return m_board | other;
+}
+Bitboard Bitboard::operator^(const uint64_t& other) const {
+	return m_board ^ other;
+}
+Bitboard Bitboard::operator*(const uint64_t& other) const {
+	return m_board * other;
+}
+
 Bitboard Bitboard::operator&=(const Bitboard& other) {
 	return m_board &= other.m_board;
 }
@@ -94,6 +101,16 @@ Bitboard Bitboard::operator|=(const Bitboard& other) {
 }
 Bitboard Bitboard::operator^=(const Bitboard& other) {
 	return m_board ^= other.m_board;
+}
+
+Bitboard Bitboard::operator&=(const uint64_t& other) {
+	return m_board &= other;
+}
+Bitboard Bitboard::operator|=(const uint64_t& other) {
+	return m_board |= other;
+}
+Bitboard Bitboard::operator^=(const uint64_t& other) {
+	return m_board ^= other;
 }
 
 Bitboard Bitboard::operator<<(int other) {
@@ -115,4 +132,8 @@ Bitboard Bitboard::operator>>(int other) {
 
 Bitboard Bitboard::operator~() {
 	return ~(m_board);
+}
+
+Bitboard::operator uint64_t() {
+    return m_board;
 }

@@ -13,7 +13,7 @@ static int GetPositionalScore(Board &board, int type, int color) {
     
     Bitboard pieces = board.pieces[type] & board.colors[color];
 
-    while (pieces.GetBoard()) {
+    while (pieces) {
         int square = pieces.getLS1BIndex();
 
         // White
