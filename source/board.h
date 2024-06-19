@@ -23,7 +23,7 @@ public:
 	int halfMoves = 0;
 	int fullMoves = 0;
 
-	std::array<bool, 4> castlingRights = { false, false, false, false };
+    uint8_t castlingRights = 0;
 	int enPassantTarget;
 
 	void Init();

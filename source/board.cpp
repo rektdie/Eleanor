@@ -7,7 +7,7 @@ void Board::Init() {
 }
 
 void Board::Reset() {
-	castlingRights = { false, false, false, false };
+    castlingRights = 0;
 	enPassantTarget = -1;
 	halfMoves = 0;
 	fullMoves = 0;
@@ -126,16 +126,16 @@ void Board::SetByFen(const char* fen) {
 			}
 			break;
 		case 'K':
-			castlingRights[White] = true;
+			castlingRights |= whiteKingRight;
 			break;
 		case 'Q':
-			castlingRights[White + 1] = true;
+			castlingRights |= whiteQueenRight;
 			break;
 		case 'k':
-			castlingRights[Black * 2] = true;
+			castlingRights |= blackKingRight;
 			break;
 		case 'q':
-			castlingRights[Black * 2 + 1] = true;
+			castlingRights |= blackQueenRight;
 			break;
 		default:
 			if (*fen != '-') {
@@ -232,10 +232,10 @@ void Board::PrintBoard() {
 	}
 
 	std::cout << "      Castling rights: ";
-	if (castlingRights[0]) std::cout << "K"; else std::cout << "-";
-	if (castlingRights[1]) std::cout << "Q"; else std::cout << "-";
-	if (castlingRights[2]) std::cout << "k"; else std::cout << "-";
-	if (castlingRights[3]) std::cout << "q"; else std::cout << "-";
+	if (castlingRights & whiteKingRight) std::cout << "K"; else std::cout << "-";
+	if (castlingRights & whiteQueenRight) std::cout << "Q"; else std::cout << "-";
+	if (castlingRights & blackKingRight) std::cout << "k"; else std::cout << "-";
+	if (castlingRights & blackQueenRight) std::cout << "q"; else std::cout << "-";
 	std::cout << '\n';
 }
 
@@ -302,13 +302,13 @@ static void UpdateCastlingRights(Board &board, int square, int type, int color) 
 		int kingSideRook = color ? h8 : h1;
 
 		if (square == queenSideRook) {
-			board.castlingRights[color * 2 + 1] = false;
+            board.castlingRights &= color ? ~blackQueenRight : ~whiteQueenRight;
 		} else if (square == kingSideRook) {
-			board.castlingRights[color * 2] = false;
+            board.castlingRights &= color ? ~blackKingRight : ~whiteKingRight;
 		}
 	} else if (type == King) {
-		board.castlingRights[color * 2 + 1] = false;
-		board.castlingRights[color * 2] = false;
+        board.castlingRights &= color ? ~blackKingRight : ~whiteKingRight;
+        board.castlingRights &= color ? ~blackQueenRight : ~whiteQueenRight;
 	}
 }
 

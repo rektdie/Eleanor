@@ -1,7 +1,6 @@
 #include "board.h"
 #include "movegen.h"
 #include "uci.h"
-#include "perft.h"
 
 int main() {
 	initLeaperAttacks();
@@ -9,7 +8,7 @@ int main() {
 
 	Board board;
 
-    Perft(board, 7);
+    UCILoop(board);
 
 	return 0;
 }

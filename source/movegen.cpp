@@ -807,27 +807,28 @@ static void GenKingMoves(Board &board, bool color, bool isInCheck) {
 	}
 
 	// Generating castles
-	if (!isInCheck) {
-		if (board.castlingRights[color * 2 + 1]) {
-			U64 QueenSide = color ? 0x1f00000000000000 : 0x1f;
-			U64 mask = color ? 0x1c00000000000000 : 0x1c;
-			int targetSquare = color ? c8 : c1;
-			if ((Bitboard(QueenSide) & board.occupied).PopCount() == 2
-				&& !(mask & board.GetAttackMaps(!color))) {
-				board.AddMove(Move(kingSquare, targetSquare, queenCastle));
-			}
-		}
+    int kingRight = color ? blackKingRight : whiteKingRight;
+    int queenRight = color ? blackQueenRight : whiteQueenRight;
 
-		if (board.castlingRights[color * 2]) {
-			U64 KingSide = color ? 0xf000000000000000 : 0xf0;
-			U64 mask = color ? 0x7000000000000000 : 0x70;
-			int targetSquare = color ? g8 : g1;
-			if ((Bitboard(KingSide) & board.occupied).PopCount() == 2
-				&& !(mask & board.GetAttackMaps(!color))) {
-				board.AddMove(Move(kingSquare, targetSquare, kingCastle));
-			}
-		}
-	}
+    if (board.castlingRights & queenRight)  {
+        U64 QueenSide = color ? 0x1f00000000000000 : 0x1f;
+        U64 mask = color ? 0x1c00000000000000 : 0x1c;
+        int targetSquare = color ? c8 : c1;
+        if ((Bitboard(QueenSide) & board.occupied).PopCount() == 2
+                && !(mask & board.GetAttackMaps(!color))) {
+            board.AddMove(Move(kingSquare, targetSquare, queenCastle));
+        }
+    }
+
+    if (board.castlingRights & kingRight) {
+        U64 KingSide = color ? 0xf000000000000000 : 0xf0;
+        U64 mask = color ? 0x7000000000000000 : 0x70;
+        int targetSquare = color ? g8 : g1;
+        if ((Bitboard(KingSide) & board.occupied).PopCount() == 2
+                && !(mask & board.GetAttackMaps(!color))) {
+            board.AddMove(Move(kingSquare, targetSquare, kingCastle));
+        }
+    }
 }
 
 // Generates moves to get out of check
