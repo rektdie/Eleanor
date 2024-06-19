@@ -19,10 +19,10 @@ int Quiescence(Board board, int alpha, int beta) {
 
     GenerateMoves(board, board.sideToMove);
 
-    for (Move move : board.moveList) {
-        if (move.IsCapture()) {
+    for (int i = 0; i < board.currentMoveIndex; i++) {
+        if (board.moveList[i].IsCapture()) {
             Board copy = board;
-            board.MakeMove(move);
+            board.MakeMove(board.moveList[i]);
             int score = -Quiescence(board, -beta, -alpha);
             board = copy;
 
@@ -47,7 +47,7 @@ int NegaMax(Board board, int depth, int alpha, int beta, bool isRoot) {
 
     GenerateMoves(board, board.sideToMove);
 
-    if (board.moveList.size() == 0) {
+    if (board.currentMoveIndex == 0) {
         if (board.InCheck(board.sideToMove)) { // checkmate
             return -49000 + ply;
         } else { // stalemate
@@ -58,9 +58,9 @@ int NegaMax(Board board, int depth, int alpha, int beta, bool isRoot) {
 
     int max = -50000;
 
-    for (Move move : board.moveList) {
+    for (int i = 0; i < board.currentMoveIndex; i++) {
         Board copy = board;
-        board.MakeMove(move);
+        board.MakeMove(board.moveList[i]);
         ply++;
         int score = -NegaMax(board, depth - 1, -beta, -alpha, false);
         board = copy;
@@ -81,7 +81,7 @@ int NegaMax(Board board, int depth, int alpha, int beta, bool isRoot) {
         if (isRoot) {
             if (max > bestScore) {
                 bestScore = max;
-                bestMove = move;
+                bestMove = board.moveList[i];
             }
         }
     }
