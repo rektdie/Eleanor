@@ -16,6 +16,9 @@ void Board::Reset() {
 
 	pieces = std::array<Bitboard, 6>();
 	colors = std::array<Bitboard, 2>();
+
+    moveList = std::array<Move, 218>();
+    currentMoveIndex = 0;
 }
 
 void Board::SetByFen(const char* fen) {
@@ -237,18 +240,19 @@ void Board::PrintBoard() {
 }
 
 void Board::AddMove(Move move) {
-	moveList.push_back(move);
+    moveList[currentMoveIndex] = move;
+    currentMoveIndex++;
 }
 
 void Board::ResetMoves() {
-	moveList.clear();
+    currentMoveIndex = 0;
 }
 
 void Board::ListMoves() {
 	int count = 1;
-	for (Move move : moveList) {
+	for (int i = 0; i < currentMoveIndex; i++) {
 		std::cout << count << ". ";
-		move.PrintMove();
+		moveList[i].PrintMove();
 		count++;
 	}
 }
@@ -408,7 +412,7 @@ void Board::MakeMove(Move move) {
 	UpdateCastlingRights(*this, move.MoveFrom(), attackerPiece, attackerColor);
 
 	halfMoves++;
-	if (halfMoves & 2 == 0) fullMoves++;
+	if (halfMoves % 2 == 0) fullMoves++;
 	sideToMove = !attackerColor;
 	enPassantTarget = newEpTarget;
 

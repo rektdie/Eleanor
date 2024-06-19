@@ -973,7 +973,7 @@ void GenAttackMaps(Board &board) {
 }
 
 void GenerateMoves(Board &board, bool side) {
-	board.moveList.clear();
+    board.ResetMoves();
 
 	if (board.InCheck(side)) {
 		GenCheckEvasions(board, side);

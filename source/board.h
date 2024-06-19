@@ -3,7 +3,6 @@
 #include "bitboards.h"
 #include "types.h"
 #include "move.h"
-#include <vector>
 
 class Board {
 public:
@@ -17,7 +16,8 @@ public:
 
 	Bitboard occupied;
 
-	std::vector<Move> moveList;
+    std::array<Move, 218> moveList;
+    int currentMoveIndex = 0;
 
 	bool sideToMove = White;
 	int halfMoves = 0;
