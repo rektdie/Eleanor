@@ -12,7 +12,7 @@ enum COLOR {
 };
 
 enum PIECE {
-	Pawn,
+	Pawn = 0,
 	Knight,
 	Bishop,
 	Rook,
