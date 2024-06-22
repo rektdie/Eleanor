@@ -26,8 +26,7 @@ Move ParseMove(Board &board, const char* moveString) {
     it = std::find(squareCoords.begin(), squareCoords.end(), toString);
 
     int to = std::distance(squareCoords.begin(), it);
-
-    std::string promotionString = "";
+std::string promotionString = "";
 
     // Finding the move from available moves
     for (Move move : board.moveList) {
@@ -148,7 +147,7 @@ void ParseGo(Board &board, const char* command) {
 
         depth = atoi(command);
     } else { // other command parameters
-        depth = 5;
+        depth = 6;
     }
 
     // search position

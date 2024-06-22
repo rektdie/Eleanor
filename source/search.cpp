@@ -135,13 +135,14 @@ static int NegaMax(Board board, int depth, int alpha, int beta, bool isRoot) {
         board.MakeMove(board.moveList[i]);
         ply++;
         int score = -NegaMax(board, depth - 1, -beta, -alpha, false);
-        board = copy;
-        ply--;
+        board = copy; ply--;
 
         if (score >= beta) {
-            // store killer moves
-            killerMoves[1][ply] = killerMoves[0][ply];
-            killerMoves[0][ply] = board.moveList[i];
+            if (board.moveList[i].IsCapture()) {
+                // store killer moves
+                killerMoves[1][ply] = killerMoves[0][ply];
+                killerMoves[0][ply] = board.moveList[i];
+            }
 
             return beta;
         }
