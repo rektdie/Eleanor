@@ -3,22 +3,35 @@
 #include "evaluate.h"
 #include <algorithm>
 
+static inline int nodes = 0;
 static inline int ply = 0;
 static inline Move bestMove = Move();
 static inline int bestScore = -50000;
+
+// killer moves [id][ply]
+static inline Move killerMoves[2][64];
 
 static int ScoreMove(Board &board, Move &move) {
     const int attackerType = board.GetPieceType(move.MoveFrom());
     const int targetType = board.GetPieceType(move.MoveTo());
 
     if (move.IsCapture()) {
-        return moveScoreTable[attackerType][targetType];
+        return moveScoreTable[attackerType][targetType] + 10000;
     } else {
-        return 0;
+        // 1st killer move
+        if (killerMoves[0][ply] == move) {
+            return 9000;
+        }
+        // 2nd killer move
+        else if (killerMoves[1][ply] == move) {
+            return 8000;
+        }
     }
+
+    return 0;
 }
 
-void SortMoves(Board &board) {
+static void SortMoves(Board &board) {
     std::array<int, 218> scores;
     std::array<int, 218> indices;
 
@@ -47,15 +60,18 @@ void SortMoves(Board &board) {
 }
 
 void ListScores(Board &board) {
+    SortMoves(board);
+
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Move currentMove = board.moveList[i];
 
-        std::cout << squareCoords[currentMove.MoveFrom()] << squareCoords[currentMove.MoveTo()];
-        std::cout << ": " << ScoreMove(board, currentMove) << '\n';
+        std::cout << squareCoords[currentMove.MoveFrom()] << squareCoords[currentMove.MoveTo()]; std::cout << ": " << ScoreMove(board, currentMove) << '\n';
     }
 }
 
 static int Quiescence(Board board, int alpha, int beta) {
+    nodes++;
+
     int staticScore = Evaluate(board);
 
     if (staticScore >= beta) {
@@ -95,6 +111,8 @@ static int NegaMax(Board board, int depth, int alpha, int beta, bool isRoot) {
         return Quiescence(board, alpha, beta);
     }
 
+    nodes++;
+
     GenerateMoves(board, board.sideToMove);
 
     SortMoves(board);
@@ -121,6 +139,10 @@ static int NegaMax(Board board, int depth, int alpha, int beta, bool isRoot) {
         ply--;
 
         if (score >= beta) {
+            // store killer moves
+            killerMoves[1][ply] = killerMoves[0][ply];
+            killerMoves[0][ply] = board.moveList[i];
+
             return beta;
         }
 
@@ -142,10 +164,13 @@ static int NegaMax(Board board, int depth, int alpha, int beta, bool isRoot) {
     return max;
 }
 
+
+
 void SearchPosition(Board &board, int depth) {
     bestScore = -50000;
     bestMove = Move();
     NegaMax(board, depth, -50000, 50000, true); 
+    std::cout << "info depth " << depth << " nodes " << nodes << '\n'; 
     std::cout << "bestmove " << squareCoords[bestMove.MoveFrom()]
         << squareCoords[bestMove.MoveTo()] <<  '\n';
 }

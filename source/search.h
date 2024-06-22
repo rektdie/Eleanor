@@ -12,5 +12,4 @@ constexpr int moveScoreTable[6][6] = {
     100, 200, 300, 400, 500, 600
 };
 
-void SortMoves(Board &board);
 void ListScores(Board &board);
