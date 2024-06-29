@@ -1,6 +1,4 @@
 #include "tt.h"
-#include "types.h"
-#include <iostream>
 
 static inline U64 initialSeed = 0x60919C48E57863B9;
 
@@ -42,4 +40,36 @@ void InitZobrist() {
 
     // init side key
     zSide = RandomNum();
+}
+
+U64 GetHashKey(Board &board) {
+    U64 key;
+
+    // XORing pieces
+    for (int color = White; color <= Black; color++) {
+        for (int piece = Pawn; piece <= King; piece++) {
+            Bitboard pieceSet = board.pieces[piece];
+            
+            while (pieceSet) {
+                int square = pieceSet.getLS1BIndex();
+
+                key ^= zKeys[color][piece][square];
+
+                pieceSet.PopBit(square);
+            }
+        }
+    }
+
+    // XORing en passant
+    if (board.enPassantTarget != -1) {
+        key ^= zEnPassant[board.enPassantTarget % 8];
+    }
+
+    // XORing castling rights
+    key ^= zCastle[board.castlingRights];
+
+    // XORing side to move
+    if (board.sideToMove) key ^= zSide;
+
+    return key;
 }
