@@ -1,10 +1,11 @@
 #include "tt.h"
 #include "types.h"
+#include <iostream>
 
 static inline U64 initialSeed = 0x60919C48E57863B9;
 
 // 2[colors] * 6[pieces] * 64[squares]
-static U64 zKeys[768];
+static U64 zKeys[2][6][64];
 
 // There are 8 files
 static U64 zEnPassant[8];
@@ -24,9 +25,9 @@ void InitZobrist() {
     for (int i = White; i <= Black; i++) {
         for (int j = Pawn; j <= King; j++) {
             for (int k = a1; k <= h8; k++) {
-                zKeys[i+j+k] = RandomNum();
+                zKeys[i][j][k] = RandomNum();
             }
-        }
+        } 
     }
 
     // init en passant file keys
