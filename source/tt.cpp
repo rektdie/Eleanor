@@ -1,20 +1,23 @@
 #include "tt.h"
 
-static inline U64 initialSeed = 0x60919C48E57863B9;
+static U64 initialSeed = 0x60919C48E57863B9;
 
 // 2[colors] * 6[pieces] * 64[squares]
-static U64 zKeys[2][6][64];
+U64 zKeys[2][6][64];
 
 // There are 8 files
-static U64 zEnPassant[8];
+U64 zEnPassant[8];
 
-static U64 zCastle[16];
-static U64 zSide;
+// 16 possible castling right variations
+U64 zCastle[16];
 
+U64 zSide;
+
+// PRNG using xorshift
 static U64 RandomNum() {
     initialSeed ^= initialSeed << 13;
-    initialSeed ^= initialSeed >> 17;
-    initialSeed ^= initialSeed << 5;
+    initialSeed ^= initialSeed >> 7;
+    initialSeed ^= initialSeed << 17;
     return initialSeed;
 }
 
@@ -43,13 +46,13 @@ void InitZobrist() {
 }
 
 U64 GetHashKey(Board &board) {
-    U64 key;
+    U64 key = 0ULL;
 
     // XORing pieces
     for (int color = White; color <= Black; color++) {
         for (int piece = Pawn; piece <= King; piece++) {
-            Bitboard pieceSet = board.pieces[piece];
-            
+            Bitboard pieceSet = board.pieces[piece] & board.colors[color];
+
             while (pieceSet) {
                 int square = pieceSet.getLS1BIndex();
 

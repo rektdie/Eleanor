@@ -12,6 +12,5 @@ int main() {
 
     UCILoop(board);
 
-
 	return 0;
 }

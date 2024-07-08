@@ -1,6 +1,7 @@
 #include "board.h"
 #include "movegen.h"
 #include <iostream>
+#include "tt.h"
 
 void Board::Init() {
 	SetByFen(StartingFen);
@@ -19,6 +20,8 @@ void Board::Reset() {
 
     moveList = std::array<Move, 218>();
     currentMoveIndex = 0;
+
+    hashKey = 0ULL;
 }
 
 void Board::SetByFen(const char* fen) {
@@ -187,6 +190,7 @@ void Board::SetByFen(const char* fen) {
 
 	occupied = (colors[White] | colors[Black]);
 	GenAttackMaps(*this);
+    hashKey = GetHashKey(*this);
 }
 
 void Board::PrintBoard() {
@@ -236,7 +240,9 @@ void Board::PrintBoard() {
 	if (castlingRights & whiteQueenRight) std::cout << "Q"; else std::cout << "-";
 	if (castlingRights & blackKingRight) std::cout << "k"; else std::cout << "-";
 	if (castlingRights & blackQueenRight) std::cout << "q"; else std::cout << "-";
-	std::cout << '\n';
+	std::cout << "\n\n";
+
+    std::cout << "      Hashkey: " << std::hex << hashKey << '\n';
 }
 
 void Board::AddMove(Move move) {
@@ -249,11 +255,9 @@ void Board::ResetMoves() {
 }
 
 void Board::ListMoves() {
-	int count = 1;
 	for (int i = 0; i < currentMoveIndex; i++) {
-		std::cout << count << ". ";
+		std::cout << i+1 << ". ";
 		moveList[i].PrintMove();
-		count++;
 	}
 }
 
@@ -287,17 +291,23 @@ void Board::SetPiece(int piece, int square, bool color) {
 	pieces[piece].SetBit(square);
 	colors[color].SetBit(square);
 	occupied.SetBit(square);
+
+    hashKey ^= zKeys[color][piece][square];
 }
 
 void Board::RemovePiece(int piece, int square, bool color) {
 	pieces[piece].PopBit(square);
 	colors[color].PopBit(square);
 	occupied.PopBit(square);
+
+    hashKey ^= zKeys[color][piece][square];
 }
 
 // Updates castling rights
 static void UpdateCastlingRights(Board &board, int square, int type, int color) {
 	if (type == Rook) {
+        // Removing old rights
+        board.hashKey ^= zCastle[board.castlingRights];
 		int queenSideRook = color ? a8 : a1;
 		int kingSideRook = color ? h8 : h1;
 
@@ -306,9 +316,16 @@ static void UpdateCastlingRights(Board &board, int square, int type, int color) 
 		} else if (square == kingSideRook) {
             board.castlingRights &= color ? ~blackKingRight : ~whiteKingRight;
 		}
+
+        board.hashKey ^= zCastle[board.castlingRights];
 	} else if (type == King) {
+        // Removing old rights
+        board.hashKey ^= zCastle[board.castlingRights];
+
         board.castlingRights &= color ? ~blackKingRight : ~whiteKingRight;
         board.castlingRights &= color ? ~blackQueenRight : ~whiteQueenRight;
+
+        board.hashKey ^= zCastle[board.castlingRights];
 	}
 }
 
@@ -414,6 +431,16 @@ void Board::MakeMove(Move move) {
 	halfMoves++;
 	if (halfMoves % 2 == 0) fullMoves++;
 	sideToMove = !attackerColor;
+    hashKey ^= zSide;
+
+    if (enPassantTarget != -1) {
+        hashKey ^= zEnPassant[enPassantTarget % 8];
+    }
+
+    if (newEpTarget != -1) {
+        hashKey ^= zEnPassant[newEpTarget % 8];
+    }
+
 	enPassantTarget = newEpTarget;
 
 	GenAttackMaps(*this);

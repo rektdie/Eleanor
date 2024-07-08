@@ -24,7 +24,9 @@ public:
 	int fullMoves = 0;
 
     uint8_t castlingRights = 0;
-	int enPassantTarget;
+	int enPassantTarget = -1;
+
+    U64 hashKey = 0ULL;
 
 	void Init();
 	void Reset();
