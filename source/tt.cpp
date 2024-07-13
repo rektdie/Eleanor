@@ -2,6 +2,8 @@
 
 static U64 initialSeed = 0x60919C48E57863B9;
 
+TTEntry TTable[hashSize];
+
 // 2[colors] * 6[pieces] * 64[squares]
 U64 zKeys[2][6][64];
 
@@ -75,4 +77,32 @@ U64 GetHashKey(Board &board) {
     if (board.sideToMove) key ^= zSide;
 
     return key;
+}
+
+int ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
+    TTEntry *current = &TTable[hashKey % hashSize];
+
+    if (current->hashKey == hashKey) {
+        if (current->depth >= depth) {
+            if (current->nodeType == PV){
+                return current->score;
+            } else if (current->nodeType == AllNode && current->score <= alpha) {
+                return alpha;
+            } else if (current->nodeType == CutNode && current->score >= beta) {
+                return beta;
+            }
+        }
+    }
+
+    // returning unknown value
+    return 10000;
+}
+
+void WriteEntry(U64 &hashKey, int depth, int score, int nodeType) {
+    TTEntry *current = &TTable[hashKey % hashSize];
+
+    current->hashKey = hashKey;
+    current->nodeType = nodeType;
+    current->score = score;
+    current->depth = depth;
 }

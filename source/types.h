@@ -29,6 +29,12 @@ enum CASTLING_RIGHTS {
     blackQueenRight = 8
 };
 
+enum NODE_TYPES {
+    PV,
+    CutNode,
+    AllNode
+};
+
 constexpr std::array<const char, 12> PIECE_LETTERS = {
 	'P', 'p',
 	'N', 'n',

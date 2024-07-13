@@ -1,6 +1,9 @@
 #pragma once
 #include "board.h"
 
+// 5 MB
+constexpr int hashSize = 0x500000;
+
 // 2[colors] * 6[pieces] * 64[squares]
 extern U64 zKeys[2][6][64];
 
@@ -14,3 +17,16 @@ extern U64 zSide;
 
 void InitZobrist();
 U64 GetHashKey(Board &board);
+
+class TTEntry {
+public:
+    U64 hashKey;
+    int depth;
+    int score;
+    int nodeType;
+};
+
+extern TTEntry TTable[hashSize];
+
+int ReadEntry(U64 &hashKey, int depth, int alpha, int beta);
+void WriteEntry(U64 &hashKey, int depth, int score, int nodeType);
