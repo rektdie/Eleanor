@@ -26,7 +26,7 @@ Move ParseMove(Board &board, const char* moveString) {
     it = std::find(squareCoords.begin(), squareCoords.end(), toString);
 
     int to = std::distance(squareCoords.begin(), it);
-std::string promotionString = "";
+    std::string promotionString = "";
 
     // Finding the move from available moves
     for (Move move : board.moveList) {
