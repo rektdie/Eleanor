@@ -7,6 +7,7 @@
 static inline int nodes = 0;
 static inline Move bestMove = Move();
 static inline int bestScore = -50000;
+static inline int ply = 0;
 
 static int ScoreMove(Board &board, Move &move) {
     const int attackerType = board.GetPieceType(move.MoveFrom());
@@ -96,6 +97,7 @@ static int Quiescence(Board board, int alpha, int beta) {
 }
 
 static int PVS(Board board, int depth, int alpha, int beta, int isRoot) {
+    
     nodes++;
     if (depth == 0) return Quiescence(board, alpha, beta);
 
@@ -103,6 +105,16 @@ static int PVS(Board board, int depth, int alpha, int beta, int isRoot) {
 
     GenerateMoves(board, board.sideToMove);
     SortMoves(board);
+
+    if (board.InCheck(board.sideToMove)) depth++;
+
+    if (board.currentMoveIndex == 0) {
+        if (board.InCheck(board.sideToMove)) { // checkmate
+            return -49000 + ply;
+        } else { // stalemate
+            return 0;
+        }
+    }
 
     // For all moves
     for (int i = 0; i < board.currentMoveIndex; i++) {
@@ -112,14 +124,20 @@ static int PVS(Board board, int depth, int alpha, int beta, int isRoot) {
         // First move (suspected PV node)
         if (!i) {
             // Full search
+            ply++;
             score = -PVS(copy, depth - 1, -beta, -alpha, false);
+            ply--;
         } else {
             // Quick search
+            ply++;
             score = -PVS(copy, depth - 1, -alpha-1, -alpha, false);
+            ply--;
 
             if (score > alpha && beta - alpha > 1) {
                 // We have to do full search
+                ply++;
                 score = -PVS(copy, depth - 1, -beta, -alpha, false);
+                ply--;
             }
         }
 
