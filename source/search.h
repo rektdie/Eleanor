@@ -1,6 +1,23 @@
 #pragma once
 #include "board.h"
 
+class SearchResults {
+public:
+    int score = 0;
+    Move bestMove = Move();
+
+    SearchResults(){}
+
+    SearchResults(int pScore, Move pMove) {
+        score = pScore;
+        bestMove = pMove;
+    }
+
+    SearchResults(int pScore) {
+        score = pScore;
+    }
+};
+
 void SearchPosition(Board &board, int depth);
 
 constexpr int moveScoreTable[6][6] = {

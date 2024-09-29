@@ -5,8 +5,6 @@
 #include "tt.h"
 
 static inline int nodes = 0;
-static inline Move bestMove = Move();
-static inline int bestScore = -50000;
 static inline int ply = 0;
 
 static int ScoreMove(Board &board, Move &move) {
@@ -59,7 +57,7 @@ void ListScores(Board &board) {
     }
 }
 
-static int Quiescence(Board board, int alpha, int beta) {
+static SearchResults Quiescence(Board board, int alpha, int beta) {
     nodes++;
 
     int staticScore = Evaluate(board);
@@ -76,12 +74,13 @@ static int Quiescence(Board board, int alpha, int beta) {
 
     SortMoves(board);
 
+    SearchResults results;
+
     for (int i = 0; i < board.currentMoveIndex; i++) {
         if (board.moveList[i].IsCapture()) {
             Board copy = board;
-            board.MakeMove(board.moveList[i]);
-            int score = -Quiescence(board, -beta, -alpha);
-            board = copy;
+            copy.MakeMove(board.moveList[i]);
+            int score = -Quiescence(copy, -beta, -alpha).score;
 
             if (score >= beta) {
                 return beta;
@@ -89,17 +88,18 @@ static int Quiescence(Board board, int alpha, int beta) {
 
             if (score > alpha) {
                 alpha = score;
+                results.bestMove = board.moveList[i];
             }
         }
     }
 
-    return alpha;
+    results.score = alpha;
+    return results;
 }
 
-static int PVS(Board board, int depth, int alpha, int beta, int isRoot) {
-    
+static SearchResults PVS(Board board, int depth, int alpha, int beta) {
     nodes++;
-    if (depth == 0) return Quiescence(board, alpha, beta);
+    if (depth == 0) return Quiescence(board, alpha, beta).score;
 
     int score = -50000;
 
@@ -116,6 +116,8 @@ static int PVS(Board board, int depth, int alpha, int beta, int isRoot) {
         }
     }
 
+    SearchResults results;
+
     // For all moves
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Board copy = board;
@@ -125,18 +127,18 @@ static int PVS(Board board, int depth, int alpha, int beta, int isRoot) {
         if (!i) {
             // Full search
             ply++;
-            score = -PVS(copy, depth - 1, -beta, -alpha, false);
+            score = -PVS(copy, depth - 1, -beta, -alpha).score;
             ply--;
         } else {
             // Quick search
             ply++;
-            score = -PVS(copy, depth - 1, -alpha-1, -alpha, false);
+            score = -PVS(copy, depth - 1, -alpha-1, -alpha).score;
             ply--;
 
             if (score > alpha && beta - alpha > 1) {
                 // We have to do full search
                 ply++;
-                score = -PVS(copy, depth - 1, -beta, -alpha, false);
+                score = -PVS(copy, depth - 1, -beta, -alpha).score;
                 ply--;
             }
         }
@@ -147,25 +149,18 @@ static int PVS(Board board, int depth, int alpha, int beta, int isRoot) {
 
         if (score > alpha) {
             alpha = score;
-        }
-
-        if (isRoot) {
-            if (alpha > bestScore) {
-                bestScore = alpha;
-                bestMove = copy.moveList[i];
-            }
+            results.bestMove = board.moveList[i];
         }
     }
 
-    return alpha;
+    results.score = alpha;
+    return results;
 }
 
 void SearchPosition(Board &board, int depth) {
-    bestScore = -50000;
-    bestMove = Move();
-    PVS(board, depth, -50000, 50000, true);
+    SearchResults results = PVS(board, depth, -50000, 50000);
     std::cout << "info depth " << depth << " nodes " << nodes << '\n'; 
-    std::cout << "bestmove " << squareCoords[bestMove.MoveFrom()]
-        << squareCoords[bestMove.MoveTo()] <<  '\n';
+    std::cout << "bestmove " << squareCoords[results.bestMove.MoveFrom()]
+        << squareCoords[results.bestMove.MoveTo()] <<  '\n';
     nodes = 0;
 }
