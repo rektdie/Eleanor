@@ -62,10 +62,12 @@ void ListScores(Board &board) {
 }
 
 static SearchResults Quiescence(Board board, int alpha, int beta) {
+    if (searchStopped) return 0;
+
     auto currTime = std::chrono::high_resolution_clock::now();
     int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
     if (elapsed >= timeToSearch) {
-        searchStopped = true;
+        StopSearch();
         return 0;
     }
 
@@ -109,10 +111,12 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
 }
 
 static SearchResults PVS(Board board, int depth, int alpha, int beta) {
+    if (searchStopped) return 0;
+
     auto currTime = std::chrono::high_resolution_clock::now();
     int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
     if (elapsed >= timeToSearch) {
-        searchStopped = true;
+        StopSearch();
         return 0;
     }
 
@@ -192,9 +196,6 @@ SearchResults ID(Board &board, SearchParams &params) {
             safeResults = currentResults;
         }
 
-        std::cout << "info nodes " << nodes << '\n';
-        std::cout << timeRemaining << std::endl;
-
         if (searchStopped) break;
     }
 
@@ -203,8 +204,20 @@ SearchResults ID(Board &board, SearchParams &params) {
 
 void SearchPosition(Board &board, SearchParams &params) {
     searchStopped = false;
+
+
     SearchResults results = ID(board, params);
+    auto currTime = std::chrono::high_resolution_clock::now();
+    double elapsed = std::chrono::duration_cast<
+        std::chrono::duration<double>>(currTime - timeStart).count();
+
+    std::cout << "info " << nodes << " nodes " << nodes/elapsed << " nps\n";
     std::cout << "bestmove " << squareCoords[results.bestMove.MoveFrom()]
         << squareCoords[results.bestMove.MoveTo()] <<  '\n';
     nodes = 0;
+}
+
+void StopSearch() {
+    searchStopped = true;
+    std::cout << "Search stopped\n";
 }

@@ -2,6 +2,9 @@
 SRC_DIR := source
 OBJ_DIR := obj
 
+CXX := g++
+EXE := Engine-Eleanor
+
 # Determine platform
 ifeq ($(OS),Windows_NT)
 	EXE_EXT := .exe
@@ -16,12 +19,12 @@ SRCS := $(wildcard $(SRC_DIR)/*.cpp)
 OBJS := $(addprefix $(OBJ_DIR)/, $(notdir $(SRCS:.cpp=.o)))
 
 # Target executable
-Engine-Eleanor$(EXE_EXT): $(OBJS)
-	g++ -o $@ $^ -O3
+$(EXE)$(EXE_EXT): $(OBJS)
+	$(CXX) -o $@ $^ -O3
 
 # Rule to compile source files to object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(SRC_DIR)/types.h | $(OBJ_DIR)
-	g++ -c -o $@ $< -O3
+	$(CXX) -c -o $@ $< -O3
 
 # Create the object directory if it doesn't exist
 $(OBJ_DIR):

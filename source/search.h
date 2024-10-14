@@ -20,6 +20,7 @@ public:
 };
 
 void SearchPosition(Board &board, SearchParams &params);
+void StopSearch();
 
 constexpr int moveScoreTable[6][6] = {
     105, 205, 305, 405, 505, 605,
