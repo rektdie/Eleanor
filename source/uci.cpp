@@ -136,22 +136,34 @@ void ParsePosition(Board &board, const char* command) {
     }
 }
 
-void ParseGo(Board &board, const char* command) {
-    // init depth
-    int depth = -1;
+static int ReadParam(std::string param, std::string &command) {
+    size_t pos = -1;
+    pos = command.find(param);
 
-    // handle fixed depth search
-    if (std::string(command).find("depth") != std::string::npos) {
-        // skipping to the depth number
-        command += 9;
+    if (pos != std::string::npos) {
+        std::string result = "";
+        pos += param.length() + 1;
 
-        depth = atoi(command);
-    } else { // other command parameters
-        depth = 6;
+        while(pos <= command.length() && std::isdigit(command[pos])){
+            result += command[pos];
+            pos++;
+        }
+        return stoi(result);
     }
 
-    // search position
-    SearchPosition(board, depth);
+    return 0;
+}
+
+void ParseGo(Board &board, std::string &command) {
+    SearchParams params;
+
+    params.wtime = ReadParam("wtime", command);
+    params.btime = ReadParam("btime", command);
+    params.winc = ReadParam("winc", command);
+    params.binc = ReadParam("binc", command);
+    params.movesToGo = ReadParam("movestogo", command);
+
+    SearchPosition(board, params);
 }
 
 void UCILoop(Board &board) {
@@ -200,7 +212,7 @@ void UCILoop(Board &board) {
 
         // parse UCI "go" command
         if (input.find("go") != std::string::npos) {
-            ParseGo(board, input.c_str());
+            ParseGo(board, input); 
             continue;
         }
 

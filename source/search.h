@@ -1,5 +1,6 @@
 #pragma once
 #include "board.h"
+#include "uci.h"
 
 class SearchResults {
 public:
@@ -18,7 +19,7 @@ public:
     }
 };
 
-void SearchPosition(Board &board, int depth);
+void SearchPosition(Board &board, SearchParams &params);
 
 constexpr int moveScoreTable[6][6] = {
     105, 205, 305, 405, 505, 605,

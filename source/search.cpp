@@ -2,10 +2,14 @@
 #include "movegen.h"
 #include "evaluate.h"
 #include <algorithm>
+#include <chrono>
 #include "tt.h"
 
 static inline int nodes = 0;
 static inline int ply = 0;
+static inline auto timeStart = std::chrono::high_resolution_clock::now();
+static inline int timeToSearch = 0;
+static inline bool searchStopped = false;
 
 static int ScoreMove(Board &board, Move &move) {
     const int attackerType = board.GetPieceType(move.MoveFrom());
@@ -58,6 +62,13 @@ void ListScores(Board &board) {
 }
 
 static SearchResults Quiescence(Board board, int alpha, int beta) {
+    auto currTime = std::chrono::high_resolution_clock::now();
+    int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
+    if (elapsed >= timeToSearch) {
+        searchStopped = true;
+        return 0;
+    }
+
     nodes++;
 
     int staticScore = Evaluate(board);
@@ -98,6 +109,13 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
 }
 
 static SearchResults PVS(Board board, int depth, int alpha, int beta) {
+    auto currTime = std::chrono::high_resolution_clock::now();
+    int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
+    if (elapsed >= timeToSearch) {
+        searchStopped = true;
+        return 0;
+    }
+
     nodes++;
     if (depth == 0) return Quiescence(board, alpha, beta).score;
 
@@ -157,9 +175,35 @@ static SearchResults PVS(Board board, int depth, int alpha, int beta) {
     return results;
 }
 
-void SearchPosition(Board &board, int depth) {
-    SearchResults results = PVS(board, depth, -50000, 50000);
-    std::cout << "info depth " << depth << " nodes " << nodes << '\n'; 
+// Iterative deepening
+SearchResults ID(Board &board, SearchParams &params) {
+    timeStart = std::chrono::high_resolution_clock::now();
+
+    int fullTime = board.sideToMove ? params.btime : params.wtime;
+    int inc = board.sideToMove ? params.binc : params.winc;
+
+    SearchResults safeResults;
+    for (int depth = 1; depth <= 8; depth++) {
+        int timeRemaining = fullTime / 20 + inc / 2;
+        timeToSearch = timeRemaining;
+
+        SearchResults currentResults = PVS(board, depth, -50000, 50000);
+        if (currentResults.score >= safeResults.score) {
+            safeResults = currentResults;
+        }
+
+        std::cout << "info nodes " << nodes << '\n';
+        std::cout << timeRemaining << std::endl;
+
+        if (searchStopped) break;
+    }
+
+    return safeResults;
+}
+
+void SearchPosition(Board &board, SearchParams &params) {
+    searchStopped = false;
+    SearchResults results = ID(board, params);
     std::cout << "bestmove " << squareCoords[results.bestMove.MoveFrom()]
         << squareCoords[results.bestMove.MoveTo()] <<  '\n';
     nodes = 0;
