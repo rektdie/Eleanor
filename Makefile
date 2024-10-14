@@ -16,7 +16,7 @@ SRCS := $(wildcard $(SRC_DIR)/*.cpp)
 OBJS := $(addprefix $(OBJ_DIR)/, $(notdir $(SRCS:.cpp=.o)))
 
 # Target executable
-Eleanor$(EXE_EXT): $(OBJS)
+Engine-Eleanor$(EXE_EXT): $(OBJS)
 	g++ -o $@ $^ -O3
 
 # Rule to compile source files to object files
