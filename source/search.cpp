@@ -5,11 +5,14 @@
 #include <chrono>
 #include "tt.h"
 
-static inline int nodes = 0;
+int nodes = 0;
+bool benchStarted = false;
+
 static inline int ply = 0;
 static inline auto timeStart = std::chrono::high_resolution_clock::now();
 static inline int timeToSearch = 0;
 static inline bool searchStopped = false;
+
 
 static int ScoreMove(Board &board, Move &move) {
     const int attackerType = board.GetPieceType(move.MoveFrom());
@@ -64,11 +67,13 @@ void ListScores(Board &board) {
 static SearchResults Quiescence(Board board, int alpha, int beta) {
     if (searchStopped) return 0;
 
-    auto currTime = std::chrono::high_resolution_clock::now();
-    int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
-    if (elapsed >= timeToSearch) {
-        StopSearch();
-        return 0;
+    if (!benchStarted) {
+        auto currTime = std::chrono::high_resolution_clock::now();
+        int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
+        if (elapsed >= timeToSearch) {
+            StopSearch();
+            return 0;
+        }
     }
 
     nodes++;
@@ -110,14 +115,16 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
     return results;
 }
 
-static SearchResults PVS(Board board, int depth, int alpha, int beta) {
+SearchResults PVS(Board board, int depth, int alpha, int beta) {
     if (searchStopped) return 0;
 
-    auto currTime = std::chrono::high_resolution_clock::now();
-    int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
-    if (elapsed >= timeToSearch) {
-        StopSearch();
-        return 0;
+    if (!benchStarted) {
+        auto currTime = std::chrono::high_resolution_clock::now();
+        int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
+        if (elapsed >= timeToSearch) {
+            StopSearch();
+            return 0;
+        }
     }
 
     nodes++;
@@ -180,7 +187,7 @@ static SearchResults PVS(Board board, int depth, int alpha, int beta) {
 }
 
 // Iterative deepening
-SearchResults ID(Board &board, SearchParams &params) {
+static SearchResults ID(Board &board, SearchParams &params) {
     timeStart = std::chrono::high_resolution_clock::now();
 
     int fullTime = board.sideToMove ? params.btime : params.wtime;
@@ -204,7 +211,7 @@ SearchResults ID(Board &board, SearchParams &params) {
 
 void SearchPosition(Board &board, SearchParams &params) {
     searchStopped = false;
-
+    nodes = 0;
 
     SearchResults results = ID(board, params);
     auto currTime = std::chrono::high_resolution_clock::now();
@@ -214,10 +221,8 @@ void SearchPosition(Board &board, SearchParams &params) {
     std::cout << "info " << nodes << " nodes " << nodes/elapsed << " nps\n";
     std::cout << "bestmove " << squareCoords[results.bestMove.MoveFrom()]
         << squareCoords[results.bestMove.MoveTo()] <<  '\n';
-    nodes = 0;
 }
 
 void StopSearch() {
     searchStopped = true;
-    std::cout << "Search stopped\n";
 }

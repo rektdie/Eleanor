@@ -2,15 +2,20 @@
 #include "movegen.h"
 #include "uci.h"
 #include "tt.h"
+#include "benchmark.h"
 
-int main() {
+int main(int argc, char* argv[]) {
 	initLeaperAttacks();
 	initSliderAttacks();
     InitZobrist();
 
 	Board board;
 
-    UCILoop(board);
+    if (std::string(argv[1]) == "bench") {
+        RunBenchmark();
+    } else {
+        UCILoop(board);
+    }
 
 	return 0;
 }

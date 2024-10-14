@@ -2,6 +2,9 @@
 #include "board.h"
 #include "uci.h"
 
+extern int nodes;
+extern bool benchStarted;
+
 class SearchResults {
 public:
     int score = 0;
@@ -19,6 +22,7 @@ public:
     }
 };
 
+SearchResults PVS(Board board, int depth, int alpha, int beta);
 void SearchPosition(Board &board, SearchParams &params);
 void StopSearch();
 

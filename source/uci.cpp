@@ -6,6 +6,7 @@
 #include "types.h"
 #include "movegen.h"
 #include "search.h"
+#include "benchmark.h"
 
 Move ParseMove(Board &board, const char* moveString) {
     GenerateMoves(board, board.sideToMove);
@@ -239,6 +240,12 @@ void UCILoop(Board &board) {
             std::cout << "option name Hash type spin default 1 min 1 max 1\n";
             std::cout << "option name Threads type spin default 1 min 1 max 1\n";
             std::cout << "uciok\n";
+            continue;
+        }
+
+        // Handling non-UCI "bench" command
+        if (input.find("bench") != std::string::npos) {
+            RunBenchmark();
             continue;
         }
     }
