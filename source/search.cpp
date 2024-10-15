@@ -136,8 +136,6 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
     GenerateMoves(board, board.sideToMove);
     SortMoves(board);
 
-    if (board.InCheck(board.sideToMove)) depth++;
-
     if (board.currentMoveIndex == 0) {
         if (board.InCheck(board.sideToMove)) { // checkmate
             return -49000 + ply;
@@ -183,6 +181,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
+
     results.score = alpha;
     return results;
 }
@@ -195,6 +194,8 @@ static SearchResults ID(Board &board, SearchParams params) {
     int inc = board.sideToMove ? params.binc : params.winc;
 
     SearchResults safeResults;
+    safeResults.score = -50000;
+
     for (int depth = 1; depth <= 99; depth++) {
         int timeRemaining = (fullTime / 20) + (inc / 2);
         timeToSearch = timeRemaining;
