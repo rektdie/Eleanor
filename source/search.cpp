@@ -121,6 +121,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
     if (!benchStarted) {
         auto currTime = std::chrono::high_resolution_clock::now();
         int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
+
         if (elapsed >= timeToSearch) {
             StopSearch();
             return 0;
@@ -187,15 +188,15 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
 }
 
 // Iterative deepening
-static SearchResults ID(Board &board, SearchParams &params) {
+static SearchResults ID(Board &board, SearchParams params) {
     timeStart = std::chrono::high_resolution_clock::now();
 
     int fullTime = board.sideToMove ? params.btime : params.wtime;
     int inc = board.sideToMove ? params.binc : params.winc;
 
     SearchResults safeResults;
-    for (int depth = 1; depth <= 8; depth++) {
-        int timeRemaining = fullTime / 20 + inc / 2;
+    for (int depth = 1; depth <= 99; depth++) {
+        int timeRemaining = (fullTime / 20) + (inc / 2);
         timeToSearch = timeRemaining;
 
         SearchResults currentResults = PVS(board, depth, -50000, 50000);
@@ -209,7 +210,7 @@ static SearchResults ID(Board &board, SearchParams &params) {
     return safeResults;
 }
 
-void SearchPosition(Board &board, SearchParams &params) {
+void SearchPosition(Board &board, SearchParams params) {
     searchStopped = false;
     nodes = 0;
 

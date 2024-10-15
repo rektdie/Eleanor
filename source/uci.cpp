@@ -146,7 +146,7 @@ static int ReadParam(std::string param, std::string &command) {
         std::string result = "";
         pos += param.length() + 1;
 
-        while(pos <= command.length() && std::isdigit(command[pos])){
+        while(pos < command.length() && std::isdigit(command[pos])){
             result += command[pos];
             pos++;
         }
@@ -165,7 +165,7 @@ void ParseGo(Board &board, std::string &command) {
     params.binc = ReadParam("binc", command);
     params.movesToGo = ReadParam("movestogo", command);
     
-    auto worker = std::thread(SearchPosition, std::ref(board), std::ref(params));
+    auto worker = std::thread(SearchPosition, std::ref(board), params);
     worker.detach();
 }
 

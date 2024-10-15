@@ -23,7 +23,7 @@ public:
 };
 
 SearchResults PVS(Board board, int depth, int alpha, int beta);
-void SearchPosition(Board &board, SearchParams &params);
+void SearchPosition(Board &board, SearchParams params);
 void StopSearch();
 
 constexpr int moveScoreTable[6][6] = {

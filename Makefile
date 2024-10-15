@@ -6,7 +6,7 @@ OBJ_DIR := obj
 CXX ?= g++
 
 # Set default executable name, but allow override from the command line
-EXE ?= Engine-Eleanor
+EXE ?= Eleanor
 
 # Determine platform
 ifeq ($(OS),Windows_NT)
