@@ -11,8 +11,10 @@ int main(int argc, char* argv[]) {
 
 	Board board;
 
-    if (std::string(argv[1]) == "bench") {
-        RunBenchmark();
+    if (argc > 1) {
+        if (std::string(argv[1]) == "bench") {
+            RunBenchmark();
+        }
     } else {
         UCILoop(board);
     }

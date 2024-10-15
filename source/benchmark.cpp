@@ -71,7 +71,7 @@ void RunBenchmark() {
     double elapsed_seconds = std::chrono::duration_cast<
         std::chrono::duration<double>>(finish - start).count();
 
-    std::cout << nodes << " nodes " << nodes/elapsed_seconds << " nps\n";
+    std::cout << nodes << " nodes " << int(nodes/elapsed_seconds) << " nps\n";
     nodes = 0;
     benchStarted = false;
 }

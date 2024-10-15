@@ -218,7 +218,7 @@ void SearchPosition(Board &board, SearchParams &params) {
     double elapsed = std::chrono::duration_cast<
         std::chrono::duration<double>>(currTime - timeStart).count();
 
-    std::cout << "info " << nodes << " nodes " << nodes/elapsed << " nps\n";
+    std::cout << "info " << nodes << " nodes " << int(nodes/elapsed) << " nps\n";
     std::cout << "bestmove " << squareCoords[results.bestMove.MoveFrom()]
         << squareCoords[results.bestMove.MoveTo()] <<  '\n';
 }
