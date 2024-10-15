@@ -221,7 +221,20 @@ void SearchPosition(Board &board, SearchParams params) {
 
     std::cout << "info " << nodes << " nodes " << int(nodes/elapsed) << " nps\n";
     std::cout << "bestmove " << squareCoords[results.bestMove.MoveFrom()]
-        << squareCoords[results.bestMove.MoveTo()] <<  '\n';
+        << squareCoords[results.bestMove.MoveTo()];
+
+    int flags = results.bestMove.GetFlags();
+    if (flags == knightPromotion || flags == knightPromoCapture) {
+        std::cout << 'n';
+    } else if (flags == bishopPromotion || flags == bishopPromoCapture) {
+        std::cout << 'b';
+    } else if (flags == rookPromotion || flags == rookPromoCapture) {
+        std::cout << 'r';
+    } else if (flags == queenPromotion || flags == queenPromoCapture) {
+        std::cout << 'q';
+    }
+
+    std::cout << '\n';
 }
 
 void StopSearch() {
