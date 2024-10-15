@@ -2,8 +2,11 @@
 SRC_DIR := source
 OBJ_DIR := obj
 
-CXX := g++
-EXE := Engine-Eleanor
+# Set default C++ compiler, but allow override from the command line
+CXX ?= g++
+
+# Set default executable name, but allow override from the command line
+EXE ?= Engine-Eleanor
 
 # Determine platform
 ifeq ($(OS),Windows_NT)
@@ -28,4 +31,9 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(SRC_DIR)/types.h | $(OBJ_DIR)
 
 # Create the object directory if it doesn't exist
 $(OBJ_DIR):
-	mkdir $@
+	mkdir -p $@
+
+# Clean up build artifacts
+.PHONY: clean
+clean:
+	rm -rf $(OBJ_DIR) $(EXE)$(EXE_EXT)
