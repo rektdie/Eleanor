@@ -2,7 +2,7 @@
 #include "board.h"
 #include "search.h"
 
-constexpr int InvalidEntry = 10000;
+constexpr int InvalidEntry = 99999;
 
 // 5 MB
 constexpr int hashSize = 0x500000;

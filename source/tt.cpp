@@ -95,7 +95,7 @@ SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
     }
 
     // returning unknown value
-    return 10000;
+    return InvalidEntry;
 }
 
 void WriteEntry(U64 &hashKey, Move bestMove, int depth, int score, int nodeType) {
