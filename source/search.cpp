@@ -116,14 +116,14 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
 }
 
 SearchResults PVS(Board board, int depth, int alpha, int beta) {
-    if (searchStopped) return 0;
-
-    if (!beta - alpha == 1) {
+    if (beta - alpha == 1) {
         SearchResults entry = ReadEntry(board.hashKey, depth, alpha, beta);
         if (entry.score != InvalidEntry) {
             return entry;
         }
     }
+
+    if (searchStopped) return 0;
 
     if (!benchStarted) {
         auto currTime = std::chrono::high_resolution_clock::now();
@@ -147,10 +147,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
     int score = -50000;
 
     GenerateMoves(board, board.sideToMove);
-    SortMoves(board);
-
-    if (board.currentMoveIndex == 0) {
-        if (board.InCheck(board.sideToMove)) { // checkmate
+    SortMoves(board); if (board.currentMoveIndex == 0) { if (board.InCheck(board.sideToMove)) { // checkmate
             return -49000 + ply;
         } else { // stalemate
             return 0;
