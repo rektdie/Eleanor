@@ -118,6 +118,13 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
 SearchResults PVS(Board board, int depth, int alpha, int beta) {
     if (searchStopped) return 0;
 
+    if (!beta - alpha == 1) {
+        SearchResults entry = ReadEntry(board.hashKey, depth, alpha, beta);
+        if (entry.score != InvalidEntry) {
+            return entry;
+        }
+    }
+
     if (!benchStarted) {
         auto currTime = std::chrono::high_resolution_clock::now();
         int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
@@ -128,8 +135,14 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
+    int nodeType = AllNode;
+
     nodes++;
-    if (depth == 0) return Quiescence(board, alpha, beta).score;
+    if (depth == 0) {
+        SearchResults qResults = Quiescence(board, alpha, beta);
+        WriteEntry(board.hashKey, qResults.bestMove, depth, qResults.score, PV);
+        return qResults;
+    }
 
     int score = -50000;
 
@@ -172,17 +185,20 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
 
         if (score >= beta) {
+            WriteEntry(board.hashKey, board.moveList[i], depth, score, CutNode);
             return beta;
         }
 
         if (score > alpha) {
+            nodeType = PV;
             alpha = score;
             results.bestMove = board.moveList[i];
         }
     }
 
-
+    
     results.score = alpha;
+    WriteEntry(board.hashKey, results.bestMove, depth, results.score, nodeType);
     return results;
 }
 

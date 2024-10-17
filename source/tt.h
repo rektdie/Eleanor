@@ -1,5 +1,8 @@
 #pragma once
 #include "board.h"
+#include "search.h"
+
+constexpr int InvalidEntry = -50000;
 
 // 5 MB
 constexpr int hashSize = 0x500000;
@@ -21,6 +24,7 @@ U64 GetHashKey(Board &board);
 class TTEntry {
 public:
     U64 hashKey;
+    Move bestMove;
     int depth;
     int score;
     int nodeType;
@@ -28,5 +32,5 @@ public:
 
 extern TTEntry TTable[hashSize];
 
-int ReadEntry(U64 &hashKey, int depth, int alpha, int beta);
-void WriteEntry(U64 &hashKey, int depth, int score, int nodeType);
+SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta);
+void WriteEntry(U64 &hashKey, Move bestMove, int depth, int score, int nodeType);

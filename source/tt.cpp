@@ -79,17 +79,17 @@ U64 GetHashKey(Board &board) {
     return key;
 }
 
-int ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
+SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
     TTEntry *current = &TTable[hashKey % hashSize];
 
     if (current->hashKey == hashKey) {
         if (current->depth >= depth) {
             if (current->nodeType == PV){
-                return current->score;
+                return {current->score, current->bestMove};
             } else if (current->nodeType == AllNode && current->score <= alpha) {
-                return alpha;
+                return {alpha, current->bestMove};
             } else if (current->nodeType == CutNode && current->score >= beta) {
-                return beta;
+                return {beta, current->bestMove};
             }
         }
     }
@@ -98,11 +98,12 @@ int ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
     return 10000;
 }
 
-void WriteEntry(U64 &hashKey, int depth, int score, int nodeType) {
+void WriteEntry(U64 &hashKey, Move bestMove, int depth, int score, int nodeType) {
     TTEntry *current = &TTable[hashKey % hashSize];
 
     current->hashKey = hashKey;
     current->nodeType = nodeType;
     current->score = score;
     current->depth = depth;
+    current->bestMove = bestMove;
 }
