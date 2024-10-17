@@ -209,7 +209,7 @@ static SearchResults ID(Board &board, SearchParams params) {
     SearchResults safeResults;
     safeResults.score = -50000;
 
-    for (int depth = 1; depth <= 99; depth++) {
+    for (int depth = 2; depth <= 100; depth+=2) {
         int timeRemaining = (fullTime / 20) + (inc / 2);
         timeToSearch = timeRemaining;
 
