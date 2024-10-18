@@ -101,9 +101,12 @@ SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
 void WriteEntry(U64 &hashKey, Move bestMove, int depth, int score, int nodeType) {
     TTEntry *current = &TTable[hashKey % hashSize];
 
-    current->hashKey = hashKey;
-    current->nodeType = nodeType;
-    current->score = score;
-    current->depth = depth;
-    current->bestMove = bestMove;
+
+    if (current->hashKey != hashKey || depth >= current->depth) {
+        current->hashKey = hashKey;
+        current->nodeType = nodeType;
+        current->score = score;
+        current->depth = depth;
+        current->bestMove = bestMove;
+    }
 }
