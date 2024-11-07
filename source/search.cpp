@@ -65,7 +65,7 @@ void ListScores(Board &board) {
 }
 
 static SearchResults Quiescence(Board board, int alpha, int beta) {
-    if (searchStopped) return 0;
+    if (searchStopped) return beta - alpha;
 
     if (!benchStarted) {
         auto currTime = std::chrono::high_resolution_clock::now();
@@ -116,7 +116,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
 }
 
 SearchResults PVS(Board board, int depth, int alpha, int beta) {
-    if (searchStopped) return 0;
+    if (searchStopped) return beta - alpha;
 
     if (!benchStarted) {
         auto currTime = std::chrono::high_resolution_clock::now();
