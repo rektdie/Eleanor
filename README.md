@@ -39,9 +39,9 @@ There are some commands that you can use the engine with.
 - **`go`** is the command that asks what is the best move in the current position (search),
 but we have to give it some parameters:
 `wtime` `btime` `winc` `binc`
-the first letter tells the color of player
+The first letter tells the color of player
 wtime sets the remaining time of the white player
-and winc sets the increments for the white player
+and winc sets the increments for the white player.
 **It's important that these parameters are given in milliseconds!**
 - **`stop`** stops the current search
 - **`bench`** tests the search speed of the engine on a set of positions
