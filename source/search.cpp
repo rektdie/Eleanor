@@ -128,17 +128,27 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
-    nodes++;
-    if (depth == 0) return Quiescence(board, alpha, beta).score;
+    // if NOT PV node then we try to hit the TTable
+    if (beta - alpha == 1) {
+        SearchResults entry = ReadEntry(board.hashKey, depth, alpha, beta);
+        if (entry.score != invalidEntry) {
+            return entry;
+        }
+    }
 
-    int score = -50000;
+    if (depth == 0) return Quiescence(board, alpha, beta);
+
+    int score = -inf;
+    int nodeType = AllNode;
+
+    nodes++;
 
     GenerateMoves(board, board.sideToMove);
     SortMoves(board);
 
     if (board.currentMoveIndex == 0) {
         if (board.InCheck(board.sideToMove)) { // checkmate
-            return -49000 + ply;
+            return -99000 + ply;
         } else { // stalemate
             return 0;
         }
@@ -172,10 +182,12 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
 
         if (score >= beta) {
+            WriteEntry(board.hashKey, depth, beta, CutNode);
             return beta;
         }
 
         if (score > alpha) {
+            nodeType = PV;
             alpha = score;
             results.bestMove = board.moveList[i];
         }
@@ -183,6 +195,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
 
 
     results.score = alpha;
+    WriteEntry(board.hashKey, depth, results.score, nodeType);
     return results;
 }
 
@@ -194,13 +207,13 @@ static SearchResults ID(Board &board, SearchParams params) {
     int inc = board.sideToMove ? params.binc : params.winc;
 
     SearchResults safeResults;
-    safeResults.score = -50000;
+    safeResults.score = -inf;
 
     for (int depth = 1; depth <= 99; depth++) {
         int timeRemaining = (fullTime / 20) + (inc / 2);
         timeToSearch = timeRemaining;
 
-        SearchResults currentResults = PVS(board, depth, -50000, 50000);
+        SearchResults currentResults = PVS(board, depth, -inf, inf);
         if (currentResults.score >= safeResults.score) {
             safeResults = currentResults;
         }
