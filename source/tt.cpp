@@ -79,7 +79,7 @@ U64 GetHashKey(Board &board) {
     return key;
 }
 
-int ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
+SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
     TTEntry *current = &TTable[hashKey % hashSize];
 
     if (current->hashKey == hashKey) {
@@ -94,8 +94,8 @@ int ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
         }
     }
 
-    // returning unknown value
-    return 10000;
+    // returning invalid value
+    return invalidEntry;
 }
 
 void WriteEntry(U64 &hashKey, int depth, int score, int nodeType) {
