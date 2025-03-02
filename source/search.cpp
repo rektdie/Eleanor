@@ -18,6 +18,11 @@ static int ScoreMove(Board &board, Move &move) {
     const int attackerType = board.GetPieceType(move.MoveFrom());
     const int targetType = board.GetPieceType(move.MoveTo());
 
+    TTEntry *current = &TTable[board.hashKey % hashSize];
+    if (current->bestMove == move) {
+        return 50000;
+    }
+
     if (move.IsCapture()) {
         return moveScoreTable[attackerType][targetType] + 10000;
     }
@@ -182,7 +187,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
 
         if (score >= beta) {
-            WriteEntry(board.hashKey, depth, beta, CutNode);
+            WriteEntry(board.hashKey, depth, beta, CutNode, Move());
             return beta;
         }
 
@@ -195,7 +200,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
 
 
     results.score = alpha;
-    WriteEntry(board.hashKey, depth, results.score, nodeType);
+    WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
     return results;
 }
 
