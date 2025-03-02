@@ -85,7 +85,7 @@ SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
     if (current->hashKey == hashKey) {
         if (current->depth >= depth) {
             if (current->nodeType == PV){
-                return current->score;
+                return {current->score, current->bestMove};
             } else if (current->nodeType == AllNode && current->score <= alpha) {
                 return alpha;
             } else if (current->nodeType == CutNode && current->score >= beta) {
@@ -98,11 +98,12 @@ SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
     return invalidEntry;
 }
 
-void WriteEntry(U64 &hashKey, int depth, int score, int nodeType) {
+void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove) {
     TTEntry *current = &TTable[hashKey % hashSize];
 
     current->hashKey = hashKey;
     current->nodeType = nodeType;
     current->score = score;
     current->depth = depth;
+    current->bestMove = bestMove;
 }
