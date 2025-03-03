@@ -4,6 +4,8 @@
 #include "types.h"
 #include "move.h"
 
+constexpr int nullPieceType = 100;
+
 class Board {
 public:
 	Board() {

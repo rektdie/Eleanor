@@ -266,7 +266,7 @@ int Board::GetPieceType(int square) {
 		if (pieces[piece].IsSet(square)) return piece;
 	}
 
-	return -1;
+	return nullPieceType;
 }
 
 int Board::GetPieceColor(int square) {

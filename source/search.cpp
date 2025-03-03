@@ -20,10 +20,14 @@ static int ScoreMove(Board &board, Move &move) {
     const int attackerType = board.GetPieceType(move.MoveFrom());
     const int targetType = board.GetPieceType(move.MoveTo());
 
+    if (attackerType == nullPieceType || targetType == nullPieceType) return 0;
+
     TTEntry *current = &TTable[board.hashKey % hashSize];
     if (current->bestMove == move) {
         return 50000;
     }
+
+    if (attackerType == -1 || targetType == -1) std::cout << "asd\n";
 
     if (move.IsCapture()) {
         return moveScoreTable[attackerType][targetType] + 10000;
