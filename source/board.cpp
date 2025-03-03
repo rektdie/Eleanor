@@ -346,7 +346,7 @@ void Board::MakeMove(Move move) {
 	int targetPiece = GetPieceType(move.MoveTo());
 	int direction = attackerColor ? south : north;
 
-	int newEpTarget = -1;
+	int newEpTarget = noEPTarget;
 
 	// Removing attacker piece from old position
 	RemovePiece(attackerPiece, move.MoveFrom(), attackerColor);

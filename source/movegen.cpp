@@ -481,9 +481,11 @@ static void GenPawnMoves(Board &board, bool color) {
 			captures &= pinningRay;
 
 			// Checking for en passant
-			if (captures.IsSet(board.enPassantTarget)) {
-				if (IsLegalEnPassant(board, square)) {
-					board.AddMove(Move(square, board.enPassantTarget, epCapture));
+			if (board.enPassantTarget != noEPTarget) {
+				if (captures.IsSet(board.enPassantTarget)) {
+					if (IsLegalEnPassant(board, square)) {
+						board.AddMove(Move(square, board.enPassantTarget, epCapture));
+					}
 				}
 			}
 
@@ -515,10 +517,12 @@ static void GenPawnMoves(Board &board, bool color) {
 		}
 
 		// Checking for en passant
-		if (captures.IsSet(board.enPassantTarget)) {
-			// Checking if the move gives discovered check to own king
-			if (IsLegalEnPassant(board, square)) {
-				board.AddMove(Move(square, board.enPassantTarget, epCapture));
+		if (board.enPassantTarget != noEPTarget) {
+			if (captures.IsSet(board.enPassantTarget)) {
+				// Checking if the move gives discovered check to own king
+				if (IsLegalEnPassant(board, square)) {
+					board.AddMove(Move(square, board.enPassantTarget, epCapture));
+				}
 			}
 		}
 
@@ -868,19 +872,21 @@ static void GenCheckEvasions(Board &board, bool color) {
 				if (type == Pawn) {
 					pushes |= getPawnPushes(square, color, board.occupied) & pushMask;
 					// Checking for en passant capture
-					Bitboard attackedSquare = pawnAttacks[color][square]
-						& Bitboard::GetSquare(board.enPassantTarget);
-					if (attackedSquare) {
-						// Checking if it's legal
-						if (IsLegalEnPassant(board, square)) {
-							int direction = color ? south : north;
-							int targetSquare = captureMask.getLS1BIndex() + direction;
-							captureMask.SetBit(targetSquare);
-							if ((attackedSquare & pushMask)
-								|| (attackedSquare & captureMask)) {
-								board.AddMove(Move(square, board.enPassantTarget, epCapture));
+					if (board.enPassantTarget != noEPTarget) {
+						Bitboard attackedSquare = pawnAttacks[color][square]
+							& Bitboard::GetSquare(board.enPassantTarget);
+						if (attackedSquare) {
+							// Checking if it's legal
+							if (IsLegalEnPassant(board, square)) {
+								int direction = color ? south : north;
+								int targetSquare = captureMask.getLS1BIndex() + direction;
+								captureMask.SetBit(targetSquare);
+								if ((attackedSquare & pushMask)
+									|| (attackedSquare & captureMask)) {
+									board.AddMove(Move(square, board.enPassantTarget, epCapture));
+								}
+								captureMask.PopBit(targetSquare);
 							}
-							captureMask.PopBit(targetSquare);
 						}
 					}
 				} else {

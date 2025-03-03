@@ -5,7 +5,7 @@
 #include "move.h"
 
 constexpr int nullPieceType = 100;
-constexpr int noEPTarget = 100;
+constexpr int noEPTarget = -1;
 
 class Board {
 public:
