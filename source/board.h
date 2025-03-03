@@ -5,6 +5,7 @@
 #include "move.h"
 
 constexpr int nullPieceType = 100;
+constexpr int noEPTarget = 100;
 
 class Board {
 public:
@@ -26,7 +27,7 @@ public:
 	int fullMoves = 0;
 
     uint8_t castlingRights = 0;
-	int enPassantTarget = -1;
+	int enPassantTarget = noEPTarget;
 
     U64 hashKey = 0ULL;
 
