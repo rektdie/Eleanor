@@ -51,7 +51,7 @@ static void SortMoves(Board &board) {
     }
 
     // Sort indices based on scores
-    std::sort(indices.begin(), indices.begin() + board.currentMoveIndex,
+    std::stable_sort(indices.begin(), indices.begin() + board.currentMoveIndex,
               [&scores](int a, int b) {
                   return scores[a] > scores[b];
               });
