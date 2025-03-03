@@ -13,6 +13,8 @@ static inline auto timeStart = std::chrono::high_resolution_clock::now();
 static inline int timeToSearch = 0;
 static inline bool searchStopped = false;
 
+//                          [id][ply]
+static inline int killerMoves[2][64];
 
 static int ScoreMove(Board &board, Move &move) {
     const int attackerType = board.GetPieceType(move.MoveFrom());
@@ -25,6 +27,14 @@ static int ScoreMove(Board &board, Move &move) {
 
     if (move.IsCapture()) {
         return moveScoreTable[attackerType][targetType] + 10000;
+    } else {
+        if (killerMoves[0][ply] == move) {
+            return 9000;
+        }
+
+        if (killerMoves[1][ply] == move) {
+            return 8000;
+        }
     }
 
     return 0;
@@ -186,7 +196,11 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
             }
         }
 
+        // Fail high (beta cutoff)
         if (score >= beta) {
+            killerMoves[1][ply] = killerMoves[0][ply];
+            killerMoves[0][ply] = board.moveList[i];
+
             WriteEntry(board.hashKey, depth, beta, CutNode, Move());
             return beta;
         }
