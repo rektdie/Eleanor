@@ -146,6 +146,8 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
     int score = -inf;
     int nodeType = AllNode;
 
+    if (board.InCheck(board.sideToMove)) depth++;
+
     nodes++;
 
     GenerateMoves(board, board.sideToMove);
