@@ -242,7 +242,7 @@ static SearchResults ID(Board &board, SearchParams params) {
         timeToSearch = (fullTime / 20) + (inc / 2);
 
         SearchResults currentResults = PVS(board, depth, -inf, inf);
-        if (currentResults.score >= safeResults.score) {
+        if (currentResults.bestMove && currentResults.score >= safeResults.score) {
             safeResults = currentResults;
         }
 
