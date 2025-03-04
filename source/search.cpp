@@ -84,8 +84,6 @@ void ListScores(Board &board) {
 }
 
 static SearchResults Quiescence(Board board, int alpha, int beta) {
-    if (searchStopped) return 0;
-
     if (!benchStarted) {
         auto currTime = std::chrono::high_resolution_clock::now();
         int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
@@ -114,8 +112,6 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
     SearchResults results;
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
-        if (searchStopped) return 0;
-
         if (board.moveList[i].IsCapture()) {
             Board copy = board;
             copy.MakeMove(board.moveList[i]);
@@ -133,12 +129,11 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
     }
 
     results.score = alpha;
+    if (searchStopped) return 0;
     return results;
 }
 
 SearchResults PVS(Board board, int depth, int alpha, int beta) {
-    if (searchStopped) return 0;
-
     if (!benchStarted) {
         auto currTime = std::chrono::high_resolution_clock::now();
         int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
@@ -181,8 +176,6 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
 
     // For all moves
     for (int i = 0; i < board.currentMoveIndex; i++) {
-        if (searchStopped) return 0;
-
         Board copy = board;
         copy.MakeMove(copy.moveList[i]);
 
@@ -225,6 +218,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
 
     results.score = alpha;
     WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
+    if (searchStopped) return 0;
     return results;
 }
 
@@ -242,7 +236,7 @@ static SearchResults ID(Board &board, SearchParams params) {
         timeToSearch = (fullTime / 20) + (inc / 2);
 
         SearchResults currentResults = PVS(board, depth, -inf, inf);
-        if (currentResults.bestMove && currentResults.score >= safeResults.score) {
+        if (currentResults.bestMove) {
             safeResults = currentResults;
         }
 
