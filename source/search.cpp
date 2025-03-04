@@ -84,7 +84,7 @@ void ListScores(Board &board) {
 }
 
 static SearchResults Quiescence(Board board, int alpha, int beta) {
-    if (searchStopped) return beta - alpha;
+    if (searchStopped) return 0;
 
     if (!benchStarted) {
         auto currTime = std::chrono::high_resolution_clock::now();
@@ -114,6 +114,8 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
     SearchResults results;
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
+        if (searchStopped) return 0;
+
         if (board.moveList[i].IsCapture()) {
             Board copy = board;
             copy.MakeMove(board.moveList[i]);
@@ -135,7 +137,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
 }
 
 SearchResults PVS(Board board, int depth, int alpha, int beta) {
-    if (searchStopped) return beta - alpha;
+    if (searchStopped) return 0;
 
     if (!benchStarted) {
         auto currTime = std::chrono::high_resolution_clock::now();
@@ -179,6 +181,8 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
 
     // For all moves
     for (int i = 0; i < board.currentMoveIndex; i++) {
+        if (searchStopped) return 0;
+
         Board copy = board;
         copy.MakeMove(copy.moveList[i]);
 
@@ -235,8 +239,7 @@ static SearchResults ID(Board &board, SearchParams params) {
     safeResults.score = -inf;
 
     for (int depth = 1; depth <= 99; depth++) {
-        int timeRemaining = (fullTime / 20) + (inc / 2);
-        timeToSearch = timeRemaining;
+        timeToSearch = (fullTime / 20) + (inc / 2);
 
         SearchResults currentResults = PVS(board, depth, -inf, inf);
         if (currentResults.score >= safeResults.score) {
