@@ -84,8 +84,6 @@ void ListScores(Board &board) {
 }
 
 static SearchResults Quiescence(Board board, int alpha, int beta) {
-    if (searchStopped) return beta - alpha;
-
     if (!benchStarted) {
         auto currTime = std::chrono::high_resolution_clock::now();
         int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
@@ -131,12 +129,11 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
     }
 
     results.score = alpha;
+    if (searchStopped) return 0;
     return results;
 }
 
 SearchResults PVS(Board board, int depth, int alpha, int beta) {
-    if (searchStopped) return beta - alpha;
-
     if (!benchStarted) {
         auto currTime = std::chrono::high_resolution_clock::now();
         int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
@@ -221,6 +218,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
 
     results.score = alpha;
     WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
+    if (searchStopped) return 0;
     return results;
 }
 
@@ -235,11 +233,10 @@ static SearchResults ID(Board &board, SearchParams params) {
     safeResults.score = -inf;
 
     for (int depth = 1; depth <= 99; depth++) {
-        int timeRemaining = (fullTime / 20) + (inc / 2);
-        timeToSearch = timeRemaining;
+        timeToSearch = (fullTime / 20) + (inc / 2);
 
         SearchResults currentResults = PVS(board, depth, -inf, inf);
-        if (currentResults.score >= safeResults.score) {
+        if (currentResults.bestMove) {
             safeResults = currentResults;
         }
 
