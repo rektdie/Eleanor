@@ -9,7 +9,7 @@ void Board::Init() {
 
 void Board::Reset() {
     castlingRights = 0;
-	enPassantTarget = -1;
+	enPassantTarget = noEPTarget;
 	halfMoves = 0;
 	fullMoves = 0;
 	sideToMove = White;
@@ -229,7 +229,7 @@ void Board::PrintBoard() {
 	} else {
 		std::cout << "Black\n";
 	}
-	if (enPassantTarget >= 0) {
+	if (enPassantTarget != noEPTarget) {
 		std::cout << "      En Passant square: " << squareCoords[enPassantTarget] << '\n';
 	} else {
 		std::cout << "      En Passant square: None" << '\n';
@@ -346,7 +346,7 @@ void Board::MakeMove(Move move) {
 	int targetPiece = GetPieceType(move.MoveTo());
 	int direction = attackerColor ? south : north;
 
-	int newEpTarget = -1;
+	int newEpTarget = noEPTarget;
 
 	// Removing attacker piece from old position
 	RemovePiece(attackerPiece, move.MoveFrom(), attackerColor);
@@ -433,11 +433,11 @@ void Board::MakeMove(Move move) {
 	sideToMove = !attackerColor;
     hashKey ^= zSide;
 
-    if (enPassantTarget != -1) {
+    if (enPassantTarget != noEPTarget) {
         hashKey ^= zEnPassant[enPassantTarget % 8];
     }
 
-    if (newEpTarget != -1) {
+    if (newEpTarget != noEPTarget) {
         hashKey ^= zEnPassant[newEpTarget % 8];
     }
 
