@@ -3,6 +3,8 @@
 #include <iostream>
 #include "tt.h"
 
+static inline int prevEPTarget = noEPTarget;
+
 void Board::Init() {
 	SetByFen(StartingFen);
 }
@@ -10,8 +12,6 @@ void Board::Init() {
 void Board::Reset() {
     castlingRights = 0;
 	enPassantTarget = noEPTarget;
-	halfMoves = 0;
-	fullMoves = 0;
 	sideToMove = White;
 	occupied = 0ULL;
 
@@ -175,12 +175,6 @@ void Board::SetByFen(const char* fen) {
 					const int passantRank = *fen - 49;
 					enPassantTarget = passantFile + passantRank*8;
 				}
-				else if (section == 3) {
-					halfMoves = (*fen) - 48;
-				}
-				else if (section == 4) {
-					fullMoves = (*fen) - 48;
-				}
 			}
 
 			break;
@@ -340,13 +334,35 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 }
 
 void Board::MakeMove(Move move) {
+
+    // Null Move
+    if (!move) {
+        int newEpTarget = prevEPTarget;
+        prevEPTarget = enPassantTarget;
+
+        sideToMove = !sideToMove;
+        hashKey ^= zSide;
+
+        if (enPassantTarget != noEPTarget) {
+            hashKey ^= zEnPassant[enPassantTarget % 8];
+        }
+
+        if (newEpTarget != noEPTarget) {
+            hashKey ^= zEnPassant[newEpTarget % 8];
+        }
+
+        enPassantTarget = newEpTarget;
+
+        return;
+    }
+
+	int newEpTarget = noEPTarget;
+
 	int attackerPiece = GetPieceType(move.MoveFrom());
 	int attackerColor = GetPieceColor(move.MoveFrom());
 
 	int targetPiece = GetPieceType(move.MoveTo());
 	int direction = attackerColor ? south : north;
-
-	int newEpTarget = noEPTarget;
 
 	// Removing attacker piece from old position
 	RemovePiece(attackerPiece, move.MoveFrom(), attackerColor);
@@ -428,8 +444,6 @@ void Board::MakeMove(Move move) {
 	// Removing the right to castle on king and rook movement
 	UpdateCastlingRights(*this, move.MoveFrom(), attackerPiece, attackerColor);
 
-	halfMoves++;
-	if (halfMoves % 2 == 0) fullMoves++;
 	sideToMove = !attackerColor;
     hashKey ^= zSide;
 
@@ -444,4 +458,15 @@ void Board::MakeMove(Move move) {
 	enPassantTarget = newEpTarget;
 
 	GenAttackMaps(*this);
+}
+
+bool Board::InPossibleZug(bool side) {
+    Bitboard toCheck;
+
+    // For all pieces other than pawns and king
+    for (int piece = Knight; piece <= Queen; piece++) {
+        toCheck |= (pieces[piece] & colors[side]);
+    }
+
+    return !toCheck;
 }

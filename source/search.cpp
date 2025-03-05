@@ -12,6 +12,7 @@ static inline int ply = 0;
 static inline auto timeStart = std::chrono::high_resolution_clock::now();
 static inline int timeToSearch = 0;
 static inline bool searchStopped = false;
+static inline bool doingNullMove = false;
 
 //                          [id][ply]
 static inline int killerMoves[2][64];
@@ -157,7 +158,27 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
     int score = -inf;
     int nodeType = AllNode;
 
-    if (board.InCheck(board.sideToMove)) depth++;
+    if (board.InCheck(board.sideToMove)) {
+        depth++;
+    } else {
+        //Null Move Pruning
+        if (!doingNullMove) {
+            if (ply && depth >= 3 && !board.InPossibleZug(board.sideToMove)) {
+                board.MakeMove(Move());
+
+                doingNullMove = true;
+                ply++;
+                score = -PVS(board, depth - 3, -beta, -beta + 1).score;
+                ply--;
+                doingNullMove = false;
+
+                board.MakeMove(Move());
+
+                if (searchStopped) return 0;
+                if (score >= beta) return beta; 
+            }
+        }
+    }
 
     nodes++;
 

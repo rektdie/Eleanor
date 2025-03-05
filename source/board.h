@@ -23,8 +23,6 @@ public:
     int currentMoveIndex = 0;
 
 	bool sideToMove = White;
-	int halfMoves = 0;
-	int fullMoves = 0;
 
     uint8_t castlingRights = 0;
 	int enPassantTarget = noEPTarget;
@@ -51,4 +49,6 @@ public:
 
 	void Promote(int square, int pieceType, int color, bool isCapture);
 	void MakeMove(Move move);
+
+    bool InPossibleZug(bool side);
 };
