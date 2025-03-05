@@ -7,6 +7,7 @@
 #include "movegen.h"
 #include "search.h"
 #include "benchmark.h"
+#include <cstring>
 
 Move ParseMove(Board &board, const char* moveString) {
     GenerateMoves(board, board.sideToMove);
@@ -83,57 +84,42 @@ Move ParseMove(Board &board, const char* moveString) {
 }
 
 void ParsePosition(Board &board, const char* command) {
-    // shifting pointer to where the token begins (skipping 'position' word)
-    command += 9;
+    command += 9; // Skip "position"
 
-    // fen
-    if (*command == 'f') {
-        command += 4;
+    if (strncmp(command, "fen", 3) == 0) {
+        command += 4; // Skip "fen "
 
-        std::string fen = "";
-
-        while (*command && *(command + 1) != 'm') {
+        std::string fen;
+        while (*command && strncmp(command, " moves", 6) != 0) {
             fen += *command;
             command++;
         }
-        // skipping space
-        command++;
 
         board.SetByFen(fen.c_str());
-    } else if (*command == 's') { // startpos
-        command += 9;
+
+        if (strncmp(command, " moves", 6) == 0) {
+            command += 6; // Skip " moves"
+        }
+    } else if (strncmp(command, "startpos", 8) == 0) {
+        command += 8; // Skip "startpos"
         board.SetByFen(StartingFen);
+
+        if (strncmp(command, " moves", 6) == 0) {
+            command += 6; // Skip " moves"
+        }
     }
 
-    // moves
-    if (*command == 'm') {
-        // skipping word 'moves'
-        command += 5;
+    while (*command) {
+        while (*command == ' ') command++; // Skip spaces
 
-        // looping through the moves
-        while (*command) {
-            // skipping previous space
+        std::string moveString;
+        while (*command && *command != ' ') {
+            moveString += *command;
             command++;
+        }
 
-            std::string moveString = "";
-
-            bool multipleMoves = std::string(command).length() > 5;
-
-            if (multipleMoves) {
-                while (*command != ' ') {
-                    moveString += *command;
-                    command++;
-                }
-
-                board.MakeMove(ParseMove(board, moveString.c_str()));
-                continue;
-            } else {
-                while (*command) {
-                    moveString += *command;
-                    command++;
-                }
-                board.MakeMove(ParseMove(board, moveString.c_str()));
-            }
+        if (!moveString.empty()) {
+            board.MakeMove(ParseMove(board, moveString.c_str()));
         }
     }
 }
