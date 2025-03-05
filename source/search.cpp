@@ -153,7 +153,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
-    if (depth == 0) return Quiescence(board, alpha, beta);
+    if (depth <= 0) return Quiescence(board, alpha, beta);
 
     int score = -inf;
     int nodeType = AllNode;
