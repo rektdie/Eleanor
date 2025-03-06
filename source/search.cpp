@@ -153,27 +153,38 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
+    const int staticEval = Evaluate(board);
+
     if (depth <= 0) return Quiescence(board, alpha, beta);
 
     if (board.InCheck(board.sideToMove)) {
         depth++;
     } else {
-        //Null Move Pruning
-        if (!doingNullMove) {
-            if (ply && depth >= 3 && !board.InPossibleZug(board.sideToMove)) {
-                Board copy = board;
-                copy.MakeMove(Move());
+        if (ply) {
+            // Reverse Futility Pruning
+            int margin = 100 * depth;
+            if (staticEval - margin >= beta && depth < 7) {
+                return staticEval;
+            }
 
-                doingNullMove = true;
-                ply++;
-                int score = -PVS(copy, depth - 3, -beta, -beta + 1).score;
-                ply--;
-                doingNullMove = false;
-
-                if (searchStopped) return 0;
-                if (score >= beta) return score; 
+            // Null Move Pruning
+            if (!doingNullMove) {
+                if (depth >= 3 && !board.InPossibleZug(board.sideToMove)) {
+                    Board copy = board;
+                    copy.MakeMove(Move());
+    
+                    doingNullMove = true;
+                    ply++;
+                    int score = -PVS(copy, depth - 3, -beta, -beta + 1).score;
+                    ply--;
+                    doingNullMove = false;
+    
+                    if (searchStopped) return 0;
+                    if (score >= beta) return score; 
+                }
             }
         }
+        
     }
 
     int score = -inf;
