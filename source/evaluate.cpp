@@ -1,5 +1,16 @@
 #include "evaluate.h"
 
+static int GetPhaseWeight(Board &board, int color) {
+    int phase = 0;
+    
+    // For all piece types other than pawn and king
+    for (int piece = Knight; piece <= Queen; piece++) {
+        phase += board.pieces[piece].PopCount() * phaseValues[piece - 1];
+    }
+
+    return phase;
+}
+
 static int GetMaterialScore(Board &board, int type, int color) {
     int side = color ? -1 : 1;
     
@@ -8,7 +19,11 @@ static int GetMaterialScore(Board &board, int type, int color) {
 }
 
 static int GetPositionalScore(Board &board, int type, int color) {
-    int score = 0;
+    int middleEval = 0;
+    int endEval = 0;
+
+    int phaseWeight = GetPhaseWeight(board, color);
+
     int side = color ? -1 : 1;
     
     Bitboard pieces = board.pieces[type] & board.colors[color];
@@ -18,15 +33,19 @@ static int GetPositionalScore(Board &board, int type, int color) {
 
         // White
         if (!color) {
-            score += pieceSquareScores[type][scoreSquares[square]] * side;
+            middleEval += middlePieceScores[type][scoreSquares[square]] * side;
+            endEval += endPieceSquares[type][scoreSquares[square]] * side;
         } else {
-            score += pieceSquareScores[type][square] * side;
+            middleEval += middlePieceScores[type][square] * side;
+            endEval += endPieceSquares[type][square] * side;
         }
 
         pieces.PopBit(square);
     }
 
-    return score;
+    int finalEval = (middleEval * phaseWeight + endEval * (phaseMax - phaseWeight)) / phaseMax;
+
+    return finalEval;
 }
 
 int Evaluate(Board &board) {
