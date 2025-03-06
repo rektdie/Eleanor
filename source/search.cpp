@@ -255,6 +255,8 @@ static SearchResults ID(Board &board, SearchParams params) {
     int alpha = -inf;
     int beta = inf;
 
+    int delta = 50;
+
     for (int depth = 1; depth <= 99; depth++) {
         timeToSearch = (fullTime / 20) + (inc / 2);
 
@@ -263,16 +265,20 @@ static SearchResults ID(Board &board, SearchParams params) {
         // If we fell outside the window, try again with full width
         if ((currentResults.score <= alpha)
             || (currentResults.score >= beta)) {
-            alpha = -inf;
-            beta = inf;
+            delta *= 2;
+
+            alpha -= delta;
+            beta += delta;
+
             depth--;
 
             if (searchStopped) break;
             continue;
         }
 
-        alpha = currentResults.score - aspWinConst;
-        beta = currentResults.score + aspWinConst;
+        alpha = currentResults.score - delta;
+        beta = currentResults.score + delta;
+        delta = 50;
 
         if (currentResults.bestMove) {
             safeResults = currentResults;
