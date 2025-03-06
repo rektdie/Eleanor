@@ -8,7 +8,6 @@ extern bool benchStarted;
 constexpr int invalidEntry = 111111;
 constexpr int inf = 100000;
 
-
 class SearchResults {
 public:
     int score = 0;
