@@ -99,7 +99,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
     int staticScore = Evaluate(board);
 
     if (staticScore >= beta) {
-        return beta;
+        return staticScore;
     }
 
     if (staticScore > alpha) {
@@ -119,7 +119,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
             int score = -Quiescence(copy, -beta, -alpha).score;
 
             if (score >= beta) {
-                return beta;
+                return score;
             }
 
             if (score > alpha) {
@@ -236,7 +236,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
             killerMoves[0][ply] = board.moveList[i];
 
             WriteEntry(board.hashKey, depth, beta, CutNode, Move());
-            return beta;
+            return score;
         }
 
         if (score > alpha) {
