@@ -184,7 +184,6 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
                 }
             }
         }
-        
     }
 
     int score = -inf;
@@ -235,7 +234,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
             killerMoves[1][ply] = killerMoves[0][ply];
             killerMoves[0][ply] = board.moveList[i];
 
-            WriteEntry(board.hashKey, depth, beta, CutNode, Move());
+            WriteEntry(board.hashKey, depth, score, CutNode, Move());
             return score;
         }
 
