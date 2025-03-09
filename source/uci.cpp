@@ -8,6 +8,7 @@
 #include "search.h"
 #include "benchmark.h"
 #include <cstring>
+#include "tt.h"
 
 Move ParseMove(Board &board, const char* moveString) {
     GenerateMoves(board, board.sideToMove);
@@ -155,6 +156,13 @@ void ParseGo(Board &board, std::string &command) {
     worker.detach();
 }
 
+static void SetOption(std::string &command) {
+    if (command.find("Hash") != std::string::npos) {
+        hashSize = (ReadParam("Hash", command) * 1000000) / sizeof(TTEntry);
+        TTable.resize(hashSize);
+    }
+}
+
 void UCILoop(Board &board) {
     // reset STDIN & STDOUT buffers
     setbuf(stdin, NULL);
@@ -223,10 +231,14 @@ void UCILoop(Board &board) {
             // print engine info
             std::cout << "id name Eleanor\n";
             std::cout << "id name rektdie\n";
-            std::cout << "option name Hash type spin default 1 min 1 max 1\n";
+            std::cout << "option name Hash type spin default 5 min 1 max 256\n";
             std::cout << "option name Threads type spin default 1 min 1 max 1\n";
             std::cout << "uciok\n";
             continue;
+        }
+
+        if (input.find("setoption") != std::string::npos) {
+            SetOption(input);
         }
 
         // Handling non-UCI "bench" command

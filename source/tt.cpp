@@ -2,8 +2,6 @@
 
 static U64 initialSeed = 0x60919C48E57863B9;
 
-TTEntry TTable[hashSize];
-
 // 2[colors] * 6[pieces] * 64[squares]
 U64 zKeys[2][6][64];
 
