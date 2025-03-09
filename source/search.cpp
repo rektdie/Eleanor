@@ -96,11 +96,15 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
 
     int staticScore = Evaluate(board);
 
-    if (staticScore >= beta) {
-        return staticScore;
+    int bestScore = staticScore;
+
+    if (bestScore>= beta) {
+        return bestScore;
     }
 
-    int bestScore = staticScore;
+    if (alpha < bestScore) {
+        alpha = bestScore;
+    }
 
     GenerateMoves(board, board.sideToMove);
 
@@ -117,6 +121,8 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
             if (score >= beta) {
                 return score;
             }
+
+            bestScore = std::max(score, bestScore);
 
             if (score > alpha) {
                 alpha = score;
