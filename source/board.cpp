@@ -334,6 +334,7 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 }
 
 void Board::MakeMove(Move move) {
+	nodes++;
 
     // Null Move
     if (!move) {

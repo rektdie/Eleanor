@@ -94,16 +94,16 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
         }
     }
 
-    nodes++;
-
     int staticScore = Evaluate(board);
 
-    if (staticScore >= beta) {
-        return beta;
+    int bestScore = staticScore;
+
+    if (bestScore>= beta) {
+        return bestScore;
     }
 
-    if (staticScore > alpha) {
-        alpha = staticScore;
+    if (alpha < bestScore) {
+        alpha = bestScore;
     }
 
     GenerateMoves(board, board.sideToMove);
@@ -119,8 +119,10 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
             int score = -Quiescence(copy, -beta, -alpha).score;
 
             if (score >= beta) {
-                return beta;
+                return score;
             }
+
+            bestScore = std::max(score, bestScore);
 
             if (score > alpha) {
                 alpha = score;
@@ -129,7 +131,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
         }
     }
 
-    results.score = alpha;
+    results.score = bestScore;
     if (searchStopped) return 0;
     return results;
 }
@@ -153,9 +155,9 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
-    const int staticEval = Evaluate(board);
-
     if (depth <= 0) return Quiescence(board, alpha, beta);
+
+    const int staticEval = Evaluate(board);
 
     if (board.InCheck(board.sideToMove)) {
         depth++;
@@ -184,13 +186,10 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
                 }
             }
         }
-        
     }
 
     int score = -inf;
     int nodeType = AllNode;
-
-    nodes++;
 
     GenerateMoves(board, board.sideToMove);
     SortMoves(board);
@@ -203,7 +202,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
-    SearchResults results;
+    SearchResults results(-inf);
 
     // For all moves
     for (int i = 0; i < board.currentMoveIndex; i++) {
@@ -235,9 +234,11 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
             killerMoves[1][ply] = killerMoves[0][ply];
             killerMoves[0][ply] = board.moveList[i];
 
-            WriteEntry(board.hashKey, depth, beta, CutNode, Move());
-            return beta;
+            WriteEntry(board.hashKey, depth, score, CutNode, Move());
+            return score;
         }
+
+        results.score = std::max(score, results.score);
 
         if (score > alpha) {
             nodeType = PV;
@@ -246,8 +247,6 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
-
-    results.score = alpha;
     WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
     if (searchStopped) return 0;
     return results;

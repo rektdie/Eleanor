@@ -87,9 +87,9 @@ SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
             if (current->nodeType == PV){
                 return {current->score, current->bestMove};
             } else if (current->nodeType == AllNode && current->score <= alpha) {
-                return alpha;
+                return current->score;
             } else if (current->nodeType == CutNode && current->score >= beta) {
-                return beta;
+                return current->score;
             }
         }
     }
