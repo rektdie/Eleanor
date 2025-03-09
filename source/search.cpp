@@ -102,8 +102,10 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
         return staticScore;
     }
 
-    if (staticScore > alpha) {
-        alpha = staticScore;
+    int bestScore = alpha;
+
+    if (staticScore > bestScore) {
+        bestScore = staticScore;
     }
 
     GenerateMoves(board, board.sideToMove);
@@ -129,7 +131,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
         }
     }
 
-    results.score = alpha;
+    results.score = bestScore;
     if (searchStopped) return 0;
     return results;
 }
@@ -202,6 +204,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
+    int bestScore = alpha;
     SearchResults results;
 
     // For all moves
@@ -238,15 +241,14 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
             return score;
         }
 
-        if (score > alpha) {
+        if (score > bestScore) {
             nodeType = PV;
-            alpha = score;
+            bestScore = score;
             results.bestMove = board.moveList[i];
         }
     }
 
-
-    results.score = alpha;
+    results.score = bestScore;
     WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
     if (searchStopped) return 0;
     return results;
