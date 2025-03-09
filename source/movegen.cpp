@@ -472,6 +472,8 @@ static void GenPawnMoves(Board &board, bool color) {
 		Bitboard pushes = getPawnPushes(square, color, board.occupied);
 		Bitboard captures = pawnAttacks[color][square];
 
+		Bitboard lastRank = color ? ranks[r_1] : ranks[r_8];
+
 		if (IsPinned(board, square)) {
 			int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
 			int directionToKing = GetDirection(square, kingSquare);
@@ -507,7 +509,15 @@ static void GenPawnMoves(Board &board, bool color) {
 			while (captures) {
 				int targetSquare = captures.getLS1BIndex();
 
-				board.AddMove(Move(square, targetSquare, capture));
+				// Checking for promotion
+				if (lastRank.IsSet(targetSquare)) {
+					board.AddMove(Move(square, targetSquare, knightPromoCapture));
+					board.AddMove(Move(square, targetSquare, bishopPromoCapture));
+					board.AddMove(Move(square, targetSquare, rookPromoCapture));
+					board.AddMove(Move(square, targetSquare, queenPromoCapture));
+				} else {
+					board.AddMove(Move(square, targetSquare, capture));
+				}
 
 				captures.PopBit(targetSquare);
 			}
@@ -528,8 +538,6 @@ static void GenPawnMoves(Board &board, bool color) {
 
 		// Removing own pieces from capture mask
 		captures &= board.colors[!color];
-
-		Bitboard lastRank = color ? ranks[r_1] : ranks[r_8];
 
 		while (pushes) {
 			int pushSquare = pushes.getLS1BIndex();
