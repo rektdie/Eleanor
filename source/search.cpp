@@ -94,8 +94,6 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
         }
     }
 
-    nodes++;
-
     int staticScore = Evaluate(board);
     int bestScore = alpha;
 
@@ -189,8 +187,6 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
 
     int score = -inf;
     int nodeType = AllNode;
-
-    nodes++;
 
     GenerateMoves(board, board.sideToMove);
     SortMoves(board);
