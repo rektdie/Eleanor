@@ -95,15 +95,12 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
     }
 
     int staticScore = Evaluate(board);
-    int bestScore = alpha;
 
     if (staticScore >= beta) {
         return staticScore;
     }
 
-    if (staticScore > bestScore) {
-        bestScore = staticScore;
-    }
+    int bestScore = staticScore;
 
     GenerateMoves(board, board.sideToMove);
 
@@ -115,7 +112,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
         if (board.moveList[i].IsCapture()) {
             Board copy = board;
             copy.MakeMove(board.moveList[i]);
-            int score = -Quiescence(copy, -beta, -bestScore).score;
+            int score = -Quiescence(copy, -beta, -alpha).score;
 
             if (score >= beta) {
                 return score;
