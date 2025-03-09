@@ -97,12 +97,11 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
     nodes++;
 
     int staticScore = Evaluate(board);
+    int bestScore = alpha;
 
     if (staticScore >= beta) {
         return staticScore;
     }
-
-    int bestScore = alpha;
 
     if (staticScore > bestScore) {
         bestScore = staticScore;
@@ -118,7 +117,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
         if (board.moveList[i].IsCapture()) {
             Board copy = board;
             copy.MakeMove(board.moveList[i]);
-            int score = -Quiescence(copy, -beta, -alpha).score;
+            int score = -Quiescence(copy, -beta, -bestScore).score;
 
             if (score >= beta) {
                 return score;
@@ -155,9 +154,9 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
-    const int staticEval = Evaluate(board);
-
     if (depth <= 0) return Quiescence(board, alpha, beta);
+
+    const int staticEval = Evaluate(board);
 
     if (board.InCheck(board.sideToMove)) {
         depth++;
@@ -204,8 +203,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
-    int bestScore = alpha;
-    SearchResults results;
+    SearchResults results(-inf);
 
     // For all moves
     for (int i = 0; i < board.currentMoveIndex; i++) {
@@ -241,14 +239,15 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
             return score;
         }
 
-        if (score > bestScore) {
+        results.score = std::max(score, results.score);
+
+        if (score > alpha) {
             nodeType = PV;
-            bestScore = score;
+            alpha = score;
             results.bestMove = board.moveList[i];
         }
     }
 
-    results.score = bestScore;
     WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
     if (searchStopped) return 0;
     return results;
