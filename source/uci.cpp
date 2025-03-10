@@ -163,6 +163,14 @@ static void SetOption(std::string &command) {
     }
 }
 
+static void PrintEngineInfo() {
+    std::cout << "id name Eleanor\n";
+    std::cout << "id name rektdie\n";
+    std::cout << "option name Hash type spin default 5 min 1 max 256\n";
+    std::cout << "option name Threads type spin default 1 min 1 max 1\n";
+    std::cout << "uciok\n";
+}
+
 void UCILoop(Board &board) {
     // reset STDIN & STDOUT buffers
     setbuf(stdin, NULL);
@@ -170,11 +178,6 @@ void UCILoop(Board &board) {
 
     // define user / GUI input buffer
     std::string input = "";
-
-    // print engine info
-    std::cout << "id name Eleanor\n";
-    std::cout << "id name rektdie\n";
-    std::cout << "uciok\n";
 
     // main loop
     while (true) {
@@ -229,11 +232,7 @@ void UCILoop(Board &board) {
         // parse UCI "uci" command
         if (input.find("uci") != std::string::npos) {
             // print engine info
-            std::cout << "id name Eleanor\n";
-            std::cout << "id name rektdie\n";
-            std::cout << "option name Hash type spin default 5 min 1 max 256\n";
-            std::cout << "option name Threads type spin default 1 min 1 max 1\n";
-            std::cout << "uciok\n";
+            PrintEngineInfo();
             continue;
         }
 
