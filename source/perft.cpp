@@ -1,5 +1,5 @@
-#include <chrono>
 #include "perft.h"
+#include "stopwatch.h"
 
 U64 HelperPerft(Board board, int depth) {
     GenerateMoves(board, board.sideToMove);
@@ -23,7 +23,7 @@ void Perft(Board &board, int depth) {
 
     U64 totalNodes = 0;
 
-    auto start = std::chrono::steady_clock::now();
+    Stopwatch sw;
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Board copy = board;
         board.MakeMove(board.moveList[i]);
@@ -47,13 +47,9 @@ void Perft(Board &board, int depth) {
 
         std::cout << ": " << nodeCount << '\n';
     }
-    auto finish = std::chrono::steady_clock::now();
-
-    double elapsed_seconds = std::chrono::duration_cast<
-        std::chrono::duration<double>>(finish - start).count();
 
     std::cout << "\nDepth: " << depth << '\n';
     std::cout << "Total nodes: " << totalNodes << '\n';
-    std::cout << "Time took: " << elapsed_seconds << "s (";
-    std::cout << int(totalNodes / elapsed_seconds) << " nodes/sec)\n";
+    std::cout << "Time took: " << sw.GetElapsedSec() << "s (";
+    std::cout << int(totalNodes / sw.GetElapsedSec()) << " nodes/sec)\n";
 }

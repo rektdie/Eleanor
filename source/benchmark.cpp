@@ -1,7 +1,7 @@
 #include "benchmark.h"
 #include "search.h"
+#include "stopwatch.h"
 #include <array>
-#include <chrono>
 
 const std::array<std::string, 50> fenPositions = {
     "rnbq1k1r/ppp1bppp/4pn2/8/2B5/2NP1N2/PPP2PPP/R1BQR1K1 b - - 2 8",
@@ -61,17 +61,13 @@ void RunBenchmark() {
     int depth = 5;
     benchStarted = true;
 
-    auto start = std::chrono::steady_clock::now();
+    Stopwatch sw;
     for (int i = 0; i < fenPositions.size(); i++) {
         board.SetByFen(fenPositions[i].c_str());
         PVS(board, depth, -50000, 50000);
     }
-    auto finish = std::chrono::steady_clock::now();
 
-    double elapsed_seconds = std::chrono::duration_cast<
-        std::chrono::duration<double>>(finish - start).count();
-
-    std::cout << nodes << " nodes " << int(nodes/elapsed_seconds) << " nps\n";
+    std::cout << nodes << " nodes " << int(nodes/sw.GetElapsedSec()) << " nps\n";
     nodes = 0;
     benchStarted = false;
 }

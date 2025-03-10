@@ -2,14 +2,13 @@
 #include "movegen.h"
 #include "evaluate.h"
 #include <algorithm>
-#include <chrono>
 #include "tt.h"
+#include "stopwatch.h"
 
 U64 nodes = 0;
 bool benchStarted = false;
 
 static inline int ply = 0;
-static inline auto timeStart = std::chrono::high_resolution_clock::now();
 static inline int timeToSearch = 0;
 static inline bool searchStopped = false;
 static inline bool doingNullMove = false;
@@ -18,6 +17,8 @@ static inline bool doingNullMove = false;
 static inline int killerMoves[2][64];
 
 inline PVLine pvLine;
+
+Stopwatch sw;
 
 static int ScoreMove(Board &board, Move &move) {
     const int attackerType = board.GetPieceType(move.MoveFrom());
@@ -86,9 +87,7 @@ void ListScores(Board &board) {
 
 static SearchResults Quiescence(Board board, int alpha, int beta) {
     if (!benchStarted) {
-        auto currTime = std::chrono::high_resolution_clock::now();
-        int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
-        if (elapsed >= timeToSearch) {
+        if (sw.GetElapsedMS() >= timeToSearch) {
             StopSearch();
             return 0;
         }
@@ -136,10 +135,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
 
 SearchResults PVS(Board board, int depth, int alpha, int beta) {
     if (!benchStarted) {
-        auto currTime = std::chrono::high_resolution_clock::now();
-        int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(currTime - timeStart).count();
-
-        if (elapsed >= timeToSearch) {
+        if (sw.GetElapsedMS() >= timeToSearch) {
             StopSearch();
             return 0;
         }
@@ -255,7 +251,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
 
 // Iterative deepening
 static SearchResults ID(Board &board, SearchParams params) {
-    timeStart = std::chrono::high_resolution_clock::now();
+    sw.Restart();
 
     int fullTime = board.sideToMove ? params.btime : params.wtime;
     int inc = board.sideToMove ? params.binc : params.winc;
@@ -297,14 +293,10 @@ static SearchResults ID(Board &board, SearchParams params) {
 
         if (searchStopped) break;
 
-        auto currTime = std::chrono::high_resolution_clock::now();
-        double elapsed = std::chrono::duration_cast<
-        std::chrono::duration<double>>(currTime - timeStart).count();
-
         std::cout << "info ";
         std::cout << "depth " << depth;
         std::cout << " score cp " << safeResults.score;
-        std::cout << " nodes " << nodes << " nps " << int(nodes/elapsed);
+        std::cout << " nodes " << nodes << " nps " << int(nodes/sw.GetElapsedSec());
         std::cout << " hashfull " << TT.GetUsedPercentage();
         std::cout << " pv ";
         pvLine.Print(0);
@@ -319,10 +311,7 @@ void SearchPosition(Board &board, SearchParams params) {
     nodes = 0;
     pvLine.Clear();
 
-    auto currTime = std::chrono::high_resolution_clock::now();
     SearchResults results = ID(board, params);
-    U64 elapsed = std::chrono::duration_cast<
-    std::chrono::duration<U64>>(currTime - timeStart).count();
 
     std::cout << "bestmove ";
     results.bestMove.PrintMove();
