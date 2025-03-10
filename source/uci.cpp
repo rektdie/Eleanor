@@ -158,14 +158,14 @@ void ParseGo(Board &board, std::string &command) {
 
 static void SetOption(std::string &command) {
     if (command.find("Hash") != std::string::npos) {
-        hashSize = (ReadParam("Hash", command) * 1000000) / sizeof(TTEntry);
+        hashSize = (ReadParam("value", command) * 1000000) / sizeof(TTEntry);
         TTable.resize(hashSize);
     }
 }
 
 static void PrintEngineInfo() {
     std::cout << "id name Eleanor\n";
-    std::cout << "id name rektdie\n";
+    std::cout << "id author rektdie\n";
     std::cout << "option name Hash type spin default 5 min 1 max 256\n";
     std::cout << "option name Threads type spin default 1 min 1 max 1\n";
     std::cout << "uciok\n";
