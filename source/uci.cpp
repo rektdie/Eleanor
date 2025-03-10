@@ -152,6 +152,11 @@ void ParseGo(Board &board, std::string &command) {
     params.winc = ReadParam("winc", command);
     params.binc = ReadParam("binc", command);
     params.movesToGo = ReadParam("movestogo", command);
+
+    if (command.find("movetime") != std::string::npos) {
+        params.wtime = ReadParam("movetime", command);
+        params.btime = ReadParam("movetime", command);
+    }
     
     auto worker = std::thread(SearchPosition, std::ref(board), params);
     worker.detach();
