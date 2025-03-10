@@ -18,12 +18,16 @@ void InitZobrist();
 U64 GetHashKey(Board &board);
 
 class TTEntry {
-    public:
+public:
     U64 hashKey;
     int depth;
     int score;
     int nodeType;
     Move bestMove;
+
+    operator U64() {
+        return hashKey;
+    }
 };
 
 // 5 MB
@@ -49,6 +53,17 @@ public:
     TTEntry* GetRawEntry(U64 &hashKey) {
         TTEntry *current = &table[hashKey % hashSize];
         return current;
+    }
+
+    // returns used space per mill
+    int GetUsedPercentage() {
+        int count = 0;
+
+        for (int i = 0; i < 1000; i++) {
+            if (table[i]) count++;
+        }
+
+        return count;
     }
 
     SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta);

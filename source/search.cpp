@@ -30,8 +30,6 @@ static int ScoreMove(Board &board, Move &move) {
         return 50000;
     }
 
-    if (attackerType == -1 || targetType == -1) std::cout << "asd\n";
-
     if (move.IsCapture()) {
         return moveScoreTable[attackerType][targetType] + 10000;
     } else {
@@ -307,6 +305,7 @@ static SearchResults ID(Board &board, SearchParams params) {
         std::cout << "depth " << depth;
         std::cout << " score cp " << safeResults.score;
         std::cout << " nodes " << nodes << " nps " << int(nodes/elapsed);
+        std::cout << " hashfull " << TT.GetUsedPercentage();
         std::cout << " pv ";
         pvLine.Print(0);
         std::cout << std::endl;
