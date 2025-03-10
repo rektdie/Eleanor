@@ -5,7 +5,7 @@
 #include <chrono>
 #include "tt.h"
 
-int nodes = 0;
+U64 nodes = 0;
 bool benchStarted = false;
 
 static inline int ply = 0;
@@ -293,6 +293,14 @@ static SearchResults ID(Board &board, SearchParams params) {
         }
 
         if (searchStopped) break;
+
+        auto currTime = std::chrono::high_resolution_clock::now();
+        double elapsed = std::chrono::duration_cast<
+        std::chrono::duration<double>>(currTime - timeStart).count();
+
+        std::cout << "info ";
+        std::cout << "depth " << depth;
+        std::cout << " nodes " << nodes << " nps " << int(nodes/elapsed) << std::endl;
     }
 
     return safeResults;
@@ -302,12 +310,11 @@ void SearchPosition(Board &board, SearchParams params) {
     searchStopped = false;
     nodes = 0;
 
-    SearchResults results = ID(board, params);
     auto currTime = std::chrono::high_resolution_clock::now();
-    double elapsed = std::chrono::duration_cast<
-        std::chrono::duration<double>>(currTime - timeStart).count();
+    SearchResults results = ID(board, params);
+    U64 elapsed = std::chrono::duration_cast<
+    std::chrono::duration<U64>>(currTime - timeStart).count();
 
-    std::cout << "info " << nodes << " nodes " << int(nodes/elapsed) << " nps\n";
     std::cout << "bestmove " << squareCoords[results.bestMove.MoveFrom()]
         << squareCoords[results.bestMove.MoveTo()];
 

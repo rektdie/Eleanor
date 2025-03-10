@@ -2,7 +2,7 @@
 #include "board.h"
 #include "uci.h"
 
-extern int nodes;
+extern U64 nodes;
 extern bool benchStarted;
 
 constexpr int invalidEntry = 111111;
