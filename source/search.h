@@ -9,7 +9,6 @@ constexpr int maxDepth = 64;
 extern U64 nodes;
 extern bool benchStarted;
 
-constexpr int invalidEntry = 111111;
 constexpr int inf = 100000;
 
 class SearchResults {

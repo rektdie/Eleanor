@@ -77,8 +77,8 @@ U64 GetHashKey(Board &board) {
     return key;
 }
 
-SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
-    TTEntry *current = &TTable[hashKey % hashSize];
+SearchResults TTable::ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
+    TTEntry *current = &table[hashKey % hashSize];
 
     if (current->hashKey == hashKey) {
         if (current->depth >= depth) {
@@ -96,8 +96,8 @@ SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
     return invalidEntry;
 }
 
-void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove) {
-    TTEntry *current = &TTable[hashKey % hashSize];
+void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove) {
+    TTEntry *current = &table[hashKey % hashSize];
 
     current->hashKey = hashKey;
     current->nodeType = nodeType;

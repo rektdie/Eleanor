@@ -18,7 +18,7 @@ void InitZobrist();
 U64 GetHashKey(Board &board);
 
 class TTEntry {
-public:
+    public:
     U64 hashKey;
     int depth;
     int score;
@@ -27,8 +27,33 @@ public:
 };
 
 // 5 MB
-inline int hashSize = 5000000 / sizeof(TTEntry);
-inline std::vector<TTEntry> TTable(hashSize);
+inline int hashSize = (5 * 1000000) / sizeof(TTEntry);
+constexpr int invalidEntry = 111111;
 
-SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta);
-void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move besteMove);
+class TTable {
+private:
+    std::vector<TTEntry> table;
+public:
+    TTable() {
+        table.reserve(hashSize);
+    }
+
+    void Resize(int size) {
+        table.resize(size);
+    }
+
+    void Clear() {
+        table.clear();
+    }
+
+    TTEntry* GetRawEntry(U64 &hashKey) {
+        TTEntry *current = &table[hashKey % hashSize];
+        return current;
+    }
+
+    SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta);
+
+    void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move besteMove);
+};
+
+inline TTable TT;

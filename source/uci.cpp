@@ -160,7 +160,7 @@ void ParseGo(Board &board, std::string &command) {
 static void SetOption(std::string &command) {
     if (command.find("Hash") != std::string::npos) {
         hashSize = (ReadParam("value", command) * 1000000) / sizeof(TTEntry);
-        TTable.resize(hashSize);
+        TT.Resize(hashSize);
     }
 }
 
@@ -208,7 +208,7 @@ void UCILoop(Board &board) {
         // parse UCI "ucinewgame" command
         if (input.find("ucinewgame") != std::string::npos) {
             board.SetByFen(StartingFen);
-            TTable.clear();
+            TT.Clear();
             continue;
         }
 

@@ -25,7 +25,7 @@ static int ScoreMove(Board &board, Move &move) {
 
     if (attackerType == nullPieceType || targetType == nullPieceType) return 0;
 
-    TTEntry *current = &TTable[board.hashKey % hashSize];
+    TTEntry *current = TT.GetRawEntry(board.hashKey);
     if (current->bestMove == move) {
         return 50000;
     }
@@ -151,7 +151,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
 
     // if NOT PV node then we try to hit the TTable
     if (beta - alpha == 1) {
-        SearchResults entry = ReadEntry(board.hashKey, depth, alpha, beta);
+        SearchResults entry = TT.ReadEntry(board.hashKey, depth, alpha, beta);
         if (entry.score != invalidEntry) {
             return entry;
         }
@@ -236,7 +236,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
             killerMoves[1][ply] = killerMoves[0][ply];
             killerMoves[0][ply] = board.moveList[i];
 
-            WriteEntry(board.hashKey, depth, score, CutNode, Move());
+            TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
             return score;
         }
 
@@ -250,7 +250,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
-    WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
+    TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
     if (searchStopped) return 0;
     return results;
 }
