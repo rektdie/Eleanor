@@ -325,20 +325,8 @@ void SearchPosition(Board &board, SearchParams params) {
     U64 elapsed = std::chrono::duration_cast<
     std::chrono::duration<U64>>(currTime - timeStart).count();
 
-    std::cout << "bestmove " << squareCoords[results.bestMove.MoveFrom()]
-        << squareCoords[results.bestMove.MoveTo()];
-
-    int flags = results.bestMove.GetFlags();
-    if (flags == knightPromotion || flags == knightPromoCapture) {
-        std::cout << 'n';
-    } else if (flags == bishopPromotion || flags == bishopPromoCapture) {
-        std::cout << 'b';
-    } else if (flags == rookPromotion || flags == rookPromoCapture) {
-        std::cout << 'r';
-    } else if (flags == queenPromotion || flags == queenPromoCapture) {
-        std::cout << 'q';
-    }
-
+    std::cout << "bestmove ";
+    results.bestMove.PrintMove();
     std::cout << '\n';
 }
 
