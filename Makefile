@@ -10,9 +10,15 @@ EXE ?= Eleanor
 
 # Determine platform
 ifeq ($(OS),Windows_NT)
-	EXE_EXT := .exe
+    EXE_EXT := .exe
+    MKDIR := mkdir
+    RM := rmdir /s /q
+    DEL := del /q
 else
-	EXE_EXT :=
+    EXE_EXT :=
+    MKDIR := mkdir -p
+    RM := rm -rf
+    DEL := rm -f
 endif
 
 # List of source files
@@ -26,14 +32,16 @@ $(EXE)$(EXE_EXT): $(OBJS)
 	$(CXX) -o $@ $^ -O3 -lpthread
 
 # Rule to compile source files to object files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(SRC_DIR)/types.h | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	$(CXX) -c -o $@ $< -O3 -lpthread
 
 # Create the object directory if it doesn't exist
 $(OBJ_DIR):
-	mkdir -p $@
+	$(MKDIR) $(OBJ_DIR)
 
 # Clean up build artifacts
 .PHONY: clean
 clean:
-	rm -rf $(OBJ_DIR) $(EXE)$(EXE_EXT)
+	$(RM) $(OBJ_DIR) 2>nul || $(DEL) $(OBJ_DIR)\* $(OBJ_DIR) 2>nul
+	$(RM) $(EXE)$(EXE_EXT) 2>nul || $(DEL) $(EXE)$(EXE_EXT) 2>nul
+	$(MAKE)
