@@ -179,6 +179,8 @@ void UCILoop(Board &board) {
     // define user / GUI input buffer
     std::string input = "";
 
+    PrintEngineInfo();
+
     // main loop
     while (true) {
         // reset user / GUI input
