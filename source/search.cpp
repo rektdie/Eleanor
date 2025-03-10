@@ -318,6 +318,7 @@ static SearchResults ID(Board &board, SearchParams params) {
 void SearchPosition(Board &board, SearchParams params) {
     searchStopped = false;
     nodes = 0;
+    pvLine.Clear();
 
     auto currTime = std::chrono::high_resolution_clock::now();
     SearchResults results = ID(board, params);

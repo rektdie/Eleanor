@@ -54,6 +54,11 @@ public:
             std::cout << ' ';
         } 
     }
+
+    void Clear() {
+        length[maxDepth] = {};
+        table[maxDepth][maxDepth] = {};
+    }
 };
 
 SearchResults PVS(Board board, int depth, int alpha, int beta);
