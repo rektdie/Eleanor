@@ -9,6 +9,7 @@
 #include "benchmark.h"
 #include <cstring>
 #include "tt.h"
+#include "perft.h"
 
 Move ParseMove(Board &board, const char* moveString) {
     GenerateMoves(board, board.sideToMove);
@@ -240,11 +241,17 @@ void UCILoop(Board &board) {
 
         if (input.find("setoption") != std::string::npos) {
             SetOption(input);
+            continue;
         }
 
         // Handling non-UCI "bench" command
         if (input.find("bench") != std::string::npos) {
             RunBenchmark();
+            continue;
+        }
+
+        if (input.find("perft") != std::string::npos) {
+            Perft(board, ReadParam("perft", input));
             continue;
         }
     }
