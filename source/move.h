@@ -56,6 +56,18 @@ public:
 
     void PrintMove() {
         std::cout << squareCoords[MoveFrom()] << squareCoords[MoveTo()];
+
+        int flags = GetFlags();
+
+        if (flags == knightPromotion || flags == knightPromoCapture) {
+            std::cout << 'n';
+        } else if (flags == bishopPromotion || flags == bishopPromoCapture) {
+            std::cout << 'b';
+        } else if (flags == rookPromotion || flags == rookPromoCapture) {
+            std::cout << 'r';
+        } else if (flags == queenPromotion || flags == queenPromoCapture) {
+            std::cout << 'q';
+        }
     }
 
     operator uint16_t() {
