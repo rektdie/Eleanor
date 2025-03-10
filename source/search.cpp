@@ -94,9 +94,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
         }
     }
 
-    int staticScore = Evaluate(board);
-
-    int bestScore = staticScore;
+    int bestScore = Evaluate(board);
 
     if (bestScore>= beta) {
         return bestScore;
@@ -188,11 +186,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
-    int score = -inf;
-    int nodeType = AllNode;
-
     GenerateMoves(board, board.sideToMove);
-    SortMoves(board);
 
     if (board.currentMoveIndex == 0) {
         if (board.InCheck(board.sideToMove)) { // checkmate
@@ -202,6 +196,10 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
+    SortMoves(board);
+
+    int score = -inf;
+    int nodeType = AllNode;
     SearchResults results(-inf);
 
     // For all moves
