@@ -17,6 +17,8 @@ static inline bool doingNullMove = false;
 //                          [id][ply]
 static inline int killerMoves[2][64];
 
+inline PVLine pvLine;
+
 static int ScoreMove(Board &board, Move &move) {
     const int attackerType = board.GetPieceType(move.MoveFrom());
     const int targetType = board.GetPieceType(move.MoveTo());
@@ -145,6 +147,8 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
+    pvLine.SetLength(ply);
+
     // if NOT PV node then we try to hit the TTable
     if (beta - alpha == 1) {
         SearchResults entry = ReadEntry(board.hashKey, depth, alpha, beta);
@@ -242,6 +246,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
             nodeType = PV;
             alpha = score;
             results.bestMove = board.moveList[i];
+            pvLine.SetMove(ply, board.moveList[i]);
         }
     }
 
@@ -300,7 +305,11 @@ static SearchResults ID(Board &board, SearchParams params) {
 
         std::cout << "info ";
         std::cout << "depth " << depth;
-        std::cout << " nodes " << nodes << " nps " << int(nodes/elapsed) << std::endl;
+        std::cout << " score cp " << safeResults.score;
+        std::cout << " nodes " << nodes << " nps " << int(nodes/elapsed);
+        std::cout << " pv ";
+        pvLine.Print(0);
+        std::cout << std::endl;
     }
 
     return safeResults;

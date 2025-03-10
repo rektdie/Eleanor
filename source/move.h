@@ -56,7 +56,6 @@ public:
 
     void PrintMove() {
         std::cout << squareCoords[MoveFrom()] << squareCoords[MoveTo()];
-        std::cout << " (" << moveTypes[GetFlags()] << ")\n";
     }
 
     operator uint16_t() {

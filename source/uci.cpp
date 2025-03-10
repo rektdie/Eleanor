@@ -207,7 +207,8 @@ void UCILoop(Board &board) {
 
         // parse UCI "ucinewgame" command
         if (input.find("ucinewgame") != std::string::npos) {
-            ParsePosition(board, "position startpos");
+            board.SetByFen(StartingFen);
+            TTable.clear();
             continue;
         }
 
