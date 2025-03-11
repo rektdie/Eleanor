@@ -30,6 +30,8 @@ public:
     }
 };
 
+// 64 MB
+constexpr U64 maxHash = (64* 1000000) / sizeof(TTEntry);
 // 5 MB
 constexpr U64 defaultHash = (5 * 1000000) / sizeof(TTEntry);
 
