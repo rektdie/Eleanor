@@ -11,6 +11,8 @@ extern bool benchStarted;
 
 constexpr int inf = 100000;
 
+inline bool searchStopped = false;
+
 class SearchResults {
 public:
     int score = 0;

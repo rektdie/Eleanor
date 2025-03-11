@@ -1,6 +1,7 @@
 #include "benchmark.h"
 #include "search.h"
 #include "stopwatch.h"
+#include "tt.h"
 #include <array>
 
 const std::array<std::string, 50> fenPositions = {
@@ -60,6 +61,9 @@ void RunBenchmark() {
     Board board;
     int depth = 5;
     benchStarted = true;
+    searchStopped = false;
+    TT.Clear();
+    nodes = 0;
 
     Stopwatch sw;
     for (int i = 0; i < fenPositions.size(); i++) {
@@ -69,5 +73,6 @@ void RunBenchmark() {
 
     std::cout << nodes << " nodes " << int(nodes/sw.GetElapsedSec()) << " nps\n";
     nodes = 0;
+    TT.Clear();
     benchStarted = false;
 }

@@ -10,7 +10,6 @@ bool benchStarted = false;
 
 static inline int ply = 0;
 static inline int timeToSearch = 0;
-static inline bool searchStopped = false;
 static inline bool doingNullMove = false;
 
 //                          [id][ply]
