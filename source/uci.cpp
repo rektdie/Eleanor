@@ -171,7 +171,7 @@ static void SetOption(std::string &command) {
 static void PrintEngineInfo() {
     std::cout << "id name Eleanor\n";
     std::cout << "id author rektdie\n";
-    std::cout << "option name Hash type spin default 5 min 1 max 256\n";
+    std::cout << "option name Hash type spin default 5 min 1 max 64\n";
     std::cout << "option name Threads type spin default 1 min 1 max 1\n";
     std::cout << "uciok\n";
 }
