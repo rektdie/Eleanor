@@ -1,6 +1,7 @@
 #pragma once
 #include "board.h"
 #include "search.h"
+#include <vector>
 
 // 2[colors] * 6[pieces] * 64[squares]
 extern U64 zKeys[2][6][64];
@@ -29,8 +30,6 @@ public:
     }
 };
 
-// 256 MB
-constexpr U64 maxHash = (64* 1000000) / sizeof(TTEntry);
 // 5 MB
 constexpr U64 defaultHash = (5 * 1000000) / sizeof(TTEntry);
 
@@ -40,10 +39,17 @@ constexpr int invalidEntry = 111111;
 
 class TTable {
 private:
-    std::array<TTEntry, maxHash> table;
+    std::vector<TTEntry> table;
 public:
+    TTable() : table(hashSize) {};
+
+    void Resize(U64 size) {
+        table.resize(size);
+    }
+
     void Clear() {
-        table.fill(TTEntry{});
+        table.clear();
+        table.resize(hashSize);
     }
 
     TTEntry* GetRawEntry(U64 &hashKey) {
