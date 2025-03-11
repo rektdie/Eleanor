@@ -55,8 +55,8 @@ public:
     }
 
     void Clear() {
-        length[maxDepth] = {};
-        table[maxDepth][maxDepth] = {};
+        length[maxDepth - 1] = {};
+        table[maxDepth - 1][maxDepth - 1] = {};
     }
 };
 

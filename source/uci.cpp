@@ -165,7 +165,6 @@ void ParseGo(Board &board, std::string &command) {
 static void SetOption(std::string &command) {
     if (command.find("Hash") != std::string::npos) {
         hashSize = (ReadParam("value", command) * 1000000) / sizeof(TTEntry);
-        TT.Resize(hashSize);
     }
 }
 

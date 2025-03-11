@@ -42,6 +42,6 @@ $(OBJ_DIR):
 # Clean up build artifacts
 .PHONY: clean
 clean:
-	$(RM) $(OBJ_DIR) 2>nul || $(DEL) $(OBJ_DIR)\* $(OBJ_DIR) 2>nul
-	$(RM) $(EXE)$(EXE_EXT) 2>nul || $(DEL) $(EXE)$(EXE_EXT) 2>nul
+	$(RM) $(OBJ_DIR) || $(DEL) $(OBJ_DIR)\* $(OBJ_DIR)
+	$(RM) $(EXE)$(EXE_EXT) || $(DEL) $(EXE)$(EXE_EXT)
 	$(MAKE)
