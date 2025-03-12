@@ -34,6 +34,9 @@ void ParsePosition(Board &board, std::string_view command) {
             board.MakeMove(parseMove(board, move));
         }
     }
+
+    GenerateMoves(board, board.sideToMove);
+    GenAttackMaps(board);
 }
 
 static int ReadParam(std::string param, std::string &command) {
@@ -102,7 +105,7 @@ void UCILoop(Board &board) {
 
         // parse UCI "position" command
         if (input.find("position") != std::string::npos) {
-            ParsePosition(board, input.c_str());
+            ParsePosition(board, input);
             continue;
         }
 
@@ -157,6 +160,11 @@ void UCILoop(Board &board) {
 
         if (input.find("print") != std::string::npos) {
             board.PrintBoard();
+            continue;
+        }
+
+        if (input.find("listmoves") != std::string::npos) {
+            board.ListMoves();
             continue;
         }
     }

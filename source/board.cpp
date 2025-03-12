@@ -69,6 +69,7 @@ void Board::SetByFen(std::string_view fen) {
 
     occupied = colors[White] | colors[Black];
     hashKey = GetHashKey(*this);
+	GenerateMoves(*this, sideToMove);
     GenAttackMaps(*this);
 }
 
@@ -137,6 +138,7 @@ void Board::ListMoves() {
 	for (int i = 0; i < currentMoveIndex; i++) {
 		std::cout << i+1 << ". ";
 		moveList[i].PrintMove();
+		std::cout << std::endl;
 	}
 }
 

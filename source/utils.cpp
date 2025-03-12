@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "movegen.h"
 
 std::vector<std::string> split(std::string_view str, char delim) {
     std::vector<std::string> results;
@@ -24,6 +25,8 @@ int parseSquare(std::string_view str) {
 }
 
 Move parseMove(Board &board, std::string_view str) {
+    GenerateMoves(board, board.sideToMove);
+
     int from = parseSquare(str.substr(0, 2));
     int to = parseSquare(str.substr(2, 2));
 
@@ -59,6 +62,13 @@ Move parseMove(Board &board, std::string_view str) {
                 break;
             case 'n':
                 flag = knightPromotion;
+                break;
+            }
+        }
+    } else {
+        for (Move move : board.moveList) {
+            if (move.MoveFrom() == from && move.MoveTo() == to) {
+                flag = move.GetFlags();
                 break;
             }
         }
