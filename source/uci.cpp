@@ -12,43 +12,27 @@
 #include "perft.h"
 #include "utils.h"
 
-void ParsePosition(Board &board, const char* command) {
-    command += 9; // Skip "position"
-
-    if (strncmp(command, "fen", 3) == 0) {
-        command += 4; // Skip "fen "
-
-        std::string fen;
-        while (*command && strncmp(command, " moves", 6) != 0) {
-            fen += *command;
-            command++;
-        }
-
-        board.SetByFen(fen.c_str());
-
-        if (strncmp(command, " moves", 6) == 0) {
-            command += 6; // Skip " moves"
-        }
-    } else if (strncmp(command, "startpos", 8) == 0) {
-        command += 8; // Skip "startpos"
+void ParsePosition(Board &board, std::string_view command) {
+    if (command.find("startpos") != std::string::npos) {
         board.SetByFen(StartingFen);
+    }
 
-        if (strncmp(command, " moves", 6) == 0) {
-            command += 6; // Skip " moves"
+    int fenIndex = command.find("fen");
+    int movesIndex = command.find("moves");
+
+    if (fenIndex != std::string::npos) {
+        if (movesIndex != std::string::npos) {
+            board.SetByFen(command.substr(fenIndex + 4, movesIndex - 2 - (fenIndex + 3)));
+        } else {
+            std::cout << (command.substr(fenIndex + 4, command.length() - (fenIndex + 3)));
         }
     }
 
-    while (*command) {
-        while (*command == ' ') command++; // Skip spaces
+    if (movesIndex != std::string::npos) {
+        std::vector<std::string> moves = split(command.substr(movesIndex + 6, command.length() - (movesIndex + 5)), ' ');
 
-        std::string moveString;
-        while (*command && *command != ' ') {
-            moveString += *command;
-            command++;
-        }
-
-        if (!moveString.empty()) {
-            board.MakeMove(parseMove(board, moveString));
+        for (std::string_view move : moves) {
+            board.MakeMove(parseMove(board, move));
         }
     }
 }
