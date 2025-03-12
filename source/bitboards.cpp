@@ -3,7 +3,7 @@
 void Bitboard::PrintBoard() const {
 	for (int rank = 7; rank >= 0; rank--) {
 
-		std::cout << "+---+---+---+---+---+---+---+---+\n";
+		std::cout << "+---+---+---+---+---+---+---+---+" << std::endl;
 		std::cout << "| ";
 
 		for (int file = 0; file < 8; file++) {
@@ -15,12 +15,12 @@ void Bitboard::PrintBoard() const {
 				std::cout << ". | ";
 			}
 		}
-		std::cout << ' ' << rank + 1 << '\n';
+		std::cout << ' ' << rank + 1 << std::endl;
 	}
 
-	std::cout << "+---+---+---+---+---+---+---+---+\n";
-	std::cout << "  a   b   c   d   e   f   g   h\n\n";
-	std::cout << "     Board: 0x" << std::hex << m_board << '\n';
+	std::cout << "+---+---+---+---+---+---+---+---+" << std::endl;
+	std::cout << "  a   b   c   d   e   f   g   h" << std::endl << std::endl;
+	std::cout << "     Board: 0x" << std::hex << m_board << std::endl;
 }
 
 bool Bitboard::IsSet(int square) const {

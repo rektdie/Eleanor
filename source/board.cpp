@@ -1,7 +1,10 @@
 #include "board.h"
 #include "movegen.h"
-#include <iostream>
 #include "tt.h"
+#include <iostream>
+#include <ranges>
+#include <string_view>
+#include "utils.h"
 
 static inline int prevEPTarget = noEPTarget;
 
@@ -24,174 +27,56 @@ void Board::Reset() {
     hashKey = 0ULL;
 }
 
-void Board::SetByFen(const char* fen) {
+void Board::SetByFen(std::string_view fen) {
 	Reset();
 
 	// Starting from top left
-	Bitboard currentSquare = 0x100000000000000;
+	int currSquare = a8;
 
-	int digits = 0;
-	while (*fen != ' ' && *fen) {
-		PIECE pieceType = Pawn;
-		COLOR pieceColor = Black;
+	std::vector<std::string> tokens = split(fen, ' ');
+	std::vector<std::string> pieceTokens = split(tokens[0], '/');
 
-		switch (*fen) {
-		case 'p':
-			pieceType = Pawn;
-			pieceColor = Black;
-			break;
-		case 'P':
-			pieceType = Pawn;
-			pieceColor = White;
-			break;
-		case 'n':
-			pieceType = Knight;
-			pieceColor = Black;
-			break;
-		case 'N':
-			pieceType = Knight;
-			pieceColor = White;
-			break;
-		case 'b':
-			pieceType = Bishop;
-			pieceColor = Black;
-			break;
-		case 'B':
-			pieceType = Bishop;
-			pieceColor = White;
-			break;
-		case 'r':
-			pieceType = Rook;
-			pieceColor = Black;
-			break;
-		case 'R':
-			pieceType = Rook;
-			pieceColor = White;
-			break;
-		case 'k':
-			pieceType = King;
-			pieceColor = Black;
-			break;
-		case 'K':
-			pieceType = King;
-			pieceColor = White;
-			break;
-		case 'q':
-			pieceType = Queen;
-			pieceColor = Black;
-			break;
-		case 'Q':
-			pieceType = Queen;
-			pieceColor = White;
-			break;
-		case '/':
-			currentSquare = currentSquare >> (8 + digits);
-			digits = 0;
-			fen++;
-			continue;
-		default:
-			int num = (*fen) - 48;
-			fen++;
-			if (*fen != '/') {
-				currentSquare = currentSquare << num;
-				digits += num;
+	constexpr std::string_view pieceTypes = "pnbrqk";
+
+	for (std::string_view rank : pieceTokens) {
+		for (const char piece : rank) {
+			if (std::isdigit(piece)) {
+				currSquare += piece - '0';
+				continue;
 			}
-			continue;
-		}
 
-		pieces[pieceType] |= currentSquare;
-		colors[pieceColor] |= currentSquare;
+			bool side = std::islower(piece);
+			int pieceType = pieceTypes.find(std::tolower(piece));
 
-		fen++;
-		if (*fen != '/') {
-			digits++;
-			currentSquare = currentSquare << 1;
+			colors[side].SetBit(currSquare);
+			pieces[pieceType].SetBit(currSquare);
+
+			currSquare++;
 		}
+		currSquare -= 16;
 	}
 
-	fen++; // skipping previous space
-	int section = 0;
+	sideToMove = tokens[1] == "b";
 
-	while (*fen) {
-		switch (*fen) {
-		case ' ':
-			fen++;
-			section++;
-			continue;
-		case 'w':
-			if (section == 0) {
-				sideToMove = White;
-			}
-			break;
-		case 'b':
-			if (section == 0) {
-				sideToMove = Black;
-			}
-			break;
-		case 'K':
-			castlingRights |= whiteKingRight;
-			break;
-		case 'Q':
-			castlingRights |= whiteQueenRight;
-			break;
-		case 'k':
-			castlingRights |= blackKingRight;
-			break;
-		case 'q':
-			castlingRights |= blackQueenRight;
-			break;
-		default:
-			if (*fen != '-') {
-				if (section == 2) {
-					int passantFile;
-					switch (*fen)
-					{
-					case 'a':
-						passantFile = 0;
-						break;
-					case 'b':
-						passantFile = 1;
-						break;
-					case 'c':
-						passantFile = 2;
-						break;
-					case 'd':
-						passantFile = 3;
-						break;
-					case 'e':
-						passantFile = 4;
-						break;
-					case 'f':
-						passantFile = 5;
-						break;
-					case 'g':
-						passantFile = 6;
-						break;
-					case 'h':
-						passantFile = 7;
-						break;
-					}
-					fen++;
-					const int passantRank = *fen - 49;
-					enPassantTarget = passantFile + passantRank*8;
-				}
-			}
+    for (const char piece : tokens[2]) {
+        if (piece == 'K') castlingRights |= whiteKingRight;
+        else if (piece == 'Q') castlingRights |= whiteQueenRight;
+        else if (piece == 'k') castlingRights |= blackKingRight;
+        else if (piece == 'q') castlingRights |= blackQueenRight;
+    }
 
-			break;
-		}
-		fen++;
-	}
+    if (tokens[3] != "-") enPassantTarget = parseSquare(tokens[3]);
 
-	occupied = (colors[White] | colors[Black]);
-	GenAttackMaps(*this);
+    occupied = colors[White] | colors[Black];
     hashKey = GetHashKey(*this);
+    GenAttackMaps(*this);
 }
 
 void Board::PrintBoard() {
 
 	for (int rank = 7; rank >= 0; rank--) {
 
-		std::cout << "+---+---+---+---+---+---+---+---+\n";
+		std::cout << "+---+---+---+---+---+---+---+---+" << std::endl;
 		std::cout << "| ";
 
 		for (int file = 0; file < 8; file++) {
@@ -212,21 +97,21 @@ void Board::PrintBoard() {
 				std::cout << "  | ";
 			}
 		}
-		std::cout << ' ' << rank + 1 << '\n';
+		std::cout << ' ' << rank + 1 << std::endl;
 	}
 
-	std::cout << "+---+---+---+---+---+---+---+---+\n";
-	std::cout << "  a   b   c   d   e   f   g   h\n\n";
+	std::cout << "+---+---+---+---+---+---+---+---+" << std::endl;
+	std::cout << "  a   b   c   d   e   f   g   h" << std::endl << std::endl;
 	std::cout << "      Side to move: ";
 	if (!sideToMove) {
-		std::cout << "White\n";
+		std::cout << "White" << std::endl;
 	} else {
-		std::cout << "Black\n";
+		std::cout << "Black" << std::endl;
 	}
 	if (enPassantTarget != noEPTarget) {
-		std::cout << "      En Passant square: " << squareCoords[enPassantTarget] << '\n';
+		std::cout << "      En Passant square: " << squareCoords[enPassantTarget] << std::endl;
 	} else {
-		std::cout << "      En Passant square: None" << '\n';
+		std::cout << "      En Passant square: None" << std::endl;
 	}
 
 	std::cout << "      Castling rights: ";
@@ -234,9 +119,9 @@ void Board::PrintBoard() {
 	if (castlingRights & whiteQueenRight) std::cout << "Q"; else std::cout << "-";
 	if (castlingRights & blackKingRight) std::cout << "k"; else std::cout << "-";
 	if (castlingRights & blackQueenRight) std::cout << "q"; else std::cout << "-";
-	std::cout << "\n\n";
+	std::cout << std::endl << std::endl;
 
-    std::cout << "      Hashkey: " << std::hex << hashKey << '\n';
+    std::cout << "      Hashkey: 0x" << std::hex << hashKey << std::dec << std::endl;
 }
 
 void Board::AddMove(Move move) {

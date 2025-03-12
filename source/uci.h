@@ -13,11 +13,8 @@ public:
     SearchParams(){}
 };
 
-// Returns Move object from a string
-Move ParseMove(Board &board, const char* moveString);
-
 // Initializes the position with given parameters
-void ParsePosition(Board &board, const char* command);
+void ParsePosition(Board &board, std::string_view command);
 
 // Parse UCI "go" command
 // GUI sends the engine this command if it should start searching for the best move

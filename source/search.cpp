@@ -314,7 +314,7 @@ void SearchPosition(Board &board, SearchParams params) {
 
     std::cout << "bestmove ";
     results.bestMove.PrintMove();
-    std::cout << '\n';
+    std::cout << std::endl;
 }
 
 void StopSearch() {

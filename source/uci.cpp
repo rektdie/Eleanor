@@ -7,121 +7,31 @@
 #include "movegen.h"
 #include "search.h"
 #include "benchmark.h"
-#include <cstring>
 #include "tt.h"
 #include "perft.h"
+#include "utils.h"
 
-Move ParseMove(Board &board, const char* moveString) {
-    GenerateMoves(board, board.sideToMove);
-
-    // Source square
-    std::string fromString = "";
-    fromString += moveString[0];
-    fromString += moveString[1];
-
-    auto it = std::find(squareCoords.begin(), squareCoords.end(), fromString);
-
-    int from = std::distance(squareCoords.begin(), it);
-
-    // Target square
-    std::string toString = ""; 
-    toString += moveString[2];
-    toString += moveString[3];
-
-    it = std::find(squareCoords.begin(), squareCoords.end(), toString);
-
-    int to = std::distance(squareCoords.begin(), it);
-    std::string promotionString = "";
-
-    // Finding the move from available moves
-    for (Move move : board.moveList) {
-        if (move.MoveFrom() == from && move.MoveTo() == to) {
-            // Checking for promotion
-            if (std::string(moveString).length() == 5) {
-                int promotePiece = 0;
-
-                // Checking for capture promotion
-                if (board.GetPieceColor(from) != board.GetPieceColor(to)) {
-                    switch (moveString[4])
-                    {
-                    case 'r':
-                        promotePiece = rookPromoCapture;
-                        break;
-                    case 'q':
-                        promotePiece = queenPromoCapture;
-                        break;
-                    case 'b':
-                        promotePiece = bishopPromoCapture;
-                        break;
-                    case 'n':
-                        promotePiece = knightPromoCapture;
-                        break;
-                    }
-                } else {
-                    switch (moveString[4])
-                    {
-                    case 'r':
-                        promotePiece = rookPromotion;
-                        break;
-                    case 'q':
-                        promotePiece = queenPromotion;
-                        break;
-                    case 'b':
-                        promotePiece = bishopPromotion;
-                        break;
-                    case 'n':
-                        promotePiece = knightPromotion;
-                        break;
-                    }
-                }
-
-                return Move(from, to, promotePiece);
-            }
-
-            return move;
-        }
-    }
-
-    return Move();
-}
-
-void ParsePosition(Board &board, const char* command) {
-    command += 9; // Skip "position"
-
-    if (strncmp(command, "fen", 3) == 0) {
-        command += 4; // Skip "fen "
-
-        std::string fen;
-        while (*command && strncmp(command, " moves", 6) != 0) {
-            fen += *command;
-            command++;
-        }
-
-        board.SetByFen(fen.c_str());
-
-        if (strncmp(command, " moves", 6) == 0) {
-            command += 6; // Skip " moves"
-        }
-    } else if (strncmp(command, "startpos", 8) == 0) {
-        command += 8; // Skip "startpos"
+void ParsePosition(Board &board, std::string_view command) {
+    if (command.find("startpos") != std::string::npos) {
         board.SetByFen(StartingFen);
+    }
 
-        if (strncmp(command, " moves", 6) == 0) {
-            command += 6; // Skip " moves"
+    int fenIndex = command.find("fen");
+    int movesIndex = command.find("moves");
+
+    if (fenIndex != std::string::npos) {
+        if (movesIndex != std::string::npos) {
+            board.SetByFen(command.substr(fenIndex + 4, movesIndex - 2 - (fenIndex + 3)));
+        } else {
+            board.SetByFen(command.substr(fenIndex + 4, command.length() - (fenIndex + 3)));
         }
     }
 
-    while (*command) {
-        while (*command == ' ') command++; // Skip spaces
+    if (movesIndex != std::string::npos) {
+        std::vector<std::string> moves = split(command.substr(movesIndex + 6, command.length() - (movesIndex + 5)), ' ');
 
-        std::string moveString;
-        while (*command && *command != ' ') {
-            moveString += *command;
-            command++;
-        }
-
-        if (!moveString.empty()) {
-            board.MakeMove(ParseMove(board, moveString.c_str()));
+        for (std::string_view move : moves) {
+            board.MakeMove(parseMove(board, move));
         }
     }
 }
@@ -170,37 +80,23 @@ static void SetOption(std::string &command) {
 }
 
 static void PrintEngineInfo() {
-    std::cout << "id name Eleanor\n";
-    std::cout << "id author rektdie\n";
-    std::cout << "option name Hash type spin default 5 min 1 max 64\n";
-    std::cout << "option name Threads type spin default 1 min 1 max 1\n";
-    std::cout << "uciok\n";
+    std::cout << "id name Eleanor" << std::endl;
+    std::cout << "id author rektdie" << std::endl;
+    std::cout << "option name Hash type spin default 5 min 1 max 64" << std::endl;
+    std::cout << "option name Threads type spin default 1 min 1 max 1" << std::endl;
+    std::cout << "uciok" << std::endl;
 }
 
 void UCILoop(Board &board) {
-    // reset STDIN & STDOUT buffers
-    setbuf(stdin, NULL);
-    setbuf(stdout, NULL);
-
-    // define user / GUI input buffer
     std::string input = "";
 
     // main loop
     while (true) {
-        // reset user / GUI input
-        getline(std::cin, input);
-
-        // make sure output reaches the GUI
-        fflush(stdout);
-
-        // make sure input is available
-        if (input[0] == '\n') {
-            continue;
-        }
+        std::getline(std::cin, input);
 
         // parse UCI "isready" command
         if (input.find("isready") != std::string::npos) {
-            std::cout << "readyok\n";
+            std::cout << "readyok" << std::endl;
             continue;
         }
 
@@ -256,6 +152,11 @@ void UCILoop(Board &board) {
 
         if (input.find("perft") != std::string::npos) {
             Perft(board, ReadParam("perft", input));
+            continue;
+        }
+
+        if (input.find("print") != std::string::npos) {
+            board.PrintBoard();
             continue;
         }
     }

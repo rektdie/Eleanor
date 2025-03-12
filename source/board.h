@@ -31,7 +31,7 @@ public:
 
 	void Init();
 	void Reset();
-	void SetByFen(const char* fen);
+	void SetByFen(std::string_view fen);
 	void PrintBoard();
 
 	void AddMove(Move move);
