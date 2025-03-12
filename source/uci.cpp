@@ -7,7 +7,6 @@
 #include "movegen.h"
 #include "search.h"
 #include "benchmark.h"
-#include <cstring>
 #include "tt.h"
 #include "perft.h"
 #include "utils.h"
@@ -89,25 +88,11 @@ static void PrintEngineInfo() {
 }
 
 void UCILoop(Board &board) {
-    // reset STDIN & STDOUT buffers
-    setbuf(stdin, NULL);
-    setbuf(stdout, NULL);
-
-    // define user / GUI input buffer
     std::string input = "";
 
     // main loop
     while (true) {
-        // reset user / GUI input
-        getline(std::cin, input);
-
-        // make sure output reaches the GUI
-        fflush(stdout);
-
-        // make sure input is available
-        if (input[0] == '\n') {
-            continue;
-        }
+        std::getline(std::cin, input);
 
         // parse UCI "isready" command
         if (input.find("isready") != std::string::npos) {
