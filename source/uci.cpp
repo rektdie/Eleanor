@@ -170,11 +170,11 @@ static void SetOption(std::string &command) {
 }
 
 static void PrintEngineInfo() {
-    std::cout << "id name Eleanor\n";
-    std::cout << "id author rektdie\n";
-    std::cout << "option name Hash type spin default 5 min 1 max 64\n";
-    std::cout << "option name Threads type spin default 1 min 1 max 1\n";
-    std::cout << "uciok\n";
+    std::cout << "id name Eleanor" << std::endl;
+    std::cout << "id author rektdie" << std::endl;
+    std::cout << "option name Hash type spin default 5 min 1 max 64" << std::endl;
+    std::cout << "option name Threads type spin default 1 min 1 max 1" << std::endl;
+    std::cout << "uciok" << std::endl;
 }
 
 void UCILoop(Board &board) {
@@ -200,7 +200,7 @@ void UCILoop(Board &board) {
 
         // parse UCI "isready" command
         if (input.find("isready") != std::string::npos) {
-            std::cout << "readyok\n";
+            std::cout << "readyok" << std::endl;
             continue;
         }
 

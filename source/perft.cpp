@@ -32,11 +32,11 @@ void Perft(Board &board, int depth) {
         totalNodes += nodeCount;
         board.moveList[i].PrintMove();
 
-        std::cout << ": " << nodeCount << '\n';
+        std::cout << ": " << nodeCount << std::endl;
     }
 
-    std::cout << "\nDepth: " << depth << '\n';
-    std::cout << "Total nodes: " << totalNodes << '\n';
+    std::cout << std::endl << "Depth: " << depth << std::endl;
+    std::cout << "Total nodes: " << totalNodes << std::endl;
     std::cout << "Time took: " << sw.GetElapsedSec() << "s (";
-    std::cout << int(totalNodes / sw.GetElapsedSec()) << " nodes/sec)\n";
+    std::cout << int(totalNodes / sw.GetElapsedSec()) << " nodes/sec)" << std::endl;
 }
