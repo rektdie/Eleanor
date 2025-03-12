@@ -1,7 +1,10 @@
 #include "board.h"
 #include "movegen.h"
-#include <iostream>
 #include "tt.h"
+#include <iostream>
+#include <ranges>
+#include <string_view>
+#include "utils.h"
 
 static inline int prevEPTarget = noEPTarget;
 
@@ -24,167 +27,39 @@ void Board::Reset() {
     hashKey = 0ULL;
 }
 
-void Board::SetByFen(const char* fen) {
+void Board::SetByFen(std::string_view fen) {
 	Reset();
 
 	// Starting from top left
-	Bitboard currentSquare = 0x100000000000000;
+	int currSquare = a8;
 
-	int digits = 0;
-	while (*fen != ' ' && *fen) {
-		PIECE pieceType = Pawn;
-		COLOR pieceColor = Black;
+	std::vector<std::string> tokens = split(fen, ' ');
+	std::vector<std::string> pieceTokens = split(tokens[0], '/');
 
-		switch (*fen) {
-		case 'p':
-			pieceType = Pawn;
-			pieceColor = Black;
-			break;
-		case 'P':
-			pieceType = Pawn;
-			pieceColor = White;
-			break;
-		case 'n':
-			pieceType = Knight;
-			pieceColor = Black;
-			break;
-		case 'N':
-			pieceType = Knight;
-			pieceColor = White;
-			break;
-		case 'b':
-			pieceType = Bishop;
-			pieceColor = Black;
-			break;
-		case 'B':
-			pieceType = Bishop;
-			pieceColor = White;
-			break;
-		case 'r':
-			pieceType = Rook;
-			pieceColor = Black;
-			break;
-		case 'R':
-			pieceType = Rook;
-			pieceColor = White;
-			break;
-		case 'k':
-			pieceType = King;
-			pieceColor = Black;
-			break;
-		case 'K':
-			pieceType = King;
-			pieceColor = White;
-			break;
-		case 'q':
-			pieceType = Queen;
-			pieceColor = Black;
-			break;
-		case 'Q':
-			pieceType = Queen;
-			pieceColor = White;
-			break;
-		case '/':
-			currentSquare = currentSquare >> (8 + digits);
-			digits = 0;
-			fen++;
-			continue;
-		default:
-			int num = (*fen) - 48;
-			fen++;
-			if (*fen != '/') {
-				currentSquare = currentSquare << num;
-				digits += num;
+	constexpr std::string_view pieceTypes = "pnbrqk";
+
+	for (std::string_view rank : pieceTokens) {
+		for (const char piece : rank) {
+			if (std::isdigit(piece)) {
+				currSquare += piece - '0';
+				continue;
 			}
-			continue;
-		}
 
-		pieces[pieceType] |= currentSquare;
-		colors[pieceColor] |= currentSquare;
+			bool side = std::islower(piece);
+			int pieceType = pieceTypes.find(std::tolower(piece));
 
-		fen++;
-		if (*fen != '/') {
-			digits++;
-			currentSquare = currentSquare << 1;
+			colors[side].SetBit(currSquare);
+			pieces[pieceType].SetBit(currSquare);
+
+			currSquare++;
 		}
+		currSquare -= 16;
 	}
 
-	fen++; // skipping previous space
-	int section = 0;
+	sideToMove = tokens[1] == "b";
 
-	while (*fen) {
-		switch (*fen) {
-		case ' ':
-			fen++;
-			section++;
-			continue;
-		case 'w':
-			if (section == 0) {
-				sideToMove = White;
-			}
-			break;
-		case 'b':
-			if (section == 0) {
-				sideToMove = Black;
-			}
-			break;
-		case 'K':
-			castlingRights |= whiteKingRight;
-			break;
-		case 'Q':
-			castlingRights |= whiteQueenRight;
-			break;
-		case 'k':
-			castlingRights |= blackKingRight;
-			break;
-		case 'q':
-			castlingRights |= blackQueenRight;
-			break;
-		default:
-			if (*fen != '-') {
-				if (section == 2) {
-					int passantFile;
-					switch (*fen)
-					{
-					case 'a':
-						passantFile = 0;
-						break;
-					case 'b':
-						passantFile = 1;
-						break;
-					case 'c':
-						passantFile = 2;
-						break;
-					case 'd':
-						passantFile = 3;
-						break;
-					case 'e':
-						passantFile = 4;
-						break;
-					case 'f':
-						passantFile = 5;
-						break;
-					case 'g':
-						passantFile = 6;
-						break;
-					case 'h':
-						passantFile = 7;
-						break;
-					}
-					fen++;
-					const int passantRank = *fen - 49;
-					enPassantTarget = passantFile + passantRank*8;
-				}
-			}
-
-			break;
-		}
-		fen++;
-	}
-
-	occupied = (colors[White] | colors[Black]);
-	GenAttackMaps(*this);
-    hashKey = GetHashKey(*this);
+	occupied = colors[White] | colors[Black];
+	hashKey = GetHashKey(*this);
 }
 
 void Board::PrintBoard() {

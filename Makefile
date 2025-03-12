@@ -29,11 +29,11 @@ OBJS := $(addprefix $(OBJ_DIR)/, $(notdir $(SRCS:.cpp=.o)))
 
 # Target executable
 $(EXE)$(EXE_EXT): $(OBJS)
-	$(CXX) -o $@ $^ -O3 -lpthread
+	$(CXX) -std=c++23 -o $@ $^ -O3 -lpthread
 
 # Rule to compile source files to object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	$(CXX) -c -o $@ $< -O3 -lpthread
+	$(CXX) -std=c++23 -c -o $@ $< -O3 -lpthread
 
 # Create the object directory if it doesn't exist
 $(OBJ_DIR):

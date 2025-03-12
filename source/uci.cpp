@@ -258,5 +258,10 @@ void UCILoop(Board &board) {
             Perft(board, ReadParam("perft", input));
             continue;
         }
+
+        if (input.find("print") != std::string::npos) {
+            board.PrintBoard();
+            continue;
+        }
     }
 }
