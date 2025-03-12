@@ -13,9 +13,6 @@ public:
     SearchParams(){}
 };
 
-// Returns Move object from a string
-Move ParseMove(Board &board, const char* moveString);
-
 // Initializes the position with given parameters
 void ParsePosition(Board &board, const char* command);
 
