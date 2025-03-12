@@ -23,7 +23,7 @@ void ParsePosition(Board &board, std::string_view command) {
         if (movesIndex != std::string::npos) {
             board.SetByFen(command.substr(fenIndex + 4, movesIndex - 2 - (fenIndex + 3)));
         } else {
-            std::cout << (command.substr(fenIndex + 4, command.length() - (fenIndex + 3)));
+            board.SetByFen(command.substr(fenIndex + 4, command.length() - (fenIndex + 3)));
         }
     }
 
