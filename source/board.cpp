@@ -58,8 +58,18 @@ void Board::SetByFen(std::string_view fen) {
 
 	sideToMove = tokens[1] == "b";
 
-	occupied = colors[White] | colors[Black];
-	hashKey = GetHashKey(*this);
+    for (const char piece : tokens[2]) {
+        if (piece == 'K') castlingRights |= whiteKingRight;
+        else if (piece == 'Q') castlingRights |= whiteQueenRight;
+        else if (piece == 'k') castlingRights |= blackKingRight;
+        else if (piece == 'q') castlingRights |= blackQueenRight;
+    }
+
+    if (tokens[3] != "-") enPassantTarget = parseSquare(tokens[3]);
+
+    occupied = colors[White] | colors[Black];
+    hashKey = GetHashKey(*this);
+    GenAttackMaps(*this);
 }
 
 void Board::PrintBoard() {

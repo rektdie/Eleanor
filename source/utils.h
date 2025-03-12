@@ -17,3 +17,12 @@ std::vector<std::string> split(std::string_view str, char delim) {
 
     return results;
 }
+
+int parseSquare(std::string_view str) {
+    constexpr std::string_view files = "abcdefgh";
+
+    int file = files.find(str[0]);
+    int rank = str[1] - '0';
+
+    return file + rank * 8;
+}
