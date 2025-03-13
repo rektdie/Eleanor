@@ -34,7 +34,7 @@ Move parseMove(Board &board, std::string_view str) {
 
     // Promotion
     if (str.length() > 4) {
-        if (board.GetPieceColor(from) != board.GetPieceColor(to)) {
+        if (board.occupied.IsSet(to)) {
             switch(str[4]) {
             case 'r':
                 flag = rookPromoCapture;
