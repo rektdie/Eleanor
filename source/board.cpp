@@ -6,8 +6,6 @@
 #include <string_view>
 #include "utils.h"
 
-static inline int prevEPTarget = noEPTarget;
-
 void Board::Init() {
 	SetByFen(StartingFen);
 }
@@ -225,8 +223,7 @@ void Board::MakeMove(Move move) {
 
     // Null Move
     if (!move) {
-        int newEpTarget = prevEPTarget;
-        prevEPTarget = enPassantTarget;
+        int newEpTarget = noEPTarget;
 
         sideToMove = !sideToMove;
         hashKey ^= zSide;
