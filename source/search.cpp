@@ -14,6 +14,8 @@ static inline bool doingNullMove = false;
 
 //                          [id][ply]
 static inline int killerMoves[2][64];
+//                          [stm][from][to]
+static inline int historyMoves[2][64][64];
 
 inline PVLine pvLine;
 
@@ -37,10 +39,10 @@ static int ScoreMove(Board &board, Move &move) {
     } else {
         if (killerMoves[0][ply] == move) {
             return 9000;
-        }
-
-        if (killerMoves[1][ply] == move) {
+        } else if (killerMoves[1][ply] == move) {
             return 8000;
+        } else {
+            return historyMoves[board.sideToMove][move.MoveFrom()][move.MoveTo()];
         }
     }
 
@@ -228,8 +230,14 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
 
         // Fail high (beta cutoff)
         if (score >= beta) {
-            killerMoves[1][ply] = killerMoves[0][ply];
-            killerMoves[0][ply] = board.moveList[i];
+            Move currMove = board.moveList[i];
+
+            if (!currMove.IsCapture()) {
+                killerMoves[1][ply] = killerMoves[0][ply];
+                killerMoves[0][ply] = currMove;
+
+                historyMoves[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()] += depth * depth;
+            }
 
             TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
             return score;
