@@ -205,8 +205,10 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
 
     // For all moves
     for (int i = 0; i < board.currentMoveIndex; i++) {
+        Move currMove = board.moveList[i];
+
         Board copy = board;
-        copy.MakeMove(copy.moveList[i]);
+        copy.MakeMove(currMove);
 
         // First move (suspected PV node)
         if (!i) {
@@ -230,13 +232,9 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
 
         // Fail high (beta cutoff)
         if (score >= beta) {
-            Move currMove = board.moveList[i];
-
             if (!currMove.IsCapture()) {
                 killerMoves[1][ply] = killerMoves[0][ply];
                 killerMoves[0][ply] = currMove;
-
-                historyMoves[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()] += depth * depth;
             }
 
             TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
@@ -246,10 +244,14 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         results.score = std::max(score, results.score);
 
         if (score > alpha) {
+            if (!currMove.IsCapture()) {
+                historyMoves[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()] += depth * depth;
+            }
+
             nodeType = PV;
             alpha = score;
-            results.bestMove = board.moveList[i];
-            pvLine.SetMove(ply, board.moveList[i]);
+            results.bestMove = currMove;
+            pvLine.SetMove(ply, currMove);
         }
     }
 
