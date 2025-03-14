@@ -20,17 +20,19 @@ inline PVLine pvLine;
 Stopwatch sw;
 
 static int ScoreMove(Board &board, Move &move) {
-    const int attackerType = board.GetPieceType(move.MoveFrom());
-    const int targetType = board.GetPieceType(move.MoveTo());
-
-    if (attackerType == nullPieceType || targetType == nullPieceType) return 0;
-
     TTEntry *current = TT.GetRawEntry(board.hashKey);
     if (current->bestMove == move) {
         return 50000;
     }
 
     if (move.IsCapture()) {
+        const int attackerType = board.GetPieceType(move.MoveFrom());
+        int targetType = board.GetPieceType(move.MoveTo());
+
+        if (move.GetFlags() == epCapture) {
+            targetType = Pawn;
+        }
+
         return moveScoreTable[attackerType][targetType] + 10000;
     } else {
         if (killerMoves[0][ply] == move) {
