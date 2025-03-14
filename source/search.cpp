@@ -24,7 +24,7 @@ Stopwatch sw;
 static int ScoreMove(Board &board, Move &move) {
     TTEntry *current = TT.GetRawEntry(board.hashKey);
     if (current->bestMove == move) {
-        return 50000;
+        return 500000;
     }
 
     if (move.IsCapture()) {
@@ -38,9 +38,9 @@ static int ScoreMove(Board &board, Move &move) {
         return moveScoreTable[attackerType][targetType] + 10000;
     } else {
         if (killerMoves[0][ply] == move) {
-            return 9000;
+            return 490000;
         } else if (killerMoves[1][ply] == move) {
-            return 8000;
+            return 480000;
         } else {
             return historyMoves[board.sideToMove][move.MoveFrom()][move.MoveTo()];
         }
