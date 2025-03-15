@@ -13,6 +13,11 @@ constexpr int inf = 100000;
 
 inline bool searchStopped = false;
 
+//                   [id][ply]
+inline int killerMoves[2][64];
+//                    [stm][from][to]
+inline int historyMoves[2][64][64];
+
 class SearchResults {
 public:
     int score = 0;

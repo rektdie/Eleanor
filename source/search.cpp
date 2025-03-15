@@ -12,11 +12,6 @@ static inline int ply = 0;
 static inline int timeToSearch = 0;
 static inline bool doingNullMove = false;
 
-//                          [id][ply]
-static inline int killerMoves[2][64];
-//                          [stm][from][to]
-static inline int historyMoves[2][64][64];
-
 inline PVLine pvLine;
 
 Stopwatch sw;

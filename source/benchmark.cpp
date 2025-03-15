@@ -3,6 +3,7 @@
 #include "stopwatch.h"
 #include "tt.h"
 #include <array>
+#include <cstring>
 
 const std::array<std::string, 50> fenPositions = {
     "rnbq1k1r/ppp1bppp/4pn2/8/2B5/2NP1N2/PPP2PPP/R1BQR1K1 b - - 2 8",
@@ -62,7 +63,12 @@ void RunBenchmark() {
     int depth = 5;
     benchStarted = true;
     searchStopped = false;
+
+    // Clearing
     TT.Clear();
+    std::memset(killerMoves, 0, sizeof(killerMoves));
+    std::memset(historyMoves, 0, sizeof(historyMoves));
+
     nodes = 0;
 
     Stopwatch sw;

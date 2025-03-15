@@ -1,6 +1,7 @@
 #include "uci.h"
 #include <iostream>
 #include <algorithm>
+#include <cstring>
 #include <string>
 #include <thread>
 #include "types.h"
@@ -112,7 +113,11 @@ void UCILoop(Board &board) {
         // parse UCI "ucinewgame" command
         if (input.find("ucinewgame") != std::string::npos) {
             board.SetByFen(StartingFen);
+            
+            // Clearing
             TT.Clear();
+            std::memset(killerMoves, 0, sizeof(killerMoves));
+            std::memset(historyMoves, 0, sizeof(historyMoves));
             continue;
         }
 
