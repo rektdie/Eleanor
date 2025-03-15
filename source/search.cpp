@@ -35,13 +35,14 @@ static int ScoreMove(Board &board, Move &move) {
             targetType = Pawn;
         }
 
-        return moveScoreTable[attackerType][targetType] + 10000;
+        return moveScoreTable[attackerType][targetType] + 30000;
     } else {
         if (killerMoves[0][ply] == move) {
-            return 9000;
+            return 20000;
         } else if (killerMoves[1][ply] == move) {
-            return 8000;
+            return 18000;
         } else {
+            // Max 16384
             return historyMoves[board.sideToMove][move.MoveFrom()][move.MoveTo()];
         }
     }
@@ -235,6 +236,9 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
             if (!currMove.IsCapture()) {
                 killerMoves[1][ply] = killerMoves[0][ply];
                 killerMoves[0][ply] = currMove;
+
+                historyMoves[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()] =
+                    std::min(16384, historyMoves[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()] + depth * depth);
             }
 
             TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
@@ -244,10 +248,6 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         results.score = std::max(score, results.score);
 
         if (score > alpha) {
-            if (!currMove.IsCapture()) {
-                historyMoves[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()] += depth * depth;
-            }
-
             nodeType = PV;
             alpha = score;
             results.bestMove = currMove;
