@@ -165,7 +165,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
             }
 
             // Null Move Pruning
-            if (!doingNullMove) {
+            if (!doingNullMove && staticEval >= beta) {
                 if (depth >= 3 && !board.InPossibleZug(board.sideToMove)) {
                     Board copy = board;
                     copy.MakeMove(Move());
