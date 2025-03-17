@@ -61,6 +61,7 @@ const std::array<std::string, 50> fenPositions = {
 void RunBenchmark() {
     Board board;
     int depth = 5;
+    int ply = 0;
     benchStarted = true;
     searchStopped = false;
 
@@ -74,7 +75,7 @@ void RunBenchmark() {
     Stopwatch sw;
     for (int i = 0; i < fenPositions.size(); i++) {
         board.SetByFen(fenPositions[i].c_str());
-        PVS(board, depth, -50000, 50000);
+        PVS(board, depth, -inf, inf, ply);
     }
 
     std::cout << nodes << " nodes " << int(nodes/sw.GetElapsedSec()) << " nps\n";

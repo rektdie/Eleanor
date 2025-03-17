@@ -67,7 +67,7 @@ public:
     }
 };
 
-SearchResults PVS(Board board, int depth, int alpha, int beta);
+SearchResults PVS(Board board, int depth, int alpha, int beta, int ply);
 void SearchPosition(Board &board, SearchParams params);
 void StopSearch();
 
