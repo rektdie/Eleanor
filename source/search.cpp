@@ -8,7 +8,6 @@
 U64 nodes = 0;
 bool benchStarted = false;
 
-static inline int ply = 0;
 static inline int timeToSearch = 0;
 static inline bool doingNullMove = false;
 
@@ -16,7 +15,7 @@ inline PVLine pvLine;
 
 Stopwatch sw;
 
-static int ScoreMove(Board &board, Move &move) {
+static int ScoreMove(Board &board, Move &move, int ply) {
     TTEntry *current = TT.GetRawEntry(board.hashKey);
     if (current->bestMove == move) {
         return 50000;
@@ -45,13 +44,13 @@ static int ScoreMove(Board &board, Move &move) {
     return 0;
 }
 
-static void SortMoves(Board &board) {
+static void SortMoves(Board &board, int ply) {
     std::array<int, 218> scores;
     std::array<int, 218> indices;
 
     // Initialize scores and indices
     for (int i = 0; i < board.currentMoveIndex; i++) {
-        scores[i] = ScoreMove(board, board.moveList[i]);
+        scores[i] = ScoreMove(board, board.moveList[i], ply);
         indices[i] = i;
     }
 
@@ -73,18 +72,18 @@ static void SortMoves(Board &board) {
     }
 }
 
-void ListScores(Board &board) {
-    SortMoves(board);
+void ListScores(Board &board, int ply) {
+    SortMoves(board, ply);
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Move currentMove = board.moveList[i];
 
         std::cout << squareCoords[currentMove.MoveFrom()] << squareCoords[currentMove.MoveTo()];
-        std::cout << ": " << ScoreMove(board, currentMove) << '\n';
+        std::cout << ": " << ScoreMove(board, currentMove, ply) << '\n';
     }
 }
 
-static SearchResults Quiescence(Board board, int alpha, int beta) {
+static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
     if (!benchStarted) {
         if (sw.GetElapsedMS() >= timeToSearch) {
             StopSearch();
@@ -104,7 +103,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
 
     GenerateMoves(board, board.sideToMove);
 
-    SortMoves(board);
+    SortMoves(board, ply);
 
     SearchResults results;
 
@@ -112,7 +111,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
         if (board.moveList[i].IsCapture()) {
             Board copy = board;
             copy.MakeMove(board.moveList[i]);
-            int score = -Quiescence(copy, -beta, -alpha).score;
+            int score = -Quiescence(copy, -beta, -alpha, ply + 1).score;
 
             if (score >= beta) {
                 return score;
@@ -132,7 +131,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta) {
     return results;
 }
 
-SearchResults PVS(Board board, int depth, int alpha, int beta) {
+SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
     if (!benchStarted) {
         if (sw.GetElapsedMS() >= timeToSearch) {
             StopSearch();
@@ -150,7 +149,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
-    if (depth <= 0) return Quiescence(board, alpha, beta);
+    if (depth <= 0) return Quiescence(board, alpha, beta, ply);
 
     const int staticEval = Evaluate(board);
 
@@ -171,9 +170,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
                     copy.MakeMove(Move());
     
                     doingNullMove = true;
-                    ply++;
-                    int score = -PVS(copy, depth - 3, -beta, -beta + 1).score;
-                    ply--;
+                    int score = -PVS(copy, depth - 3, -beta, -beta + 1, ply + 1).score;
                     doingNullMove = false;
     
                     if (searchStopped) return 0;
@@ -193,7 +190,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         }
     }
 
-    SortMoves(board);
+    SortMoves(board, ply);
 
     int score = -inf;
     int nodeType = AllNode;
@@ -209,20 +206,14 @@ SearchResults PVS(Board board, int depth, int alpha, int beta) {
         // First move (suspected PV node)
         if (!i) {
             // Full search
-            ply++;
-            score = -PVS(copy, depth - 1, -beta, -alpha).score;
-            ply--;
+            score = -PVS(copy, depth - 1, -beta, -alpha, ply + 1).score;
         } else {
             // Quick search
-            ply++;
-            score = -PVS(copy, depth - 1, -alpha-1, -alpha).score;
-            ply--;
+            score = -PVS(copy, depth - 1, -alpha-1, -alpha, ply + 1).score;
 
             if (score > alpha && beta - alpha > 1) {
                 // We have to do full search
-                ply++;
-                score = -PVS(copy, depth - 1, -beta, -alpha).score;
-                ply--;
+                score = -PVS(copy, depth - 1, -beta, -alpha, ply + 1).score;
             }
         }
 
@@ -270,10 +261,12 @@ static SearchResults ID(Board &board, SearchParams params) {
 
     int delta = 50;
 
+    int ply = 0;
+
     for (int depth = 1; depth <= 99; depth++) {
         timeToSearch = (fullTime / 20) + (inc / 2);
 
-        SearchResults currentResults = PVS(board, depth, alpha, beta);
+        SearchResults currentResults = PVS(board, depth, alpha, beta, ply);
 
         // If we fell outside the window, try again with full width
         if ((currentResults.score <= alpha)
