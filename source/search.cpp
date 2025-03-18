@@ -152,7 +152,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         }
     }
 
-    if (!ply && IsThreefold(board)) return 0;
+    if (ply && IsThreefold(board)) return 0;
 
     pvLine.SetLength(ply);
 
