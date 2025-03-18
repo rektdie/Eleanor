@@ -84,14 +84,14 @@ void ListScores(Board &board, int ply) {
 }
 
 static bool IsThreefold(Board &board) {
-    int count = 0;
-
-    for (int i = positionIndex - 1; i >= 0; i--) {
-        if (positionHistory[i] == board.hashKey) count++;
-
-        if (count >= 3) return true;
+    for (int i = 0; i < positionIndex; i++) {
+        if (positionHistory[i] == board.hashKey) {
+            // repetition found
+            return true;
+        }
     }
 
+    // no repetition
     return false;
 }
 

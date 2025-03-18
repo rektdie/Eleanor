@@ -344,8 +344,8 @@ void Board::MakeMove(Move move) {
 
 	GenAttackMaps(*this);
 
-    positionHistory[positionIndex] = hashKey;
     positionIndex++;
+    positionHistory[positionIndex] = hashKey;
 }
 
 bool Board::InPossibleZug(bool side) {
