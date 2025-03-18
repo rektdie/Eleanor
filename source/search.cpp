@@ -2,6 +2,7 @@
 #include "movegen.h"
 #include "evaluate.h"
 #include <algorithm>
+#include <cmath>
 #include "tt.h"
 #include "stopwatch.h"
 
@@ -95,12 +96,15 @@ static bool IsThreefold(Board &board) {
     return false;
 }
 
-static int GetReductions(Board &board, int depth, int moveSeen) {
+static int GetReductions(Board &board, int depth, int moveSeen, int ply) {
     int reduction = 0;
     
     // Late Move Reduction
-    if (!board.InCheck(board.sideToMove) && moveSeen >= 5 && depth > 3) {
-        reduction++;
+    if (depth >= 3 && moveSeen >= 5 + 2 * (ply == 0) && !board.InCheck(board.sideToMove)) {
+        double base = 0.77;
+        double divisor = 2.36;
+
+        reduction = std::round(base + std::log(depth) * std::log(moveSeen) / divisor);
     }
 
     return reduction;
@@ -229,7 +233,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         Board copy = board;
         copy.MakeMove(currMove);
 
-        int reductions = GetReductions(board, depth, i);
+        int reductions = GetReductions(board, depth, i, ply);
 
         // First move (suspected PV node)
         if (!i) {
