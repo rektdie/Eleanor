@@ -64,6 +64,7 @@ void RunBenchmark() {
     int ply = 0;
     benchStarted = true;
     searchStopped = false;
+    positionIndex = 0;
 
     // Clearing
     TT.Clear();
@@ -82,4 +83,5 @@ void RunBenchmark() {
     nodes = 0;
     TT.Clear();
     benchStarted = false;
+    positionIndex = 0;
 }
