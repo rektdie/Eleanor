@@ -83,6 +83,18 @@ void ListScores(Board &board, int ply) {
     }
 }
 
+static bool IsThreefold(Board &board) {
+    int count = 0;
+
+    for (int i = positionIndex - 1; i >= 0; i--) {
+        if (positionHistory[i] == board.hashKey) count++;
+
+        if (count >= 3) return true;
+    }
+
+    return false;
+}
+
 static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
     if (!benchStarted) {
         if (sw.GetElapsedMS() >= timeToSearch) {
@@ -112,6 +124,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
             Board copy = board;
             copy.MakeMove(board.moveList[i]);
             int score = -Quiescence(copy, -beta, -alpha, ply + 1).score;
+            positionIndex--;
 
             if (score >= beta) {
                 return score;
@@ -138,6 +151,8 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
             return 0;
         }
     }
+
+    if (!ply && IsThreefold(board)) return 0;
 
     pvLine.SetLength(ply);
 
@@ -216,6 +231,8 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
                 score = -PVS(copy, depth - 1, -beta, -alpha, ply + 1).score;
             }
         }
+
+        positionIndex--;
 
         // Fail high (beta cutoff)
         if (score >= beta) {
