@@ -152,9 +152,9 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         }
     }
 
+    pvLine.SetLength(ply);
     if (ply && IsThreefold(board)) return 0;
 
-    pvLine.SetLength(ply);
 
     // if NOT PV node then we try to hit the TTable
     if (beta - alpha == 1) {
