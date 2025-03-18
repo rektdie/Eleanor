@@ -95,6 +95,17 @@ static bool IsThreefold(Board &board) {
     return false;
 }
 
+static int GetReductions(Board &board, int depth, int moveSeen) {
+    int reduction = 0;
+    
+    // Late Move Reduction
+    if (!board.InCheck(board.sideToMove) && moveSeen >= 5 && depth > 3) {
+        reduction++;
+    }
+
+    return reduction;
+}
+
 static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
     if (!benchStarted) {
         if (sw.GetElapsedMS() >= timeToSearch) {
@@ -218,18 +229,28 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         Board copy = board;
         copy.MakeMove(currMove);
 
+        int reductions = GetReductions(board, depth, i);
+
         // First move (suspected PV node)
         if (!i) {
             // Full search
             score = -PVS(copy, depth - 1, -beta, -alpha, ply + 1).score;
-        } else {
-            // Quick search
-            score = -PVS(copy, depth - 1, -alpha-1, -alpha, ply + 1).score;
+        } else if (reductions) {
+            // Null-window search with reductions
+            score = -PVS(copy, depth - 1 - reductions, -alpha-1, -alpha, ply + 1).score;
 
-            if (score > alpha && beta - alpha > 1) {
-                // We have to do full search
-                score = -PVS(copy, depth - 1, -beta, -alpha, ply + 1).score;
+            if (score > alpha) {
+                // Null-window search now without the reduction
+                score = -PVS(copy, depth - 1, -alpha-1, -alpha, ply + 1).score;
             }
+        } else {
+            // Null-window search
+            score = -PVS(copy, depth - 1, -alpha-1, -alpha, ply + 1).score;
+        }
+
+        // Check if we need to do full window re-search
+        if (i && score > alpha && score < beta) {
+            score = -PVS(copy, depth - 1, -beta, -alpha, ply + 1).score;
         }
 
         positionIndex--;
