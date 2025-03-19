@@ -38,7 +38,7 @@ static int ScoreMove(Board &board, Move &move, int ply) {
             return 18000;
         } else {
             // Max 16384
-            return historyMoves[board.sideToMove][move.MoveFrom()][move.MoveTo()];
+            return history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
         }
     }
 
@@ -265,8 +265,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
                 killerMoves[1][ply] = killerMoves[0][ply];
                 killerMoves[0][ply] = currMove;
 
-                historyMoves[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()] =
-                    std::min(16384, historyMoves[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()] + depth * depth);
+                history.Update(board.sideToMove, currMove, 150 * depth);
             }
 
             TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
