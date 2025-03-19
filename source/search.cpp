@@ -104,7 +104,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
         double base = 0.77;
         double divisor = 2.36;
 
-        reduction = std::round(base + std::log(depth) * std::log(moveSeen) / divisor);
+        reduction = std::floor(base + std::log(depth) * std::log(moveSeen) / divisor);
     }
 
     return reduction;
