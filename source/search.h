@@ -3,8 +3,10 @@
 #include "uci.h"
 #include <vector>
 #include "move.h"
+#include <algorithm>
 
 constexpr int maxDepth = 64;
+constexpr int maxHistory = 16384;
 
 extern U64 nodes;
 extern bool benchStarted;
@@ -15,8 +17,6 @@ inline bool searchStopped = false;
 
 //                   [id][ply]
 inline int killerMoves[2][64];
-//                    [stm][from][to]
-inline int historyMoves[2][64][64];
 
 class SearchResults {
 public:
@@ -34,6 +34,33 @@ public:
         score = pScore;
     }
 };
+
+class History {
+private:
+    int historyMoves[2][64][64];
+public:
+    void Update(bool stm, Move move, int bonus) {
+        int clampedBonus = std::clamp(bonus, -maxHistory, maxHistory);
+        historyMoves[stm][move.MoveFrom()][move.MoveTo()] += 
+            clampedBonus - historyMoves[stm][move.MoveFrom()][move.MoveTo()] * std::abs(clampedBonus) / maxHistory;
+    }
+
+    void Clear() {
+        for (auto &side : historyMoves) {
+            for (auto &from : side) {
+                for (auto &to : from) {
+                    to = 0;
+                }
+            }
+        }
+    }
+
+    auto& operator[](int index) {
+        return historyMoves[index];
+    }
+};
+
+inline History history;
 
 class PVLine {
 private:

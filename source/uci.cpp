@@ -119,7 +119,8 @@ void UCILoop(Board &board) {
             // Clearing
             TT.Clear();
             std::memset(killerMoves, 0, sizeof(killerMoves));
-            std::memset(historyMoves, 0, sizeof(historyMoves));
+            
+            history.Clear();
             positionIndex = 0;
 
             continue;

@@ -69,7 +69,8 @@ void RunBenchmark() {
     // Clearing
     TT.Clear();
     std::memset(killerMoves, 0, sizeof(killerMoves));
-    std::memset(historyMoves, 0, sizeof(historyMoves));
+    
+    history.Clear();
 
     nodes = 0;
 
