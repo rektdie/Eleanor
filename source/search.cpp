@@ -96,11 +96,11 @@ static bool IsThreefold(Board &board) {
     return false;
 }
 
-static int GetReductions(Board &board, int depth, int moveSeen, int ply) {
+static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply) {
     int reduction = 0;
     
     // Late Move Reduction
-    if (depth >= 3 && moveSeen >= 5 + 2 * (ply == 0) && !board.InCheck(board.sideToMove)) {
+    if (depth >= 3 && moveSeen >= 3 && !move.IsCapture()) {
         double base = 0.77;
         double divisor = 2.36;
 
@@ -233,7 +233,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         Board copy = board;
         copy.MakeMove(currMove);
 
-        int reductions = GetReductions(board, depth, i, ply);
+        int reductions = GetReductions(board, currMove, depth, i, ply);
 
         // First move (suspected PV node)
         if (!i) {
