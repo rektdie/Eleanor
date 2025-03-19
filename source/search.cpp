@@ -265,7 +265,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
                 killerMoves[1][ply] = killerMoves[0][ply];
                 killerMoves[0][ply] = currMove;
 
-                history.Update(board.sideToMove, currMove, 150 * depth);
+                history.Update(board.sideToMove, currMove, depth * depth);
             }
 
             TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
