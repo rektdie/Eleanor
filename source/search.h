@@ -3,6 +3,7 @@
 #include "uci.h"
 #include <vector>
 #include "move.h"
+#include <algorithm>
 
 constexpr int maxDepth = 64;
 constexpr int maxHistory = 16384;
