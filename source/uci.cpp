@@ -29,10 +29,10 @@ void ParsePosition(Board &board, std::string_view command) {
     }
 
     if (movesIndex != std::string::npos) {
-        std::vector<std::string> moves = split(command.substr(movesIndex + 6, command.length() - (movesIndex + 5)), ' ');
+        std::vector<std::string> moves = UTILS::split(command.substr(movesIndex + 6, command.length() - (movesIndex + 5)), ' ');
 
         for (std::string_view move : moves) {
-            board.MakeMove(parseMove(board, move));
+            board.MakeMove(UTILS::parseMove(board, move));
         }
     }
 
