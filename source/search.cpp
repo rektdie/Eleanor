@@ -6,6 +6,8 @@
 #include "tt.h"
 #include "stopwatch.h"
 
+namespace SEARCH {
+
 U64 nodes = 0;
 bool benchStarted = false;
 
@@ -360,4 +362,5 @@ void SearchPosition(Board &board, SearchParams params) {
 
 void StopSearch() {
     searchStopped = true;
+}
 }

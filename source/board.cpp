@@ -217,28 +217,28 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 }
 
 void Board::MakeMove(Move move) {
-	nodes++;
-
-    // Null Move
+	SEARCH::nodes++;
+	
+	// Null Move
     if (!move) {
-        int newEpTarget = noEPTarget;
-
+		int newEpTarget = noEPTarget;
+		
         sideToMove = !sideToMove;
         hashKey ^= UTILS::zSide;
-
+		
         if (enPassantTarget != noEPTarget) {
-            hashKey ^= UTILS::zEnPassant[enPassantTarget % 8];
+			hashKey ^= UTILS::zEnPassant[enPassantTarget % 8];
         }
-
+		
         if (newEpTarget != noEPTarget) {
-            hashKey ^= UTILS::zEnPassant[newEpTarget % 8];
+			hashKey ^= UTILS::zEnPassant[newEpTarget % 8];
         }
-
+		
         enPassantTarget = newEpTarget;
-
+		
         return;
     }
-
+	
 	int newEpTarget = noEPTarget;
 
 	int attackerPiece = GetPieceType(move.MoveFrom());

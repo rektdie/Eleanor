@@ -5,6 +5,8 @@
 #include "move.h"
 #include <algorithm>
 
+namespace SEARCH {
+
 constexpr int maxDepth = 64;
 constexpr int maxHistory = 16384;
 
@@ -108,3 +110,4 @@ constexpr int moveScoreTable[6][6] = {
 };
 
 void ListScores(Board &board);
+}

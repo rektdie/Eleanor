@@ -72,7 +72,7 @@ static void ParseGo(Board &board, std::string &command) {
         params.btime = ReadParam("movetime", command);
     }
     
-    auto worker = std::thread(SearchPosition, std::ref(board), params);
+    auto worker = std::thread(SEARCH::SearchPosition, std::ref(board), params);
     worker.detach();
 }
 
@@ -118,9 +118,9 @@ void UCILoop(Board &board) {
             
             // Clearing
             TT.Clear();
-            std::memset(killerMoves, 0, sizeof(killerMoves));
+            std::memset(SEARCH::killerMoves, 0, sizeof(SEARCH::killerMoves));
             
-            history.Clear();
+            SEARCH::history.Clear();
             positionIndex = 0;
 
             continue;
@@ -141,7 +141,7 @@ void UCILoop(Board &board) {
         // parse UCI "stop" command
         if (input.find("stop") != std::string::npos) {
             // stop the loop
-            StopSearch();
+            SEARCH::StopSearch();
             continue;
         }
 

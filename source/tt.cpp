@@ -1,6 +1,6 @@
 #include "tt.h"
 
-SearchResults TTable::ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
+SEARCH::SearchResults TTable::ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
     TTEntry *current = &table[hashKey % hashSize];
 
     if (current->hashKey == hashKey) {
