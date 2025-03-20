@@ -6,10 +6,6 @@
 #include <string_view>
 #include "utils.h"
 
-void Board::Init() {
-	SetByFen(StartingFen);
-}
-
 void Board::Reset() {
     castlingRights = 0;
 	enPassantTarget = noEPTarget;
@@ -20,6 +16,8 @@ void Board::Reset() {
 	colors = std::array<Bitboard, 2>();
 
     moveList = std::array<Move, 218>();
+	attackMaps = std::array<std::array<U64, 64>, 2>();
+
     currentMoveIndex = 0;
 
     hashKey = 0ULL;

@@ -13,12 +13,13 @@ inline U64 positionHistory[1000];
 class Board {
 public:
 	Board() {
-		Init();
+		SetByFen(StartingFen);
 	}
 
 	std::array<Bitboard, 6> pieces;
 	std::array<Bitboard, 2> colors;
-	U64 attackMaps[2][64];
+	std::array<std::array<U64, 64>, 2> attackMaps;
+	//U64 attackMaps[2][64];
 
 	Bitboard occupied;
 
