@@ -1,4 +1,4 @@
-#include "bitboards.h"
+#include "bitboard.h"
 
 void Bitboard::PrintBoard() const {
 	for (int rank = 7; rank >= 0; rank--) {

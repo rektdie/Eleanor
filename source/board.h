@@ -1,6 +1,6 @@
 #pragma once
 #include <array>
-#include "bitboards.h"
+#include "bitboard.h"
 #include "types.h"
 #include "move.h"
 

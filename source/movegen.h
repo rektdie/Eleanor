@@ -1,5 +1,5 @@
 #pragma once
-#include "bitboards.h"
+#include "bitboard.h"
 #include "move.h"
 #include "board.h"
 
