@@ -85,5 +85,7 @@ void RunBenchmark() {
     nodes = 0;
     TT.Clear();
     benchStarted = false;
+    std::memset(killerMoves, 0, sizeof(killerMoves));
+    history.Clear();
     positionIndex = 0;
 }
