@@ -1,5 +1,7 @@
 #include "evaluate.h"
 
+namespace HCE {
+
 static int GetPhaseWeight(Board &board, int color) {
     int phase = 0;
     
@@ -59,4 +61,5 @@ int Evaluate(Board &board) {
     }
 
     return board.sideToMove ? -score : score;
+}
 }

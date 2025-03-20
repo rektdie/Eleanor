@@ -118,7 +118,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
         }
     }
 
-    int bestScore = Evaluate(board);
+    int bestScore = HCE::Evaluate(board);
 
     if (bestScore>= beta) {
         return bestScore;
@@ -181,7 +181,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
     if (depth <= 0) return Quiescence(board, alpha, beta, ply);
 
-    const int staticEval = Evaluate(board);
+    const int staticEval = HCE::Evaluate(board);
 
     if (board.InCheck(board.sideToMove)) {
         depth++;
