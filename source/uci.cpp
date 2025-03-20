@@ -12,7 +12,7 @@
 #include "perft.h"
 #include "utils.h"
 
-void ParsePosition(Board &board, std::string_view command) {
+static void ParsePosition(Board &board, std::string_view command) {
     if (command.find("startpos") != std::string::npos) {
         board.SetByFen(StartingFen);
     }
@@ -58,7 +58,7 @@ static int ReadParam(std::string param, std::string &command) {
     return 0;
 }
 
-void ParseGo(Board &board, std::string &command) {
+static void ParseGo(Board &board, std::string &command) {
     SearchParams params;
 
     params.wtime = ReadParam("wtime", command);
