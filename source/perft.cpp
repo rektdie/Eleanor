@@ -2,7 +2,7 @@
 #include "stopwatch.h"
 
 U64 HelperPerft(Board board, int depth) {
-    GenerateMoves(board, board.sideToMove);
+    MOVEGEN::GenerateMoves(board);
 
     if (depth == 1) return board.currentMoveIndex;
     if (depth == 0) return 1ULL;
@@ -19,7 +19,7 @@ U64 HelperPerft(Board board, int depth) {
 }
 
 void Perft(Board &board, int depth) {
-    GenerateMoves(board, board.sideToMove);
+    MOVEGEN::GenerateMoves(board);
 
     U64 totalNodes = 0;
 

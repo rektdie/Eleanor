@@ -25,7 +25,7 @@ int parseSquare(std::string_view str) {
 }
 
 Move parseMove(Board &board, std::string_view str) {
-    GenerateMoves(board, board.sideToMove);
+    MOVEGEN::GenerateMoves(board);
 
     int from = parseSquare(str.substr(0, 2));
     int to = parseSquare(str.substr(2, 2));

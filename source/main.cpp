@@ -5,8 +5,8 @@
 #include "benchmark.h"
 
 int main(int argc, char* argv[]) {
-	initLeaperAttacks();
-	initSliderAttacks();
+	MOVEGEN::initLeaperAttacks();
+	MOVEGEN::initSliderAttacks();
     InitZobrist();
 
 	Board board;

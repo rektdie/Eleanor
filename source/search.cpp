@@ -128,7 +128,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
         alpha = bestScore;
     }
 
-    GenerateMoves(board, board.sideToMove);
+    MOVEGEN::GenerateMoves(board);
 
     SortMoves(board, ply);
 
@@ -183,7 +183,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
     const int staticEval = HCE::Evaluate(board);
 
-    if (board.InCheck(board.sideToMove)) {
+    if (board.InCheck()) {
         depth++;
     } else {
         if (ply) {
@@ -195,7 +195,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
             // Null Move Pruning
             if (!doingNullMove && staticEval >= beta) {
-                if (depth >= 3 && !board.InPossibleZug(board.sideToMove)) {
+                if (depth >= 3 && !board.InPossibleZug()) {
                     Board copy = board;
                     copy.MakeMove(Move());
     
@@ -210,10 +210,10 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         }
     }
 
-    GenerateMoves(board, board.sideToMove);
+    MOVEGEN::GenerateMoves(board);
 
     if (board.currentMoveIndex == 0) {
-        if (board.InCheck(board.sideToMove)) { // checkmate
+        if (board.InCheck()) { // checkmate
             return -99000 + ply;
         } else { // stalemate
             return 0;

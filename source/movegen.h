@@ -3,6 +3,15 @@
 #include "move.h"
 #include "board.h"
 
+namespace MOVEGEN {
+
+void initLeaperAttacks();
+void initSliderAttacks();
+
+void GenAttackMaps(Board &board);
+
+void GenerateMoves(Board &board);
+
 // bishop relevant occupancy bit count
 constexpr int bishopRelevantBits[64] = {
     6, 5, 5, 5, 5, 5, 5, 6,
@@ -160,54 +169,4 @@ constexpr U64 bishopMagicNumbers[64] = {
     0x8918844842082200ULL,
     0x4010011029020020ULL
 };
-
-// pawn attacks table [side][square]
-extern Bitboard pawnAttacks[2][64];
-
-extern Bitboard knightAttacks[64];
-extern Bitboard kingAttacks[64];
-
-extern Bitboard bishopMasks[64];
-extern Bitboard rookMasks[64];
-
-// bishop attacks table [square][occupancies]
-extern Bitboard bishopAttacks[64][512];
-
-// rook attacks table [square][occupancies]
-extern Bitboard rookAttacks[64][4096];
-
-// generate pawn masks
-Bitboard maskPawnAttacks(int square, int side);
-
-// generate knight masks
-Bitboard maskKnightAttacks(int square);
-
-// generate king masks
-Bitboard maskKingAttacks(int square);
-
-// generate bishop masks
-Bitboard maskBishopAttacks(int square);
-
-//generate bishop attacks
-Bitboard bishopAttacksOnTheFly(int square, Bitboard block);
-
-// generate rook masks
-Bitboard maskRookAttacks(int square);
-
-//generate rook attacks
-Bitboard rookAttacksOnTheFly(int square, Bitboard block);
-
-void initLeaperAttacks();
-void initSliderAttacks();
-
-Bitboard getBishopAttack(int square, U64 occupancy);
-Bitboard getRookAttack(int square, U64 occupancy);
-Bitboard getQueenAttack(int square, U64 occupancy);
-
-// Returns Bitboard of piece attacks from given square
-// Returns attacks regardless of board (so occupancy is 0ULL)
-Bitboard getPieceAttacks(int square, int piece, int color);
-
-void GenAttackMaps(Board &board);
-
-void GenerateMoves(Board &board, bool side);
+}

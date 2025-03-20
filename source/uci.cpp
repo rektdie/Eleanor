@@ -36,8 +36,8 @@ void ParsePosition(Board &board, std::string_view command) {
         }
     }
 
-    GenerateMoves(board, board.sideToMove);
-    GenAttackMaps(board);
+    MOVEGEN::GenerateMoves(board);
+    MOVEGEN::GenAttackMaps(board);
 }
 
 static int ReadParam(std::string param, std::string &command) {

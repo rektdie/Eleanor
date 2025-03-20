@@ -46,7 +46,7 @@ public:
 	int GetPieceColor(int square);
 
 	U64 GetAttackMaps(bool side);
-	bool InCheck(bool side);
+	bool InCheck();
 
 	void SetPiece(int piece, int square, bool color);
 	void RemovePiece(int piece, int square, bool color);
@@ -54,5 +54,5 @@ public:
 	void Promote(int square, int pieceType, int color, bool isCapture);
 	void MakeMove(Move move);
 
-    bool InPossibleZug(bool side);
+    bool InPossibleZug();
 };

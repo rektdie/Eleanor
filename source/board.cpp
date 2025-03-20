@@ -65,8 +65,8 @@ void Board::SetByFen(std::string_view fen) {
 
     occupied = colors[White] | colors[Black];
     hashKey = GetHashKey(*this);
-	GenerateMoves(*this, sideToMove);
-    GenAttackMaps(*this);
+	MOVEGEN::GenerateMoves(*this);
+    MOVEGEN::GenAttackMaps(*this);
 }
 
 void Board::PrintBoard() {
@@ -158,10 +158,10 @@ U64 Board::GetAttackMaps(bool side) {
 	return combined;
 }
 
-bool Board::InCheck(bool side) {
-	Bitboard myKingSquare = colors[side] & pieces[King];
+bool Board::InCheck() {
+	Bitboard myKingSquare = colors[sideToMove] & pieces[King];
 
-	return GetAttackMaps(!side) & myKingSquare;
+	return GetAttackMaps(!sideToMove) & myKingSquare;
 }
 
 void Board::SetPiece(int piece, int square, bool color) {
@@ -340,18 +340,18 @@ void Board::MakeMove(Move move) {
 
 	enPassantTarget = newEpTarget;
 
-	GenAttackMaps(*this);
+	MOVEGEN::GenAttackMaps(*this);
 
     positionIndex++;
     positionHistory[positionIndex] = hashKey;
 }
 
-bool Board::InPossibleZug(bool side) {
+bool Board::InPossibleZug() {
     Bitboard toCheck;
 
     // For all pieces other than pawns and king
     for (int piece = Knight; piece <= Queen; piece++) {
-        toCheck |= (pieces[piece] & colors[side]);
+        toCheck |= (pieces[piece] & colors[sideToMove]);
     }
 
     return !toCheck;
