@@ -1,11 +1,14 @@
+#include <cstring>
+#include <string_view>
+#include <array>
 #include "benchmark.h"
 #include "search.h"
 #include "stopwatch.h"
 #include "tt.h"
-#include <array>
-#include <cstring>
 
-const std::array<std::string, 50> fenPositions = {
+using namespace SEARCH;
+
+constexpr std::array<std::string_view, 50> fenPositions = {
     "rnbq1k1r/ppp1bppp/4pn2/8/2B5/2NP1N2/PPP2PPP/R1BQR1K1 b - - 2 8",
     "rnbq1k1r/pp2bppp/4pn2/2p5/2B2B2/2NP1N2/PPP2PPP/R2QR1K1 b - - 1 9",
     "r1bq1k1r/pp2bppp/2n1pn2/2p5/2B1NB2/3P1N2/PPP2PPP/R2QR1K1 b - - 3 10",
@@ -60,7 +63,7 @@ const std::array<std::string, 50> fenPositions = {
 
 void RunBenchmark() {
     Board board;
-    int depth = 5;
+    int depth = 6;
     int ply = 0;
     benchStarted = true;
     searchStopped = false;
@@ -76,7 +79,7 @@ void RunBenchmark() {
 
     Stopwatch sw;
     for (int i = 0; i < fenPositions.size(); i++) {
-        board.SetByFen(fenPositions[i].c_str());
+        board.SetByFen(fenPositions[i]);
         PVS(board, depth, -inf, inf, ply);
     }
 
@@ -84,5 +87,7 @@ void RunBenchmark() {
     nodes = 0;
     TT.Clear();
     benchStarted = false;
+    std::memset(killerMoves, 0, sizeof(killerMoves));
+    history.Clear();
     positionIndex = 0;
 }

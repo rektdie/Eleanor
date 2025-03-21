@@ -12,7 +12,7 @@
 #include "perft.h"
 #include "utils.h"
 
-void ParsePosition(Board &board, std::string_view command) {
+static void ParsePosition(Board &board, std::string_view command) {
     if (command.find("startpos") != std::string::npos) {
         board.SetByFen(StartingFen);
     }
@@ -29,15 +29,15 @@ void ParsePosition(Board &board, std::string_view command) {
     }
 
     if (movesIndex != std::string::npos) {
-        std::vector<std::string> moves = split(command.substr(movesIndex + 6, command.length() - (movesIndex + 5)), ' ');
+        std::vector<std::string> moves = UTILS::split(command.substr(movesIndex + 6, command.length() - (movesIndex + 5)), ' ');
 
         for (std::string_view move : moves) {
-            board.MakeMove(parseMove(board, move));
+            board.MakeMove(UTILS::parseMove(board, move));
         }
     }
 
-    GenerateMoves(board, board.sideToMove);
-    GenAttackMaps(board);
+    MOVEGEN::GenerateMoves(board);
+    MOVEGEN::GenAttackMaps(board);
 }
 
 static int ReadParam(std::string param, std::string &command) {
@@ -58,7 +58,7 @@ static int ReadParam(std::string param, std::string &command) {
     return 0;
 }
 
-void ParseGo(Board &board, std::string &command) {
+static void ParseGo(Board &board, std::string &command) {
     SearchParams params;
 
     params.wtime = ReadParam("wtime", command);
@@ -72,7 +72,7 @@ void ParseGo(Board &board, std::string &command) {
         params.btime = ReadParam("movetime", command);
     }
     
-    auto worker = std::thread(SearchPosition, std::ref(board), params);
+    auto worker = std::thread(SEARCH::SearchPosition, std::ref(board), params);
     worker.detach();
 }
 
@@ -118,9 +118,9 @@ void UCILoop(Board &board) {
             
             // Clearing
             TT.Clear();
-            std::memset(killerMoves, 0, sizeof(killerMoves));
+            std::memset(SEARCH::killerMoves, 0, sizeof(SEARCH::killerMoves));
             
-            history.Clear();
+            SEARCH::history.Clear();
             positionIndex = 0;
 
             continue;
@@ -141,7 +141,7 @@ void UCILoop(Board &board) {
         // parse UCI "stop" command
         if (input.find("stop") != std::string::npos) {
             // stop the loop
-            StopSearch();
+            SEARCH::StopSearch();
             continue;
         }
 

@@ -6,10 +6,6 @@
 #include <string_view>
 #include "utils.h"
 
-void Board::Init() {
-	SetByFen(StartingFen);
-}
-
 void Board::Reset() {
     castlingRights = 0;
 	enPassantTarget = noEPTarget;
@@ -20,6 +16,8 @@ void Board::Reset() {
 	colors = std::array<Bitboard, 2>();
 
     moveList = std::array<Move, 218>();
+	attackMaps = std::array<std::array<U64, 64>, 2>();
+
     currentMoveIndex = 0;
 
     hashKey = 0ULL;
@@ -31,8 +29,8 @@ void Board::SetByFen(std::string_view fen) {
 	// Starting from top left
 	int currSquare = a8;
 
-	std::vector<std::string> tokens = split(fen, ' ');
-	std::vector<std::string> pieceTokens = split(tokens[0], '/');
+	std::vector<std::string> tokens = UTILS::split(fen, ' ');
+	std::vector<std::string> pieceTokens = UTILS::split(tokens[0], '/');
 
 	constexpr std::string_view pieceTypes = "pnbrqk";
 
@@ -63,12 +61,12 @@ void Board::SetByFen(std::string_view fen) {
         else if (piece == 'q') castlingRights |= blackQueenRight;
     }
 
-    if (tokens[3] != "-") enPassantTarget = parseSquare(tokens[3]);
+    if (tokens[3] != "-") enPassantTarget = UTILS::parseSquare(tokens[3]);
 
     occupied = colors[White] | colors[Black];
-    hashKey = GetHashKey(*this);
-	GenerateMoves(*this, sideToMove);
-    GenAttackMaps(*this);
+    hashKey = UTILS::GetHashKey(*this);
+	MOVEGEN::GenerateMoves(*this);
+    MOVEGEN::GenAttackMaps(*this);
 }
 
 void Board::PrintBoard() {
@@ -160,10 +158,10 @@ U64 Board::GetAttackMaps(bool side) {
 	return combined;
 }
 
-bool Board::InCheck(bool side) {
-	Bitboard myKingSquare = colors[side] & pieces[King];
+bool Board::InCheck() {
+	Bitboard myKingSquare = colors[sideToMove] & pieces[King];
 
-	return GetAttackMaps(!side) & myKingSquare;
+	return GetAttackMaps(!sideToMove) & myKingSquare;
 }
 
 void Board::SetPiece(int piece, int square, bool color) {
@@ -171,7 +169,7 @@ void Board::SetPiece(int piece, int square, bool color) {
 	colors[color].SetBit(square);
 	occupied.SetBit(square);
 
-    hashKey ^= zKeys[color][piece][square];
+    hashKey ^= UTILS::zKeys[color][piece][square];
 }
 
 void Board::RemovePiece(int piece, int square, bool color) {
@@ -179,14 +177,14 @@ void Board::RemovePiece(int piece, int square, bool color) {
 	colors[color].PopBit(square);
 	occupied.PopBit(square);
 
-    hashKey ^= zKeys[color][piece][square];
+    hashKey ^= UTILS::zKeys[color][piece][square];
 }
 
 // Updates castling rights
 static void UpdateCastlingRights(Board &board, int square, int type, int color) {
 	if (type == Rook) {
         // Removing old rights
-        board.hashKey ^= zCastle[board.castlingRights];
+        board.hashKey ^= UTILS::zCastle[board.castlingRights];
 		int queenSideRook = color ? a8 : a1;
 		int kingSideRook = color ? h8 : h1;
 
@@ -196,15 +194,15 @@ static void UpdateCastlingRights(Board &board, int square, int type, int color) 
             board.castlingRights &= color ? ~blackKingRight : ~whiteKingRight;
 		}
 
-        board.hashKey ^= zCastle[board.castlingRights];
+        board.hashKey ^= UTILS::zCastle[board.castlingRights];
 	} else if (type == King) {
         // Removing old rights
-        board.hashKey ^= zCastle[board.castlingRights];
+        board.hashKey ^= UTILS::zCastle[board.castlingRights];
 
         board.castlingRights &= color ? ~blackKingRight : ~whiteKingRight;
         board.castlingRights &= color ? ~blackQueenRight : ~whiteQueenRight;
 
-        board.hashKey ^= zCastle[board.castlingRights];
+        board.hashKey ^= UTILS::zCastle[board.castlingRights];
 	}
 }
 
@@ -219,28 +217,28 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 }
 
 void Board::MakeMove(Move move) {
-	nodes++;
-
-    // Null Move
+	SEARCH::nodes++;
+	
+	// Null Move
     if (!move) {
-        int newEpTarget = noEPTarget;
-
+		int newEpTarget = noEPTarget;
+		
         sideToMove = !sideToMove;
-        hashKey ^= zSide;
-
+        hashKey ^= UTILS::zSide;
+		
         if (enPassantTarget != noEPTarget) {
-            hashKey ^= zEnPassant[enPassantTarget % 8];
+			hashKey ^= UTILS::zEnPassant[enPassantTarget % 8];
         }
-
+		
         if (newEpTarget != noEPTarget) {
-            hashKey ^= zEnPassant[newEpTarget % 8];
+			hashKey ^= UTILS::zEnPassant[newEpTarget % 8];
         }
-
+		
         enPassantTarget = newEpTarget;
-
+		
         return;
     }
-
+	
 	int newEpTarget = noEPTarget;
 
 	int attackerPiece = GetPieceType(move.MoveFrom());
@@ -330,30 +328,30 @@ void Board::MakeMove(Move move) {
 	UpdateCastlingRights(*this, move.MoveFrom(), attackerPiece, attackerColor);
 
 	sideToMove = !attackerColor;
-    hashKey ^= zSide;
+    hashKey ^= UTILS::zSide;
 
     if (enPassantTarget != noEPTarget) {
-        hashKey ^= zEnPassant[enPassantTarget % 8];
+        hashKey ^= UTILS::zEnPassant[enPassantTarget % 8];
     }
 
     if (newEpTarget != noEPTarget) {
-        hashKey ^= zEnPassant[newEpTarget % 8];
+        hashKey ^= UTILS::zEnPassant[newEpTarget % 8];
     }
 
 	enPassantTarget = newEpTarget;
 
-	GenAttackMaps(*this);
+	MOVEGEN::GenAttackMaps(*this);
 
     positionIndex++;
     positionHistory[positionIndex] = hashKey;
 }
 
-bool Board::InPossibleZug(bool side) {
+bool Board::InPossibleZug() {
     Bitboard toCheck;
 
     // For all pieces other than pawns and king
     for (int piece = Knight; piece <= Queen; piece++) {
-        toCheck |= (pieces[piece] & colors[side]);
+        toCheck |= (pieces[piece] & colors[sideToMove]);
     }
 
     return !toCheck;

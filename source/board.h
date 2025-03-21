@@ -1,6 +1,6 @@
 #pragma once
 #include <array>
-#include "bitboards.h"
+#include "bitboard.h"
 #include "types.h"
 #include "move.h"
 
@@ -13,12 +13,13 @@ inline U64 positionHistory[1000];
 class Board {
 public:
 	Board() {
-		Init();
+		SetByFen(StartingFen);
 	}
 
 	std::array<Bitboard, 6> pieces;
 	std::array<Bitboard, 2> colors;
-	U64 attackMaps[2][64];
+	std::array<std::array<U64, 64>, 2> attackMaps;
+	//U64 attackMaps[2][64];
 
 	Bitboard occupied;
 
@@ -45,7 +46,7 @@ public:
 	int GetPieceColor(int square);
 
 	U64 GetAttackMaps(bool side);
-	bool InCheck(bool side);
+	bool InCheck();
 
 	void SetPiece(int piece, int square, bool color);
 	void RemovePiece(int piece, int square, bool color);
@@ -53,5 +54,5 @@ public:
 	void Promote(int square, int pieceType, int color, bool isCapture);
 	void MakeMove(Move move);
 
-    bool InPossibleZug(bool side);
+    bool InPossibleZug();
 };

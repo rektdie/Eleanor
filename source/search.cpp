@@ -6,6 +6,8 @@
 #include "tt.h"
 #include "stopwatch.h"
 
+namespace SEARCH {
+
 U64 nodes = 0;
 bool benchStarted = false;
 
@@ -118,7 +120,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
         }
     }
 
-    int bestScore = Evaluate(board);
+    int bestScore = HCE::Evaluate(board);
 
     if (bestScore>= beta) {
         return bestScore;
@@ -128,7 +130,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
         alpha = bestScore;
     }
 
-    GenerateMoves(board, board.sideToMove);
+    MOVEGEN::GenerateMoves(board);
 
     SortMoves(board, ply);
 
@@ -181,9 +183,9 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
     if (depth <= 0) return Quiescence(board, alpha, beta, ply);
 
-    const int staticEval = Evaluate(board);
+    const int staticEval = HCE::Evaluate(board);
 
-    if (board.InCheck(board.sideToMove)) {
+    if (board.InCheck()) {
         depth++;
     } else {
         if (ply) {
@@ -195,7 +197,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
             // Null Move Pruning
             if (!doingNullMove && staticEval >= beta) {
-                if (depth >= 3 && !board.InPossibleZug(board.sideToMove)) {
+                if (depth >= 3 && !board.InPossibleZug()) {
                     Board copy = board;
                     copy.MakeMove(Move());
     
@@ -210,10 +212,10 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         }
     }
 
-    GenerateMoves(board, board.sideToMove);
+    MOVEGEN::GenerateMoves(board);
 
     if (board.currentMoveIndex == 0) {
-        if (board.InCheck(board.sideToMove)) { // checkmate
+        if (board.InCheck()) { // checkmate
             return -99000 + ply;
         } else { // stalemate
             return 0;
@@ -360,4 +362,5 @@ void SearchPosition(Board &board, SearchParams params) {
 
 void StopSearch() {
     searchStopped = true;
+}
 }

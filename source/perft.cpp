@@ -1,8 +1,9 @@
 #include "perft.h"
 #include "stopwatch.h"
+#include "movegen.h"
 
-U64 HelperPerft(Board board, int depth) {
-    GenerateMoves(board, board.sideToMove);
+static U64 HelperPerft(Board board, int depth) {
+    MOVEGEN::GenerateMoves(board);
 
     if (depth == 1) return board.currentMoveIndex;
     if (depth == 0) return 1ULL;
@@ -13,13 +14,14 @@ U64 HelperPerft(Board board, int depth) {
         Board copy = board;
         board.MakeMove(board.moveList[i]);
         nodes += HelperPerft(board, depth - 1);
+        positionIndex--;
         board = copy;
     }
     return nodes;
 }
 
 void Perft(Board &board, int depth) {
-    GenerateMoves(board, board.sideToMove);
+    MOVEGEN::GenerateMoves(board);
 
     U64 totalNodes = 0;
 
@@ -28,6 +30,7 @@ void Perft(Board &board, int depth) {
         Board copy = board;
         board.MakeMove(board.moveList[i]);
         U64 nodeCount = HelperPerft(board, depth - 1);
+        positionIndex--;
         board = copy;
         totalNodes += nodeCount;
         board.moveList[i].PrintMove();

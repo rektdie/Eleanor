@@ -1,22 +1,24 @@
 #include "movegen.h"
 
-Bitboard pawnAttacks[2][64];
-Bitboard knightAttacks[64];
-Bitboard kingAttacks[64];
+namespace MOVEGEN {
+
+static Bitboard pawnAttacks[2][64];
+static Bitboard knightAttacks[64];
+static Bitboard kingAttacks[64];
 
 
-Bitboard bishopMasks[64];
-Bitboard rookMasks[64];
+static Bitboard bishopMasks[64];
+static Bitboard rookMasks[64];
 
-Bitboard bishopAttacks[64][512];
-Bitboard rookAttacks[64][4096];
+static Bitboard bishopAttacks[64][512];
+static Bitboard rookAttacks[64][4096];
 
 static Bitboard notAfile = ~files[A];
 static Bitboard notHfile = ~files[H];
 static Bitboard notABfile = notAfile & ~files[B];
 static Bitboard notHGfile = notHfile & ~files[G];
 
-Bitboard maskPawnAttacks(int side, int square) {
+static Bitboard maskPawnAttacks(int side, int square) {
 	Bitboard attacks;
 	Bitboard attacker = Bitboard::GetSquare(square);
 
@@ -33,7 +35,7 @@ Bitboard maskPawnAttacks(int side, int square) {
 	return attacks;
 }
 
-Bitboard maskKnightAttacks(int square) {
+static Bitboard maskKnightAttacks(int square) {
 	Bitboard attacks;
 	Bitboard attacker = Bitboard::GetSquare(square);
 
@@ -50,7 +52,7 @@ Bitboard maskKnightAttacks(int square) {
 	return attacks;
 }
 
-Bitboard maskKingAttacks(int square) {
+static Bitboard maskKingAttacks(int square) {
 	Bitboard attacks;
 	Bitboard attacker = Bitboard::GetSquare(square);
 
@@ -67,7 +69,7 @@ Bitboard maskKingAttacks(int square) {
 	return attacks;
 }
 
-Bitboard maskBishopAttacks(int square) {
+static Bitboard maskBishopAttacks(int square) {
 	Bitboard attacks;
 
 	// target rank and files
@@ -96,7 +98,7 @@ Bitboard maskBishopAttacks(int square) {
 	return attacks;
 }
 
-Bitboard maskRookAttacks(int square) {
+static Bitboard maskRookAttacks(int square) {
 	Bitboard attacks;
 
 	// target rank and files
@@ -125,7 +127,7 @@ Bitboard maskRookAttacks(int square) {
 	return attacks;
 }
 
-Bitboard bishopAttacksOnTheFly(int square, Bitboard block) {
+static Bitboard bishopAttacksOnTheFly(int square, Bitboard block) {
 	Bitboard attacks;
 
 	// target rank and files
@@ -164,7 +166,7 @@ Bitboard bishopAttacksOnTheFly(int square, Bitboard block) {
 	return attacks;
 }
 
-Bitboard rookAttacksOnTheFly(int square, Bitboard block) {
+static Bitboard rookAttacksOnTheFly(int square, Bitboard block) {
 	Bitboard attacks;
 
 	// target rank and files
@@ -238,7 +240,7 @@ void initSliderAttacks() {
 	}
 }
 
-Bitboard getBishopAttack(int square, U64 occupancy) {
+static Bitboard getBishopAttack(int square, U64 occupancy) {
 	occupancy &= bishopMasks[square];
 	occupancy *= bishopMagicNumbers[square];
 	occupancy >>= (64 - bishopRelevantBits[square]);
@@ -246,7 +248,7 @@ Bitboard getBishopAttack(int square, U64 occupancy) {
 	return bishopAttacks[square][occupancy];
 }
 
-Bitboard getRookAttack(int square, U64 occupancy) {
+static Bitboard getRookAttack(int square, U64 occupancy) {
 	occupancy &= rookMasks[square];
 	occupancy *= rookMagicNumbers[square];
 	occupancy >>= (64 - rookRelevantBits[square]);
@@ -254,7 +256,7 @@ Bitboard getRookAttack(int square, U64 occupancy) {
 	return rookAttacks[square][occupancy];
 }
 
-Bitboard getQueenAttack(int square, U64 occupancy) {
+static Bitboard getQueenAttack(int square, U64 occupancy) {
 	U64 bishopOccupancy = occupancy;
 	U64 rookOccupancy = occupancy;
 
@@ -269,7 +271,7 @@ Bitboard getQueenAttack(int square, U64 occupancy) {
 	return rookAttacks[square][rookOccupancy] | bishopAttacks[square][bishopOccupancy];
 }
 
-Bitboard getPieceAttacks(int square, int piece, int color, U64 occupancy) {
+static Bitboard getPieceAttacks(int square, int piece, int color, U64 occupancy) {
 	if (piece == Pawn) {
 		return pawnAttacks[color][square];
 	} else if (piece == Knight) {
@@ -987,18 +989,19 @@ void GenAttackMaps(Board &board) {
 	}
 }
 
-void GenerateMoves(Board &board, bool side) {
+void GenerateMoves(Board &board) {
     board.ResetMoves();
 
-	if (board.InCheck(side)) {
-		GenCheckEvasions(board, side);
+	if (board.InCheck()) {
+		GenCheckEvasions(board, board.sideToMove);
 		return;
 	}
 
-	GenPawnMoves(board, side);
-	GenKnightMoves(board, side);
-	GenKingMoves(board, side, false);
-	GenBishopMoves(board, side);
-	GenRookMoves(board, side);
-	GenQueenMoves(board, side);
+	GenPawnMoves(board, board.sideToMove);
+	GenKnightMoves(board, board.sideToMove);
+	GenKingMoves(board, board.sideToMove, false);
+	GenBishopMoves(board, board.sideToMove);
+	GenRookMoves(board, board.sideToMove);
+	GenQueenMoves(board, board.sideToMove);
+}
 }

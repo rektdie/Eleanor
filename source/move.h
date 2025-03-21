@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <string_view>
 #include <iostream>
 #include "types.h"
 
@@ -14,7 +15,7 @@ enum MOVE_FLAGS {
     knightPromoCapture, bishopPromoCapture, rookPromoCapture, queenPromoCapture
 };
 
-constexpr std::array<const char*, 14> moveTypes {
+constexpr std::array<std::string_view, 14> moveTypes {
     "quiet", "doublePawnPush",
     "kingCastle", "QueenCastle",
     "capture", "epCapture",

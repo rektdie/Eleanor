@@ -1,6 +1,8 @@
 #pragma once
 #include "board.h"
 
+namespace HCE {
+
 constexpr int phaseMax = 24;
 
 constexpr int phaseValues[4] {
@@ -155,3 +157,4 @@ constexpr int scoreSquares[64] {
 };
 
 int Evaluate(Board &board);
+}

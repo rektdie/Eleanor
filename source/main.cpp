@@ -1,13 +1,13 @@
 #include "board.h"
 #include "movegen.h"
 #include "uci.h"
-#include "tt.h"
+#include "utils.h"
 #include "benchmark.h"
 
 int main(int argc, char* argv[]) {
-	initLeaperAttacks();
-	initSliderAttacks();
-    InitZobrist();
+	MOVEGEN::initLeaperAttacks();
+	MOVEGEN::initSliderAttacks();
+    UTILS::InitZobrist();
 
 	Board board;
 
