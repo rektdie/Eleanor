@@ -161,6 +161,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
     return results;
 }
 
+template <bool isPV>
 SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
     if (!benchStarted) {
         if (sw.GetElapsedMS() >= timeToSearch) {
@@ -174,7 +175,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
 
     // if NOT PV node then we try to hit the TTable
-    if (beta - alpha == 1) {
+    if constexpr (!isPV) {
         SearchResults entry = TT.ReadEntry(board.hashKey, depth, alpha, beta);
         if (entry.score != invalidEntry) {
             return entry;
@@ -202,7 +203,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
                     copy.MakeMove(Move());
     
                     doingNullMove = true;
-                    int score = -PVS(copy, depth - 3, -beta, -beta + 1, ply + 1).score;
+                    int score = -PVS<false>(copy, depth - 3, -beta, -beta + 1, ply + 1).score;
                     doingNullMove = false;
     
                     if (searchStopped) return 0;
@@ -240,23 +241,23 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         // First move (suspected PV node)
         if (!i) {
             // Full search
-            score = -PVS(copy, depth - 1, -beta, -alpha, ply + 1).score;
+            score = -PVS<isPV>(copy, depth - 1, -beta, -alpha, ply + 1).score;
         } else if (reductions) {
             // Null-window search with reductions
-            score = -PVS(copy, depth - 1 - reductions, -alpha-1, -alpha, ply + 1).score;
+            score = -PVS<false>(copy, depth - 1 - reductions, -alpha-1, -alpha, ply + 1).score;
 
             if (score > alpha) {
                 // Null-window search now without the reduction
-                score = -PVS(copy, depth - 1, -alpha-1, -alpha, ply + 1).score;
+                score = -PVS<false>(copy, depth - 1, -alpha-1, -alpha, ply + 1).score;
             }
         } else {
             // Null-window search
-            score = -PVS(copy, depth - 1, -alpha-1, -alpha, ply + 1).score;
+            score = -PVS<false>(copy, depth - 1, -alpha-1, -alpha, ply + 1).score;
         }
 
         // Check if we need to do full window re-search
         if (i && score > alpha && score < beta) {
-            score = -PVS(copy, depth - 1, -beta, -alpha, ply + 1).score;
+            score = -PVS<isPV>(copy, depth - 1, -beta, -alpha, ply + 1).score;
         }
 
         positionIndex--;
@@ -309,7 +310,7 @@ static SearchResults ID(Board &board, SearchParams params) {
     for (int depth = 1; depth <= 99; depth++) {
         timeToSearch = (fullTime / 20) + (inc / 2);
 
-        SearchResults currentResults = PVS(board, depth, alpha, beta, ply);
+        SearchResults currentResults = PVS<true>(board, depth, alpha, beta, ply);
 
         // If we fell outside the window, try again with full width
         if ((currentResults.score <= alpha)
