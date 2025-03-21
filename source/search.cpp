@@ -241,7 +241,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         // First move (suspected PV node)
         if (!i) {
             // Full search
-            score = -PVS<true>(copy, depth - 1, -beta, -alpha, ply + 1).score;
+            score = -PVS<isPV>(copy, depth - 1, -beta, -alpha, ply + 1).score;
         } else if (reductions) {
             // Null-window search with reductions
             score = -PVS<false>(copy, depth - 1 - reductions, -alpha-1, -alpha, ply + 1).score;
@@ -257,7 +257,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
         // Check if we need to do full window re-search
         if (i && score > alpha && score < beta) {
-            score = -PVS<true>(copy, depth - 1, -beta, -alpha, ply + 1).score;
+            score = -PVS<isPV>(copy, depth - 1, -beta, -alpha, ply + 1).score;
         }
 
         positionIndex--;
