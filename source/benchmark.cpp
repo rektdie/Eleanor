@@ -80,7 +80,7 @@ void RunBenchmark() {
     Stopwatch sw;
     for (int i = 0; i < fenPositions.size(); i++) {
         board.SetByFen(fenPositions[i]);
-        PVS(board, depth, -inf, inf, ply);
+        PVS<true>(board, depth, -inf, inf, ply);
     }
 
     std::cout << nodes << " nodes " << int(nodes/sw.GetElapsedSec()) << " nps\n";
