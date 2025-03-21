@@ -189,7 +189,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
     if (board.InCheck()) {
         depth++;
     } else {
-        if (ply) {
+        if (ply && !isPV) {
             // Reverse Futility Pruning
             int margin = 100 * depth;
             if (staticEval - margin >= beta && depth < 7) {
