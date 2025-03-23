@@ -6,11 +6,11 @@ void GenPawnMoves(Board &board) {
 		int square = pawns.getLS1BIndex();
 
 		Bitboard pushes = getPawnPushes(square, board.sideToMove, board.occupied);
+		Bitboard captures = pawnAttacks[board.sideToMove][square] & board.colors[!board.sideToMove];
 
 		Bitboard lastRank = board.sideToMove ? ranks[r_1] : ranks[r_8];
 
 		if constexpr (mode == Noisy) {
-			Bitboard captures = pawnAttacks[board.sideToMove][square] & board.colors[!board.sideToMove];
 			pushes &= lastRank;
 
 			if (board.enPassantTarget != noEPTarget) {
@@ -45,17 +45,50 @@ void GenPawnMoves(Board &board) {
 
 				pushes.PopBit(pushSquare);
 			}
+
+			continue;
 		} else {
+			// Checking for en passant
+			if (board.enPassantTarget != noEPTarget) {
+				if (captures.IsSet(board.enPassantTarget)) {
+					board.AddMove(Move(square, board.enPassantTarget, epCapture));
+				}
+			}
+
 			while (pushes) {
 				int pushSquare = pushes.getLS1BIndex();
-
-				if (std::abs(square - pushSquare) == 16) {
-					board.AddMove(Move(square, pushSquare, doublePawnPush));
+	
+				// Checking for promotion
+				if (lastRank.IsSet(pushSquare)) {
+					board.AddMove(Move(square, pushSquare, knightPromotion));
+					board.AddMove(Move(square, pushSquare, bishopPromotion));
+					board.AddMove(Move(square, pushSquare, rookPromotion));
+					board.AddMove(Move(square, pushSquare, queenPromotion));
 				} else {
-					board.AddMove(Move(square, pushSquare, quiet));
+					if (abs(square - pushSquare) == 16) {
+						board.AddMove(Move(square, pushSquare, doublePawnPush));
+					} else {
+						board.AddMove(Move(square, pushSquare, quiet));
+					}
 				}
-
+	
 				pushes.PopBit(pushSquare);
+			}
+	
+			while (captures) {
+				int targetSquare = captures.getLS1BIndex();
+	
+				// Checking for promotion
+				if (lastRank.IsSet(targetSquare)) {
+					board.AddMove(Move(square, targetSquare, knightPromoCapture));
+					board.AddMove(Move(square, targetSquare, bishopPromoCapture));
+					board.AddMove(Move(square, targetSquare, rookPromoCapture));
+					board.AddMove(Move(square, targetSquare, queenPromoCapture));
+				} else {
+					board.AddMove(Move(square, targetSquare, capture));
+				}
+	
+				captures.PopBit(targetSquare);
 			}
 		}
 
