@@ -65,8 +65,7 @@ void Board::SetByFen(std::string_view fen) {
 
     occupied = colors[White] | colors[Black];
     hashKey = UTILS::GetHashKey(*this);
-	MOVEGEN::GenerateMoves(*this);
-    MOVEGEN::GenAttackMaps(*this);
+	MOVEGEN::GenerateMoves<All>(*this);
 }
 
 void Board::PrintBoard() {
@@ -339,9 +338,7 @@ void Board::MakeMove(Move move) {
     }
 
 	enPassantTarget = newEpTarget;
-
-	MOVEGEN::GenAttackMaps(*this);
-
+	
     positionIndex++;
     positionHistory[positionIndex] = hashKey;
 }

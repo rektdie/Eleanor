@@ -3,14 +3,42 @@
 #include "move.h"
 #include "board.h"
 
+enum MovegenMode {
+    All,
+    Noisy
+};
+
 namespace MOVEGEN {
+
+inline Bitboard pawnAttacks[2][64];
+inline Bitboard knightAttacks[64];
+inline Bitboard kingAttacks[64];
 
 void initLeaperAttacks();
 void initSliderAttacks();
 
-void GenAttackMaps(Board &board);
+Bitboard getBishopAttack(int square, U64 occupancy);
+Bitboard getRookAttack(int square, U64 occupancy);
+Bitboard getQueenAttack(int square, U64 occupancy);
+Bitboard getPawnPushes(int square, bool color, Bitboard &occupancy);
 
+template <MovegenMode mode>
+void GenPawnMoves(Board &board);
+template <MovegenMode mode>
+void GenKnightMoves(Board &board);
+template <MovegenMode mode>
+void GenRookMoves(Board &board);
+template <MovegenMode mode>
+void GenBishopMoves(Board &board);
+template <MovegenMode mode>
+void GenQueenMoves(Board &board);
+template <MovegenMode mode>
+void GenKingMoves(Board &board);
+
+template <MovegenMode mode>
 void GenerateMoves(Board &board);
+
+
 
 // bishop relevant occupancy bit count
 constexpr int bishopRelevantBits[64] = {
@@ -169,4 +197,5 @@ constexpr U64 bishopMagicNumbers[64] = {
     0x8918844842082200ULL,
     0x4010011029020020ULL
 };
+#include "movegen.tpp"
 }

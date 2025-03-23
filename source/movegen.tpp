@@ -1,0 +1,91 @@
+template <MovegenMode mode>
+void GenPawnMoves(Board &board) {
+	Bitboard pawns = board.pieces[Pawn] & board.colors[board.sideToMove];
+	
+	while (pawns) {
+		int square = pawns.getLS1BIndex();
+
+		Bitboard pushes = getPawnPushes(square, board.sideToMove, board.occupied);
+
+		Bitboard lastRank = board.sideToMove ? ranks[r_1] : ranks[r_8];
+
+		if constexpr (mode == Noisy) {
+			Bitboard captures = pawnAttacks[board.sideToMove][square] & board.colors[!board.sideToMove];
+			pushes &= lastRank;
+
+			if (board.enPassantTarget != noEPTarget) {
+				if (captures.IsSet(board.enPassantTarget)) {
+					board.AddMove(Move(square, board.enPassantTarget, epCapture));
+				}
+			}
+
+			while (captures) {
+				int targetSquare = captures.getLS1BIndex();
+				
+				if (lastRank.IsSet(targetSquare)) {
+					board.AddMove(Move(square, targetSquare, knightPromoCapture));
+					board.AddMove(Move(square, targetSquare, bishopPromoCapture));
+					board.AddMove(Move(square, targetSquare, rookPromoCapture));
+					board.AddMove(Move(square, targetSquare, queenPromoCapture));
+				} else {
+					board.AddMove(Move(square, targetSquare, capture));
+				}
+
+				captures.PopBit(targetSquare);
+			}
+
+			while (pushes) {
+				int pushSquare = pushes.getLS1BIndex();
+
+				// Only promotions because NOISY
+				board.AddMove(Move(square, pushSquare, knightPromotion));
+				board.AddMove(Move(square, pushSquare, bishopPromotion));
+				board.AddMove(Move(square, pushSquare, rookPromotion));
+				board.AddMove(Move(square, pushSquare, queenPromotion));
+
+				pushes.PopBit(pushSquare);
+			}
+		} else {
+			while (pushes) {
+				int pushSquare = pushes.getLS1BIndex();
+
+				if (std::abs(square - pushSquare) == 16) {
+					board.AddMove(Move(square, pushSquare, doublePawnPush));
+				} else {
+					board.AddMove(Move(square, pushSquare, quiet));
+				}
+
+				pushes.PopBit(pushSquare);
+			}
+		}
+
+		pawns.PopBit(square);
+	}
+}
+template <MovegenMode mode>
+void GenKnightMoves(Board &board) {
+}
+template <MovegenMode mode>
+void GenRookMoves(Board &board) {
+}
+template <MovegenMode mode>
+void GenBishopMoves(Board &board) {
+}
+template <MovegenMode mode>
+void GenQueenMoves(Board &board) {
+}
+template <MovegenMode mode>
+void GenKingMoves(Board &board) {
+}
+
+template <MovegenMode mode>
+void GenerateMoves(Board &board) {
+    board.ResetMoves();
+
+	GenPawnMoves<mode>(board);
+	GenKnightMoves<mode>(board);
+	GenKingMoves<mode>(board);
+	GenBishopMoves<mode>(board);
+	GenRookMoves<mode>(board);
+	GenQueenMoves<mode>(board);
+};

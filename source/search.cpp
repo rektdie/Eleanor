@@ -130,7 +130,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
         alpha = bestScore;
     }
 
-    MOVEGEN::GenerateMoves(board);
+    MOVEGEN::GenerateMoves<Noisy>(board);
 
     SortMoves(board, ply);
 
@@ -213,7 +213,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         }
     }
 
-    MOVEGEN::GenerateMoves(board);
+    MOVEGEN::GenerateMoves<All>(board);
 
     if (board.currentMoveIndex == 0) {
         if (board.InCheck()) { // checkmate
