@@ -142,6 +142,46 @@ void GenKnightMoves(Board &board) {
 }
 template <MovegenMode mode>
 void GenRookMoves(Board &board) {
+	Bitboard rooks = board.colors[board.sideToMove] & board.pieces[Rook];
+
+	while (rooks) {
+		int square = rooks.getLS1BIndex();
+
+		Bitboard moves = getRookAttack(square, board.occupied) & ~board.colors[board.sideToMove];
+		Bitboard captures = moves & board.colors[!board.sideToMove];
+		moves &= ~captures;
+
+		if constexpr (mode == Noisy) {
+			while (captures) {
+				int targetSquare = captures.getLS1BIndex();
+	
+				board.AddMove(Move(square, targetSquare, capture));
+	
+				captures.PopBit(targetSquare);
+			}
+
+			rooks.PopBit(square);
+			continue;
+		}
+
+		while (moves) {
+			int targetSquare = moves.getLS1BIndex();
+
+			board.AddMove(Move(square, targetSquare, quiet));
+
+			moves.PopBit(targetSquare);
+		}
+
+		while (captures) {
+			int targetSquare = captures.getLS1BIndex();
+
+			board.AddMove(Move(square, targetSquare, capture));
+
+			captures.PopBit(targetSquare);
+		}
+
+		rooks.PopBit(square);
+	}
 }
 template <MovegenMode mode>
 void GenBishopMoves(Board &board) {
