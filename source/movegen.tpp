@@ -46,6 +46,7 @@ void GenPawnMoves(Board &board) {
 				pushes.PopBit(pushSquare);
 			}
 
+			pawns.PopBit(square);
 			continue;
 		} else {
 			// Checking for en passant
@@ -97,6 +98,47 @@ void GenPawnMoves(Board &board) {
 }
 template <MovegenMode mode>
 void GenKnightMoves(Board &board) {
+	Bitboard knights = board.colors[board.sideToMove] & board.pieces[Knight];
+
+	while (knights) {
+		int square = knights.getLS1BIndex();
+
+		Bitboard moves = knightAttacks[square] & ~board.colors[board.sideToMove];
+		Bitboard captures = moves & board.colors[!board.sideToMove];
+
+		if constexpr (mode == Noisy) {
+			while (captures) {
+				int targetSquare = captures.getLS1BIndex();
+	
+				board.AddMove(Move(square, targetSquare, capture));
+	
+				captures.PopBit(targetSquare);
+
+				captures.PopBit(targetSquare);
+			}
+
+			knights.PopBit(square);
+			continue;
+		} else {
+			while (moves) {
+				int targetSquare = moves.getLS1BIndex();
+	
+				board.AddMove(Move(square, targetSquare, quiet));
+	
+				moves.PopBit(targetSquare);
+			}
+	
+			while (captures) {
+				int targetSquare = captures.getLS1BIndex();
+	
+				board.AddMove(Move(square, targetSquare, capture));
+	
+				captures.PopBit(targetSquare);
+			}
+	
+			knights.PopBit(square);
+		}
+	}
 }
 template <MovegenMode mode>
 void GenRookMoves(Board &board) {
