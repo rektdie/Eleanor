@@ -6,7 +6,8 @@ void GenPawnMoves(Board &board) {
 		int square = pawns.getLS1BIndex();
 
 		Bitboard pushes = getPawnPushes(square, board.sideToMove, board.occupied);
-		Bitboard captures = pawnAttacks[board.sideToMove][square] & board.colors[!board.sideToMove];
+		Bitboard attacks = pawnAttacks[board.sideToMove][square];
+		Bitboard captures = attacks & board.colors[!board.sideToMove];
 
 		Bitboard lastRank = board.sideToMove ? ranks[r_1] : ranks[r_8];
 
@@ -14,7 +15,7 @@ void GenPawnMoves(Board &board) {
 			pushes &= lastRank;
 
 			if (board.enPassantTarget != noEPTarget) {
-				if (captures.IsSet(board.enPassantTarget)) {
+				if (attacks.IsSet(board.enPassantTarget)) {
 					board.AddMove(Move(square, board.enPassantTarget, epCapture));
 				}
 			}
@@ -51,7 +52,7 @@ void GenPawnMoves(Board &board) {
 		} else {
 			// Checking for en passant
 			if (board.enPassantTarget != noEPTarget) {
-				if (captures.IsSet(board.enPassantTarget)) {
+				if (attacks.IsSet(board.enPassantTarget)) {
 					board.AddMove(Move(square, board.enPassantTarget, epCapture));
 				}
 			}
@@ -66,7 +67,7 @@ void GenPawnMoves(Board &board) {
 					board.AddMove(Move(square, pushSquare, rookPromotion));
 					board.AddMove(Move(square, pushSquare, queenPromotion));
 				} else {
-					if (abs(square - pushSquare) == 16) {
+					if (std::abs(square - pushSquare) == 16) {
 						board.AddMove(Move(square, pushSquare, doublePawnPush));
 					} else {
 						board.AddMove(Move(square, pushSquare, quiet));

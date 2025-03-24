@@ -44,7 +44,7 @@ public:
 	int GetPieceColor(int square);
 	
 	bool InCheck();
-	bool IsLegal(Move &move);
+	bool IsLegal(Move move);
 
 	void SetPiece(int piece, int square, bool color);
 	void RemovePiece(int piece, int square, bool color);

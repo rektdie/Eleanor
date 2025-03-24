@@ -5,12 +5,12 @@
 static U64 HelperPerft(Board board, int depth) {
     MOVEGEN::GenerateMoves<All>(board);
 
-    if (depth == 1) return board.currentMoveIndex;
     if (depth == 0) return 1ULL;
 
     U64 nodes = 0;
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
+        if (!board.IsLegal(board.moveList[i])) continue;
         Board copy = board;
         copy.MakeMove(board.moveList[i]);
         nodes += HelperPerft(copy, depth - 1);
@@ -26,6 +26,7 @@ void Perft(Board &board, int depth) {
 
     Stopwatch sw;
     for (int i = 0; i < board.currentMoveIndex; i++) {
+        if (!board.IsLegal(board.moveList[i])) continue;
         Board copy = board;
         copy.MakeMove(board.moveList[i]);
         U64 nodeCount = HelperPerft(copy, depth - 1);

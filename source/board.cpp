@@ -132,6 +132,7 @@ void Board::ListMoves() {
 	for (int i = 0; i < currentMoveIndex; i++) {
 		std::cout << i+1 << ". ";
 		moveList[i].PrintMove();
+		std::cout << "( " << moveTypes[moveList[i].GetFlags()] << " )";
 		std::cout << std::endl;
 	}
 }
@@ -149,11 +150,24 @@ int Board::GetPieceColor(int square) {
 }
 
 bool Board::InCheck() {
-	// TODO
+	int kingSquare = (pieces[King] & colors[sideToMove]).getLS1BIndex();
+
+	for (int type = Pawn; type <= Queen; type++) {
+		Bitboard moves = MOVEGEN::getPieceAttacks(kingSquare, type, sideToMove, occupied);
+
+		if (moves & colors[!sideToMove] & pieces[type]) return true;
+	}
+
+	return false;
 }
 
-bool Board::IsLegal(Move &move) {
-	// TODO
+bool Board::IsLegal(Move move) {
+	Board copy = *this;
+	copy.MakeMove(move);
+	copy.sideToMove = sideToMove;
+	positionIndex--;
+
+	return !copy.InCheck();
 }
 
 void Board::SetPiece(int piece, int square, bool color) {
