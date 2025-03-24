@@ -137,6 +137,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
     SearchResults results;
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
+        if (!board.IsLegal(board.moveList[i])) continue;
         if (board.moveList[i].IsCapture()) {
             Board copy = board;
             copy.MakeMove(board.moveList[i]);
@@ -229,14 +230,18 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
     int nodeType = AllNode;
     SearchResults results(-inf);
 
+    int moveSeen = 0;
+
     // For all moves
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Move currMove = board.moveList[i];
 
+        if (!board.IsLegal(currMove)) continue;
+
         Board copy = board;
         copy.MakeMove(currMove);
 
-        int reductions = GetReductions(board, currMove, depth, i, ply);
+        int reductions = GetReductions(board, currMove, depth, moveSeen, ply);
 
         // First move (suspected PV node)
         if (!i) {
@@ -260,6 +265,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
             score = -PVS<isPV>(copy, depth - 1, -beta, -alpha, ply + 1).score;
         }
 
+        moveSeen++;
         positionIndex--;
 
         // Fail high (beta cutoff)
