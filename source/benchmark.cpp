@@ -83,7 +83,7 @@ void RunBenchmark() {
         PVS<true>(board, depth, -inf, inf, ply);
     }
 
-    std::cout << nodes << " nodes " << int(nodes/sw.GetElapsedSec()) << " nps\n";
+    std::cout << nodes << " nodes " << int(nodes/sw.GetElapsedSec()) << " nps" << std::endl;
     nodes = 0;
     TT.Clear();
     benchStarted = false;
