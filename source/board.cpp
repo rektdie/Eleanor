@@ -159,20 +159,14 @@ int Board::GetPieceColor(int square) {
 }
 
 bool Board::InCheck() {
-	int kingSquare = (pieces[King] & colors[sideToMove]).getLS1BIndex();
+	Bitboard myKingSquare = colors[sideToMove] & pieces[King];
 
-	for (int type = Pawn; type <= Queen; type++) {
-		Bitboard moves = MOVEGEN::getPieceAttacks(kingSquare, type, sideToMove, occupied);
-
-		if (moves & colors[!sideToMove] & pieces[type]) return true;
-	}
-
-	return false;
+	return GetThreatMaps(!sideToMove) & myKingSquare;
 }
 
 bool Board::IsLegal(Move move) {
 	Board copy = *this;
-	copy.MakeMove(move);
+	copy.MakeMove(move, true);
 	copy.sideToMove = sideToMove;
 	positionIndex--;
 
@@ -231,9 +225,10 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 	SetPiece(pieceType, square, color);
 }
 
-void Board::MakeMove(Move move) {
-	SEARCH::nodes++;
-	
+void Board::MakeMove(Move move, bool legalityCheck) {
+	if (!legalityCheck) {
+		SEARCH::nodes++;
+	}
 	// Null Move
     if (!move) {
 		int newEpTarget = noEPTarget;
@@ -357,6 +352,8 @@ void Board::MakeMove(Move move) {
 	
     positionIndex++;
     positionHistory[positionIndex] = hashKey;
+
+	MOVEGEN::GenThreatMaps(*this);
 }
 
 bool Board::InPossibleZug() {

@@ -140,7 +140,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
         if (!board.IsLegal(board.moveList[i])) continue;
         if (board.moveList[i].IsCapture()) {
             Board copy = board;
-            copy.MakeMove(board.moveList[i]);
+            copy.MakeMove(board.moveList[i], false);
             int score = -Quiescence(copy, -beta, -alpha, ply + 1).score;
             positionIndex--;
 
@@ -201,7 +201,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
             if (!doingNullMove && staticEval >= beta) {
                 if (depth >= 3 && !board.InPossibleZug()) {
                     Board copy = board;
-                    copy.MakeMove(Move());
+                    copy.MakeMove(Move(), false);
     
                     doingNullMove = true;
                     int score = -PVS<false>(copy, depth - 3, -beta, -beta + 1, ply + 1).score;
@@ -215,14 +215,6 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
     }
 
     MOVEGEN::GenerateMoves<All>(board);
-
-    if (board.currentMoveIndex == 0) {
-        if (board.InCheck()) { // checkmate
-            return -99000 + ply;
-        } else { // stalemate
-            return 0;
-        }
-    }
 
     SortMoves(board, ply);
 
@@ -239,7 +231,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         if (!board.IsLegal(currMove)) continue;
 
         Board copy = board;
-        copy.MakeMove(currMove);
+        copy.MakeMove(currMove, false);
 
         int reductions = GetReductions(board, currMove, depth, moveSeen, ply);
 
@@ -288,6 +280,14 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
             alpha = score;
             results.bestMove = currMove;
             pvLine.SetMove(ply, currMove);
+        }
+    }
+
+    if (moveSeen == 0) {
+        if (board.InCheck()) { // checkmate
+            return -99000 + ply;
+        } else { // stalemate
+            return 0;
         }
     }
 

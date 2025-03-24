@@ -12,7 +12,7 @@ static U64 HelperPerft(Board board, int depth) {
     for (int i = 0; i < board.currentMoveIndex; i++) {
         if (!board.IsLegal(board.moveList[i])) continue;
         Board copy = board;
-        copy.MakeMove(board.moveList[i]);
+        copy.MakeMove(board.moveList[i], false);
         nodes += HelperPerft(copy, depth - 1);
         positionIndex--;
     }
@@ -28,7 +28,7 @@ void Perft(Board &board, int depth) {
     for (int i = 0; i < board.currentMoveIndex; i++) {
         if (!board.IsLegal(board.moveList[i])) continue;
         Board copy = board;
-        copy.MakeMove(board.moveList[i]);
+        copy.MakeMove(board.moveList[i], false);
         U64 nodeCount = HelperPerft(copy, depth - 1);
         positionIndex--;
         totalNodes += nodeCount;
