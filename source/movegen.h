@@ -21,6 +21,7 @@ Bitboard getBishopAttack(int square, U64 occupancy);
 Bitboard getRookAttack(int square, U64 occupancy);
 Bitboard getQueenAttack(int square, U64 occupancy);
 Bitboard getPawnPushes(int square, bool color, Bitboard &occupancy);
+Bitboard getPieceAttacks(int square, int piece, int color, U64 occupancy);
 
 template <MovegenMode mode>
 void GenPawnMoves(Board &board);

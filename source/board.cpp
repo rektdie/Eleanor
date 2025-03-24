@@ -16,7 +16,6 @@ void Board::Reset() {
 	colors = std::array<Bitboard, 2>();
 
     moveList = std::array<Move, 218>();
-	attackMaps = std::array<std::array<U64, 64>, 2>();
 
     currentMoveIndex = 0;
 
@@ -149,18 +148,12 @@ int Board::GetPieceColor(int square) {
 	return (colors[Black].IsSet(square));
 }
 
-U64 Board::GetAttackMaps(bool side) {
-	U64 combined = 0ULL;
-	for (int type = Pawn; type <= King; type++) {
-		combined |= attackMaps[side][type];
-	}
-	return combined;
+bool Board::InCheck() {
+	// TODO
 }
 
-bool Board::InCheck() {
-	Bitboard myKingSquare = colors[sideToMove] & pieces[King];
-
-	return GetAttackMaps(!sideToMove) & myKingSquare;
+bool Board::IsLegal(Move &move) {
+	// TODO
 }
 
 void Board::SetPiece(int piece, int square, bool color) {

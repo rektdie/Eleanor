@@ -12,10 +12,9 @@ static U64 HelperPerft(Board board, int depth) {
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Board copy = board;
-        board.MakeMove(board.moveList[i]);
-        nodes += HelperPerft(board, depth - 1);
+        copy.MakeMove(board.moveList[i]);
+        nodes += HelperPerft(copy, depth - 1);
         positionIndex--;
-        board = copy;
     }
     return nodes;
 }
@@ -28,10 +27,9 @@ void Perft(Board &board, int depth) {
     Stopwatch sw;
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Board copy = board;
-        board.MakeMove(board.moveList[i]);
-        U64 nodeCount = HelperPerft(board, depth - 1);
+        copy.MakeMove(board.moveList[i]);
+        U64 nodeCount = HelperPerft(copy, depth - 1);
         positionIndex--;
-        board = copy;
         totalNodes += nodeCount;
         board.moveList[i].PrintMove();
 

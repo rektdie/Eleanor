@@ -299,18 +299,6 @@ Bitboard getPawnPushes(int square, bool color, Bitboard &occupancy) {
 	return pushes;
 }
 
-// Returns bitboard of checkers
-static Bitboard Checkers(Board &board, bool color) {
-	int kingSquare = (board.colors[color] & board.pieces[King]).getLS1BIndex();
-	Bitboard checkerBoard = 0ULL;
-
-	for (int type = Pawn; type < King; type++) {
-		Bitboard targets = getPieceAttacks(kingSquare, type, color, board.occupied);
-		checkerBoard |= targets & board.pieces[type] & board.colors[!color];
-	}
-	return checkerBoard;
-}
-
 // Returns the direction to target from square
 static int GetDirection(int square, int target) {
 	int rankDiff = (target / 8) - (square / 8);
