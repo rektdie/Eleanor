@@ -314,7 +314,8 @@ void GenKingMoves(Board &board) {
         U64 QueenSide = board.sideToMove ? 0x1f00000000000000 : 0x1f;
         U64 mask = board.sideToMove ? 0x1c00000000000000 : 0x1c;
         int targetSquare = board.sideToMove ? c8 : c1;
-        if ((Bitboard(QueenSide) & board.occupied).PopCount() == 2) {
+        if ((Bitboard(QueenSide) & board.occupied).PopCount() == 2
+                && !(mask & board.GetThreatMaps(!board.sideToMove))) {
             board.AddMove(Move(kingSquare, targetSquare, queenCastle));
         }
     }
@@ -323,7 +324,8 @@ void GenKingMoves(Board &board) {
         U64 KingSide = board.sideToMove ? 0xf000000000000000 : 0xf0;
         U64 mask = board.sideToMove ? 0x7000000000000000 : 0x70;
         int targetSquare = board.sideToMove ? g8 : g1;
-        if ((Bitboard(KingSide) & board.occupied).PopCount() == 2) {
+        if ((Bitboard(KingSide) & board.occupied).PopCount() == 2
+                && !(mask & board.GetThreatMaps(!board.sideToMove))) {
             board.AddMove(Move(kingSquare, targetSquare, kingCastle));
         }
     }
@@ -332,6 +334,8 @@ void GenKingMoves(Board &board) {
 template <MovegenMode mode>
 void GenerateMoves(Board &board) {
     board.ResetMoves();
+    board.threatMaps = std::array<std::array<U64, 64>, 2>();
+    GenThreatMaps(board);
 
 	GenPawnMoves<mode>(board);
 	GenKnightMoves<mode>(board);

@@ -39,7 +39,7 @@ void GenKingMoves(Board &board);
 template <MovegenMode mode>
 void GenerateMoves(Board &board);
 
-
+void GenThreatMaps(Board &board);
 
 // bishop relevant occupancy bit count
 constexpr int bishopRelevantBits[64] = {

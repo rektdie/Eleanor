@@ -21,6 +21,8 @@ public:
 
 	Bitboard occupied;
 
+    std::array<std::array<U64, 64>, 2> threatMaps;
+
     std::array<Move, 218> moveList;
     int currentMoveIndex = 0;
 
@@ -40,6 +42,7 @@ public:
 	void ResetMoves();
 	void ListMoves();
 
+    U64 GetThreatMaps(bool side);
 	int GetPieceType(int square);
 	int GetPieceColor(int square);
 	

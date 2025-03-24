@@ -412,4 +412,34 @@ static bool IsPinned(Board &board, int square) {
 
 	return false;
 }
+
+void GenThreatMaps(Board &board) {
+	for (int color = White; color <= Black; color++) {
+		for (int type = Pawn; type <= King; type++) {
+			board.threatMaps[color][type] = 0ULL;
+			Bitboard pieces = board.pieces[type] & board.colors[color];
+
+			while (pieces) {
+				int square = pieces.getLS1BIndex();
+				if (type == Pawn) {
+					board.threatMaps[color][type] |= pawnAttacks[color][square];
+				} else if (type == Knight) {
+					board.threatMaps[color][type] |= knightAttacks[square];
+				} else if (type == King) {
+					board.threatMaps[color][type] |= kingAttacks[square];
+				} else if (type == Rook) {
+					board.threatMaps[color][type] |= getRookAttack(square, board.occupied 
+						& ~(board.colors[!color] & board.pieces[King]));
+				} else if (type == Bishop) {
+					board.threatMaps[color][type] |= getBishopAttack(square, board.occupied 
+						& ~(board.colors[!color] & board.pieces[King]));
+				} else if (type == Queen) {
+					board.threatMaps[color][type] |= getQueenAttack(square, board.occupied 
+						& ~(board.colors[!color] & board.pieces[King]));
+				}
+				pieces.PopBit(square);
+			}
+		}
+	}
+}
 }

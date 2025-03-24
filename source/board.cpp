@@ -14,6 +14,7 @@ void Board::Reset() {
 
 	pieces = std::array<Bitboard, 6>();
 	colors = std::array<Bitboard, 2>();
+    threatMaps = std::array<std::array<U64, 64>, 2>();
 
     moveList = std::array<Move, 218>();
 
@@ -126,6 +127,14 @@ void Board::AddMove(Move move) {
 
 void Board::ResetMoves() {
     currentMoveIndex = 0;
+}
+
+U64 Board::GetThreatMaps(bool side) {
+    U64 combined = 0ULL;
+	for (int type = Pawn; type <= King; type++) {
+		combined |= threatMaps[side][type];
+	}
+	return combined;
 }
 
 void Board::ListMoves() {
