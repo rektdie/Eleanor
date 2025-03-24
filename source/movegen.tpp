@@ -105,14 +105,13 @@ void GenKnightMoves(Board &board) {
 
 		Bitboard moves = knightAttacks[square] & ~board.colors[board.sideToMove];
 		Bitboard captures = moves & board.colors[!board.sideToMove];
+		moves &= ~captures;
 
 		if constexpr (mode == Noisy) {
 			while (captures) {
 				int targetSquare = captures.getLS1BIndex();
 	
 				board.AddMove(Move(square, targetSquare, capture));
-	
-				captures.PopBit(targetSquare);
 
 				captures.PopBit(targetSquare);
 			}
@@ -136,8 +135,8 @@ void GenKnightMoves(Board &board) {
 				captures.PopBit(targetSquare);
 			}
 	
-			knights.PopBit(square);
 		}
+		knights.PopBit(square);
 	}
 }
 template <MovegenMode mode>
@@ -185,12 +184,150 @@ void GenRookMoves(Board &board) {
 }
 template <MovegenMode mode>
 void GenBishopMoves(Board &board) {
+	Bitboard bishops = board.colors[board.sideToMove] & board.pieces[Bishop];
+
+	while (bishops) {
+		int square = bishops.getLS1BIndex();
+
+		Bitboard moves = getBishopAttack(square, board.occupied) & ~board.colors[board.sideToMove];
+		Bitboard captures = moves & board.colors[!board.sideToMove];
+		moves &= ~captures;
+
+		if constexpr (mode == Noisy) {
+			while (captures) {
+				int targetSquare = captures.getLS1BIndex();
+	
+				board.AddMove(Move(square, targetSquare, capture));
+	
+				captures.PopBit(targetSquare);
+			}
+
+			bishops.PopBit(square);
+			continue;
+		}
+
+		while (moves) {
+			int targetSquare = moves.getLS1BIndex();
+
+			board.AddMove(Move(square, targetSquare, quiet));
+
+			moves.PopBit(targetSquare);
+		}
+
+		while (captures) {
+			int targetSquare = captures.getLS1BIndex();
+
+			board.AddMove(Move(square, targetSquare, capture));
+
+			captures.PopBit(targetSquare);
+		}
+
+		bishops.PopBit(square);
+	}
 }
 template <MovegenMode mode>
 void GenQueenMoves(Board &board) {
+	Bitboard queens = board.colors[board.sideToMove] & board.pieces[Queen];
+
+	while (queens) {
+		int square = queens.getLS1BIndex();
+
+		Bitboard moves = getQueenAttack(square, board.occupied) & ~board.colors[board.sideToMove];
+		Bitboard captures = moves & board.colors[!board.sideToMove];
+		moves &= ~captures;
+
+		if constexpr (mode == Noisy) {
+			while (captures) {
+				int targetSquare = captures.getLS1BIndex();
+	
+				board.AddMove(Move(square, targetSquare, capture));
+	
+				captures.PopBit(targetSquare);
+			}
+
+			queens.PopBit(square);
+			continue;
+		}
+
+		while (moves) {
+			int targetSquare = moves.getLS1BIndex();
+
+			board.AddMove(Move(square, targetSquare, quiet));
+
+			moves.PopBit(targetSquare);
+		}
+
+		while (captures) {
+			int targetSquare = captures.getLS1BIndex();
+
+			board.AddMove(Move(square, targetSquare, capture));
+
+			captures.PopBit(targetSquare);
+		}
+
+		queens.PopBit(square);
+	}
 }
 template <MovegenMode mode>
 void GenKingMoves(Board &board) {
+	int kingSquare = (board.colors[board.sideToMove] & board.pieces[King]).getLS1BIndex();
+
+	Bitboard moves = (kingAttacks[kingSquare] & ~board.GetAttackMaps(!board.sideToMove)) & ~board.colors[board.sideToMove];
+	Bitboard captures = moves & board.colors[!board.sideToMove];
+	moves &= ~board.colors[!board.sideToMove];
+
+	if constexpr (mode == Noisy) {
+		while (captures) {
+			int square = captures.getLS1BIndex();
+	
+			Move move(kingSquare, square, capture);
+			board.AddMove(move);
+	
+			captures.PopBit(square);
+		}
+		return;
+	}
+
+	while (moves) {
+		int square = moves.getLS1BIndex();
+
+		board.AddMove(Move(kingSquare, square, quiet));
+
+		moves.PopBit(square);
+	}
+
+	while (captures) {
+		int square = captures.getLS1BIndex();
+
+		Move move(kingSquare, square, capture);
+		board.AddMove(move);
+
+		captures.PopBit(square);
+	}
+
+	// Generating castles
+    int kingRight = board.sideToMove ? blackKingRight : whiteKingRight;
+    int queenRight = board.sideToMove ? blackQueenRight : whiteQueenRight;
+
+    if (board.castlingRights & queenRight)  {
+        U64 QueenSide = board.sideToMove ? 0x1f00000000000000 : 0x1f;
+        U64 mask = board.sideToMove ? 0x1c00000000000000 : 0x1c;
+        int targetSquare = board.sideToMove ? c8 : c1;
+        if ((Bitboard(QueenSide) & board.occupied).PopCount() == 2
+                && !(mask & board.GetAttackMaps(!board.sideToMove))) {
+            board.AddMove(Move(kingSquare, targetSquare, queenCastle));
+        }
+    }
+
+    if (board.castlingRights & kingRight) {
+        U64 KingSide = board.sideToMove ? 0xf000000000000000 : 0xf0;
+        U64 mask = board.sideToMove ? 0x7000000000000000 : 0x70;
+        int targetSquare = board.sideToMove ? g8 : g1;
+        if ((Bitboard(KingSide) & board.occupied).PopCount() == 2
+                && !(mask & board.GetAttackMaps(!board.sideToMove))) {
+            board.AddMove(Move(kingSquare, targetSquare, kingCastle));
+        }
+    }
 }
 
 template <MovegenMode mode>
