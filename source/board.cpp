@@ -353,6 +353,8 @@ bool Board::MakeMove(Move move) {
 	if (attackerColor == Black) fullMoves++;
 	if (attackerPiece == Pawn || move.IsCapture()) {
 		halfMoves = 0;
+	} else {
+		halfMoves++;
 	}
 
     positionIndex++;
