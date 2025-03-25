@@ -138,20 +138,22 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
         if (!board.IsLegal(board.moveList[i])) continue;
-        Board copy = board;
-        copy.MakeMove(board.moveList[i], false);
-        int score = -Quiescence(copy, -beta, -alpha, ply + 1).score;
-        positionIndex--;
+        if (board.moveList[i].IsCapture()) {
+            Board copy = board;
+            copy.MakeMove(board.moveList[i], false);
+            int score = -Quiescence(copy, -beta, -alpha, ply + 1).score;
+            positionIndex--;
 
-        if (score >= beta) {
-            return score;
-        }
+            if (score >= beta) {
+                return score;
+            }
 
-        bestScore = std::max(score, bestScore);
+            bestScore = std::max(score, bestScore);
 
-        if (score > alpha) {
-            alpha = score;
-            results.bestMove = board.moveList[i];
+            if (score > alpha) {
+                alpha = score;
+                results.bestMove = board.moveList[i];
+            }
         }
     }
 
