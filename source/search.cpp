@@ -99,7 +99,7 @@ static bool IsThreefold(Board &board) {
 }
 
 static bool IsFifty(Board &board) {
-    return board.halfMoves >= 50;
+    return (board.halfMoves >= 100);
 }
 
 static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply) {
