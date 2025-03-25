@@ -14,7 +14,9 @@ void Board::Reset() {
 
 	pieces = std::array<Bitboard, 6>();
 	colors = std::array<Bitboard, 2>();
-    threatMaps = std::array<std::array<U64, 64>, 2>();
+
+	pieceThreats = std::array<Bitboard, 6>();
+	colorThreats = std::array<Bitboard, 2>();
 
     moveList = std::array<Move, 218>();
 
@@ -65,6 +67,7 @@ void Board::SetByFen(std::string_view fen) {
 
     occupied = colors[White] | colors[Black];
     hashKey = UTILS::GetHashKey(*this);
+	MOVEGEN::GenThreatMaps(*this);
 	MOVEGEN::GenerateMoves<All>(*this);
 }
 
@@ -129,14 +132,6 @@ void Board::ResetMoves() {
     currentMoveIndex = 0;
 }
 
-U64 Board::GetThreatMaps(bool side) {
-    U64 combined = 0ULL;
-	for (int type = Pawn; type <= King; type++) {
-		combined |= threatMaps[side][type];
-	}
-	return combined;
-}
-
 void Board::ListMoves() {
 	for (int i = 0; i < currentMoveIndex; i++) {
 		std::cout << i+1 << ". ";
@@ -161,7 +156,7 @@ int Board::GetPieceColor(int square) {
 bool Board::InCheck() {
 	Bitboard myKingSquare = colors[sideToMove] & pieces[King];
 
-	return GetThreatMaps(!sideToMove) & myKingSquare;
+	return colorThreats[!sideToMove] & myKingSquare;
 }
 
 void Board::SetPiece(int piece, int square, bool color) {
