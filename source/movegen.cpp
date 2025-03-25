@@ -415,30 +415,24 @@ static bool IsPinned(Board &board, int square) {
 
 void GenThreatMaps(Board &board) {
 	for (int color = White; color <= Black; color++) {
+		board.colorThreats[color] = 0ULL;
+
 		for (int type = Pawn; type <= King; type++) {
-			board.threatMaps[color][type] = 0ULL;
+			board.pieceThreats[type] = 0ULL;
+
 			Bitboard pieces = board.pieces[type] & board.colors[color];
 
 			while (pieces) {
 				int square = pieces.getLS1BIndex();
-				if (type == Pawn) {
-					board.threatMaps[color][type] |= pawnAttacks[color][square];
-				} else if (type == Knight) {
-					board.threatMaps[color][type] |= knightAttacks[square];
-				} else if (type == King) {
-					board.threatMaps[color][type] |= kingAttacks[square];
-				} else if (type == Rook) {
-					board.threatMaps[color][type] |= getRookAttack(square, board.occupied 
-						& ~(board.colors[!color] & board.pieces[King]));
-				} else if (type == Bishop) {
-					board.threatMaps[color][type] |= getBishopAttack(square, board.occupied 
-						& ~(board.colors[!color] & board.pieces[King]));
-				} else if (type == Queen) {
-					board.threatMaps[color][type] |= getQueenAttack(square, board.occupied 
-						& ~(board.colors[!color] & board.pieces[King]));
-				}
+
+				board.pieceThreats[type] |= MOVEGEN::getPieceAttacks(square, type, color, board.occupied
+					& ~(board.colors[!color] & board.pieces[King]));
+
 				pieces.PopBit(square);
+
 			}
+
+			board.colorThreats[color] |= board.pieceThreats[type];
 		}
 	}
 }
