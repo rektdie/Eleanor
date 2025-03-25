@@ -14,9 +14,9 @@ void Board::Reset() {
 
 	pieces = std::array<Bitboard, 6>();
 	colors = std::array<Bitboard, 2>();
+    threatMaps = std::array<std::array<U64, 64>, 2>();
 
     moveList = std::array<Move, 218>();
-	attackMaps = std::array<std::array<U64, 64>, 2>();
 
     currentMoveIndex = 0;
 
@@ -65,8 +65,7 @@ void Board::SetByFen(std::string_view fen) {
 
     occupied = colors[White] | colors[Black];
     hashKey = UTILS::GetHashKey(*this);
-	MOVEGEN::GenerateMoves(*this);
-    MOVEGEN::GenAttackMaps(*this);
+	MOVEGEN::GenerateMoves<All>(*this);
 }
 
 void Board::PrintBoard() {
@@ -130,10 +129,19 @@ void Board::ResetMoves() {
     currentMoveIndex = 0;
 }
 
+U64 Board::GetThreatMaps(bool side) {
+    U64 combined = 0ULL;
+	for (int type = Pawn; type <= King; type++) {
+		combined |= threatMaps[side][type];
+	}
+	return combined;
+}
+
 void Board::ListMoves() {
 	for (int i = 0; i < currentMoveIndex; i++) {
 		std::cout << i+1 << ". ";
 		moveList[i].PrintMove();
+		std::cout << "( " << moveTypes[moveList[i].GetFlags()] << " )";
 		std::cout << std::endl;
 	}
 }
@@ -150,18 +158,10 @@ int Board::GetPieceColor(int square) {
 	return (colors[Black].IsSet(square));
 }
 
-U64 Board::GetAttackMaps(bool side) {
-	U64 combined = 0ULL;
-	for (int type = Pawn; type <= King; type++) {
-		combined |= attackMaps[side][type];
-	}
-	return combined;
-}
-
 bool Board::InCheck() {
 	Bitboard myKingSquare = colors[sideToMove] & pieces[King];
 
-	return GetAttackMaps(!sideToMove) & myKingSquare;
+	return GetThreatMaps(!sideToMove) & myKingSquare;
 }
 
 void Board::SetPiece(int piece, int square, bool color) {
@@ -216,9 +216,7 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 	SetPiece(pieceType, square, color);
 }
 
-void Board::MakeMove(Move move) {
-	SEARCH::nodes++;
-	
+bool Board::MakeMove(Move move) {
 	// Null Move
     if (!move) {
 		int newEpTarget = noEPTarget;
@@ -236,7 +234,7 @@ void Board::MakeMove(Move move) {
 		
         enPassantTarget = newEpTarget;
 		
-        return;
+        return true;
     }
 	
 	int newEpTarget = noEPTarget;
@@ -339,11 +337,19 @@ void Board::MakeMove(Move move) {
     }
 
 	enPassantTarget = newEpTarget;
+	
 
-	MOVEGEN::GenAttackMaps(*this);
+	MOVEGEN::GenThreatMaps(*this);
+
+    sideToMove = !sideToMove;
+    if (InCheck()) return false;
+    sideToMove = !sideToMove;
 
     positionIndex++;
     positionHistory[positionIndex] = hashKey;
+
+    SEARCH::nodes++;
+    return true;
 }
 
 bool Board::InPossibleZug() {

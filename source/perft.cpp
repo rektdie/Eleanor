@@ -3,35 +3,34 @@
 #include "movegen.h"
 
 static U64 HelperPerft(Board board, int depth) {
-    MOVEGEN::GenerateMoves(board);
+    MOVEGEN::GenerateMoves<All>(board);
 
-    if (depth == 1) return board.currentMoveIndex;
     if (depth == 0) return 1ULL;
 
     U64 nodes = 0;
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Board copy = board;
-        board.MakeMove(board.moveList[i]);
-        nodes += HelperPerft(board, depth - 1);
+        bool isLegal = copy.MakeMove(board.moveList[i]);
+        if (!isLegal) continue;
+        nodes += HelperPerft(copy, depth - 1);
         positionIndex--;
-        board = copy;
     }
     return nodes;
 }
 
 void Perft(Board &board, int depth) {
-    MOVEGEN::GenerateMoves(board);
+    MOVEGEN::GenerateMoves<All>(board);
 
     U64 totalNodes = 0;
 
     Stopwatch sw;
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Board copy = board;
-        board.MakeMove(board.moveList[i]);
-        U64 nodeCount = HelperPerft(board, depth - 1);
+        bool isLegal = copy.MakeMove(board.moveList[i]);
+        if (!isLegal) continue;
+        U64 nodeCount = HelperPerft(copy, depth - 1);
         positionIndex--;
-        board = copy;
         totalNodes += nodeCount;
         board.moveList[i].PrintMove();
 

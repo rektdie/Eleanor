@@ -32,12 +32,11 @@ static void ParsePosition(Board &board, std::string_view command) {
         std::vector<std::string> moves = UTILS::split(command.substr(movesIndex + 6, command.length() - (movesIndex + 5)), ' ');
 
         for (std::string_view move : moves) {
-            board.MakeMove(UTILS::parseMove(board, move));
+            bool isLegal = board.MakeMove(UTILS::parseMove(board, move));
         }
     }
 
-    MOVEGEN::GenerateMoves(board);
-    MOVEGEN::GenAttackMaps(board);
+    MOVEGEN::GenerateMoves<All>(board);
 }
 
 static int ReadParam(std::string param, std::string &command) {

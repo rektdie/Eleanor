@@ -18,10 +18,10 @@ public:
 
 	std::array<Bitboard, 6> pieces;
 	std::array<Bitboard, 2> colors;
-	std::array<std::array<U64, 64>, 2> attackMaps;
-	//U64 attackMaps[2][64];
 
 	Bitboard occupied;
+
+    std::array<std::array<U64, 64>, 2> threatMaps;
 
     std::array<Move, 218> moveList;
     int currentMoveIndex = 0;
@@ -42,17 +42,17 @@ public:
 	void ResetMoves();
 	void ListMoves();
 
+    U64 GetThreatMaps(bool side);
 	int GetPieceType(int square);
 	int GetPieceColor(int square);
-
-	U64 GetAttackMaps(bool side);
+	
 	bool InCheck();
 
 	void SetPiece(int piece, int square, bool color);
 	void RemovePiece(int piece, int square, bool color);
 
 	void Promote(int square, int pieceType, int color, bool isCapture);
-	void MakeMove(Move move);
+	bool MakeMove(Move move);
 
     bool InPossibleZug();
 };
