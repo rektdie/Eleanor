@@ -137,10 +137,10 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
     SearchResults results;
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
-        if (!board.IsLegal(board.moveList[i])) continue;
         if (board.moveList[i].IsCapture()) {
             Board copy = board;
-            copy.MakeMove(board.moveList[i], false);
+            int isLegal = copy.MakeMove(board.moveList[i]);
+            if (!isLegal) continue;
             int score = -Quiescence(copy, -beta, -alpha, ply + 1).score;
             positionIndex--;
 
@@ -201,7 +201,8 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
             if (!doingNullMove && staticEval >= beta) {
                 if (depth >= 3 && !board.InPossibleZug()) {
                     Board copy = board;
-                    copy.MakeMove(Move(), false);
+                    bool isLegal = copy.MakeMove(Move());
+                    // Always legal so we dont check it
     
                     doingNullMove = true;
                     int score = -PVS<false>(copy, depth - 3, -beta, -beta + 1, ply + 1).score;
@@ -228,10 +229,10 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Move currMove = board.moveList[i];
 
-        if (!board.IsLegal(currMove)) continue;
-
         Board copy = board;
-        copy.MakeMove(currMove, false);
+        bool isLegal = copy.MakeMove(currMove);
+
+        if (!isLegal) continue;
 
         int reductions = GetReductions(board, currMove, depth, moveSeen, ply);
 

@@ -47,13 +47,12 @@ public:
 	int GetPieceColor(int square);
 	
 	bool InCheck();
-	bool IsLegal(Move move);
 
 	void SetPiece(int piece, int square, bool color);
 	void RemovePiece(int piece, int square, bool color);
 
 	void Promote(int square, int pieceType, int color, bool isCapture);
-	void MakeMove(Move move, bool legalityCheck);
+	bool MakeMove(Move move);
 
     bool InPossibleZug();
 };

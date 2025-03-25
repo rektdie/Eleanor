@@ -164,15 +164,6 @@ bool Board::InCheck() {
 	return GetThreatMaps(!sideToMove) & myKingSquare;
 }
 
-bool Board::IsLegal(Move move) {
-	Board copy = *this;
-	copy.MakeMove(move, true);
-	copy.sideToMove = sideToMove;
-	positionIndex--;
-
-	return !copy.InCheck();
-}
-
 void Board::SetPiece(int piece, int square, bool color) {
 	pieces[piece].SetBit(square);
 	colors[color].SetBit(square);
@@ -225,10 +216,7 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 	SetPiece(pieceType, square, color);
 }
 
-void Board::MakeMove(Move move, bool legalityCheck) {
-	if (!legalityCheck) {
-		SEARCH::nodes++;
-	}
+bool Board::MakeMove(Move move) {
 	// Null Move
     if (!move) {
 		int newEpTarget = noEPTarget;
@@ -246,7 +234,7 @@ void Board::MakeMove(Move move, bool legalityCheck) {
 		
         enPassantTarget = newEpTarget;
 		
-        return;
+        return true;
     }
 	
 	int newEpTarget = noEPTarget;
@@ -350,10 +338,18 @@ void Board::MakeMove(Move move, bool legalityCheck) {
 
 	enPassantTarget = newEpTarget;
 	
+
+	MOVEGEN::GenThreatMaps(*this);
+
+    sideToMove = !sideToMove;
+    if (InCheck()) return false;
+    sideToMove = !sideToMove;
+
     positionIndex++;
     positionHistory[positionIndex] = hashKey;
 
-	MOVEGEN::GenThreatMaps(*this);
+    SEARCH::nodes++;
+    return true;
 }
 
 bool Board::InPossibleZug() {
