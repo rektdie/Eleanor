@@ -9,6 +9,10 @@
 void Board::Reset() {
     castlingRights = 0;
 	enPassantTarget = noEPTarget;
+	
+	halfMoves = 0;
+	fullMoves = 1;
+
 	sideToMove = White;
 	occupied = 0ULL;
 
@@ -64,6 +68,12 @@ void Board::SetByFen(std::string_view fen) {
     }
 
     if (tokens[3] != "-") enPassantTarget = UTILS::parseSquare(tokens[3]);
+
+	// full and half move
+	if (tokens.size() > 4) {
+		halfMoves = std::stoi(tokens[4]);
+		fullMoves = std::stoi(tokens[5]);
+	}
 
     occupied = colors[White] | colors[Black];
     hashKey = UTILS::GetHashKey(*this);
@@ -339,6 +349,13 @@ bool Board::MakeMove(Move move) {
     sideToMove = !sideToMove;
     if (InCheck()) return false;
     sideToMove = !sideToMove;
+
+	if (attackerColor == Black) fullMoves++;
+	if (attackerPiece == Pawn || move.IsCapture()) {
+		halfMoves = 0;
+	} else {
+		halfMoves++;
+	}
 
     positionIndex++;
     positionHistory[positionIndex] = hashKey;

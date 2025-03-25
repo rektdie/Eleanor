@@ -32,6 +32,9 @@ public:
     uint8_t castlingRights = 0;
 	int enPassantTarget = noEPTarget;
 
+	int halfMoves = 0;
+	int fullMoves = 1;
+
     U64 hashKey = 0ULL;
 
 	void Init();
