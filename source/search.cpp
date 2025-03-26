@@ -351,19 +351,6 @@ static SearchResults ID(Board &board, SearchParams params) {
         beta = currentResults.score + delta;
         delta = 50;
 
-        if (searchStopped) {
-            break;
-        } else {
-            if (sw.GetElapsedMS() >= softTime) {
-                StopSearch();
-                break;
-            }
-
-            if (currentResults.bestMove) {
-                safeResults = currentResults;
-            }
-        }
-
         std::cout << "info ";
         std::cout << "depth " << depth;
         std::cout << " score cp " << safeResults.score;
@@ -372,6 +359,19 @@ static SearchResults ID(Board &board, SearchParams params) {
         std::cout << " pv ";
         pvLine.Print(0);
         std::cout << std::endl;
+
+        if (searchStopped) {
+            break;
+        } else {
+            if (currentResults.bestMove) {
+                safeResults = currentResults;
+            }
+            
+            if (sw.GetElapsedMS() >= softTime) {
+                StopSearch();
+                break;
+            }
+        }
     }
 
     return safeResults;
