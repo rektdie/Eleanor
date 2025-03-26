@@ -303,8 +303,8 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         }
     }
 
-    TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
     if (searchStopped) return 0;
+    TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
     return results;
 }
 
