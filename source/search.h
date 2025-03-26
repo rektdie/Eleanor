@@ -7,6 +7,7 @@
 
 namespace SEARCH {
 
+constexpr int MATE_SCORE = -99000;
 constexpr int maxDepth = 64;
 constexpr int maxHistory = 16384;
 
