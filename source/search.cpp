@@ -236,6 +236,16 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
         if (!isLegal) continue;
 
+        // Futility pruning
+        // If our static eval is far below alpha, there is only a small chance
+        // that a quiet move will help us so we skip them
+        int fpMargin = 100;
+        if (!isPV && !board.InCheck() && currMove.IsQuiet()
+            && depth <= 2 && staticEval + fpMargin < alpha) {
+            positionIndex--;
+            continue;
+        }
+
         int reductions = GetReductions(board, currMove, depth, moveSeen, ply);
 
         // First move (suspected PV node)

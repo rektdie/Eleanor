@@ -49,10 +49,15 @@ public:
         return m_move >> 12;
     }
 
-    int IsCapture() {
+    bool IsCapture() {
         return (GetFlags() == capture || GetFlags() == epCapture
             || GetFlags() == knightPromoCapture || GetFlags() == bishopPromoCapture
             || GetFlags() == rookPromoCapture || GetFlags() == queenPromoCapture);
+    }
+
+    bool IsQuiet() {
+        return (GetFlags() == quiet || GetFlags() == kingCastle
+        || GetFlags() == queenCastle || GetFlags() == doublePawnPush);
     }
 
     void PrintMove() {
