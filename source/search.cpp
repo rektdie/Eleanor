@@ -231,20 +231,19 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Move currMove = board.moveList[i];
 
-        Board copy = board;
-        bool isLegal = copy.MakeMove(currMove);
-
-        if (!isLegal) continue;
-
         // Futility pruning
         // If our static eval is far below alpha, there is only a small chance
         // that a quiet move will help us so we skip them
         int fpMargin = 100;
         if (!isPV && !board.InCheck() && currMove.IsQuiet()
             && depth <= 2 && staticEval + fpMargin < alpha) {
-            positionIndex--;
             continue;
         }
+
+        Board copy = board;
+        bool isLegal = copy.MakeMove(currMove);
+
+        if (!isLegal) continue;
 
         int reductions = GetReductions(board, currMove, depth, moveSeen, ply);
 
