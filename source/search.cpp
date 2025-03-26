@@ -234,9 +234,9 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         // Futility pruning
         // If our static eval is far below alpha, there is only a small chance
         // that a quiet move will help us so we skip them
-        int fpMargin = 100 + 50 * depth;
+        int fpMargin = 100 * depth;
         if (!isPV && ply && !board.InCheck() && currMove.IsQuiet()
-            && depth <= 1 && staticEval + fpMargin < alpha) {
+            && depth <= 5 && staticEval + fpMargin < alpha && results.score > MATE_SCORE) {
             continue;
         }
 
@@ -297,7 +297,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
     if (moveSeen == 0) {
         if (board.InCheck()) { // checkmate
-            return -99000 + ply;
+            return MATE_SCORE + ply;
         } else { // stalemate
             return 0;
         }
