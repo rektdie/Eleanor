@@ -236,7 +236,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         // that a quiet move will help us so we skip them
         int fpMargin = 100 + 50 * depth;
         if (!isPV && ply && !board.InCheck() && currMove.IsQuiet()
-            && depth <= 2 && staticEval + fpMargin < alpha) {
+            && depth <= 1 && staticEval + fpMargin < alpha) {
             continue;
         }
 
