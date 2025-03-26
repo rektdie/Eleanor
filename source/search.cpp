@@ -274,15 +274,15 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
         // Fail high (beta cutoff)
         if (score >= beta) {
+            if (searchStopped) return 0;
             if (!currMove.IsCapture()) {
                 killerMoves[1][ply] = killerMoves[0][ply];
                 killerMoves[0][ply] = currMove;
 
-                if (searchStopped) return 0;
+                
                 history.Update(board.sideToMove, currMove, depth * depth);
             }
 
-            if (searchStopped) return 0;
             TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
             return score;
         }
@@ -351,21 +351,21 @@ static SearchResults ID(Board &board, SearchParams params) {
         beta = currentResults.score + delta;
         delta = 50;
 
-        std::cout << "info ";
-        std::cout << "depth " << depth;
-        std::cout << " score cp " << safeResults.score;
-        std::cout << " nodes " << nodes << " nps " << int(nodes/sw.GetElapsedSec());
-        std::cout << " hashfull " << TT.GetUsedPercentage();
-        std::cout << " pv ";
-        pvLine.Print(0);
-        std::cout << std::endl;
-
         if (searchStopped) {
             break;
         } else {
             if (currentResults.bestMove) {
                 safeResults = currentResults;
             }
+
+            std::cout << "info ";
+            std::cout << "depth " << depth;
+            std::cout << " score cp " << safeResults.score;
+            std::cout << " nodes " << nodes << " nps " << int(nodes/sw.GetElapsedSec());
+            std::cout << " hashfull " << TT.GetUsedPercentage();
+            std::cout << " pv ";
+            pvLine.Print(0);
+            std::cout << std::endl;
             
             if (sw.GetElapsedMS() >= softTime) {
                 StopSearch();

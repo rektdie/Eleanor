@@ -4,3 +4,6 @@ obj/
 # Ignore executable files
 *.exe
 Eleanor
+
+# Other
+.vscode
