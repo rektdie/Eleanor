@@ -278,6 +278,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
                 killerMoves[1][ply] = killerMoves[0][ply];
                 killerMoves[0][ply] = currMove;
 
+                if (searchStopped) return 0;
                 history.Update(board.sideToMove, currMove, depth * depth);
             }
 
