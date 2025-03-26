@@ -351,16 +351,16 @@ static SearchResults ID(Board &board, SearchParams params) {
         beta = currentResults.score + delta;
         delta = 50;
 
-        if (currentResults.bestMove) {
-            safeResults = currentResults;
-        }
-
         if (searchStopped) {
             break;
         } else {
             if (sw.GetElapsedMS() >= softTime) {
                 StopSearch();
                 break;
+            }
+
+            if (currentResults.bestMove) {
+                safeResults = currentResults;
             }
         }
 
