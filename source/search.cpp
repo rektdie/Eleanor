@@ -281,6 +281,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
                 history.Update(board.sideToMove, currMove, depth * depth);
             }
 
+            if (searchStopped) return 0;
             TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
             return score;
         }
