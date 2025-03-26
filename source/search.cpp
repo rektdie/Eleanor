@@ -318,6 +318,7 @@ static SearchResults ID(Board &board, SearchParams params) {
 
     for (int depth = 1; depth <= 99; depth++) {
         timeToSearch = (fullTime / 20) + (inc / 2);
+        int softTime = timeToSearch * 0.65;
 
         SearchResults currentResults = PVS<true>(board, depth, alpha, beta, ply);
 
@@ -343,7 +344,14 @@ static SearchResults ID(Board &board, SearchParams params) {
             safeResults = currentResults;
         }
 
-        if (searchStopped) break;
+        if (searchStopped) {
+            break;
+        } else {
+            if (sw.GetElapsedMS() >= softTime) {
+                StopSearch();
+                break;
+            }
+        }
 
         std::cout << "info ";
         std::cout << "depth " << depth;
