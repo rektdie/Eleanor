@@ -40,18 +40,29 @@ static void ParsePosition(Board &board, std::string_view command) {
 }
 
 static int ReadParam(std::string param, std::string &command) {
-    size_t pos = -1;
-    pos = command.find(param);
-
+    size_t pos = command.find(param);
     if (pos != std::string::npos) {
-        std::string result = "";
         pos += param.length() + 1;
+        bool isNegative = false;
+        std::string result = "";
 
-        while(pos < command.length() && std::isdigit(command[pos])){
+        // Check for negative sign
+        if (pos < command.length() && command[pos] == '-') {
+            isNegative = true;
+            pos++;
+        }
+
+        // Extract digits
+        while (pos < command.length() && std::isdigit(command[pos])) {
             result += command[pos];
             pos++;
         }
-        return stoi(result);
+
+        // Ensure result is not empty before calling stoi
+        if (!result.empty()) {
+            int value = std::stoi(result);
+            return isNegative ? -value : value;
+        }
     }
 
     return 0;
