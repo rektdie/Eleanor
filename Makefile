@@ -14,16 +14,14 @@ ifeq ($(OS),Windows_NT)
     MKDIR := mkdir
     RM := rmdir /s /q
     DEL := del /q
-    # Use all cores on Windows by getting the number of cores using wmic
-    MAKEFLAGS += -j$(shell wmic cpu get NumberOfLogicalProcessors | findstr /r /v "^$" | tail -n 1)
 else
     EXE_EXT :=
     MKDIR := mkdir -p
     RM := rm -rf
     DEL := rm -f
-    # Use all cores on Linux by getting the number of cores using nproc
-    MAKEFLAGS += -j$(shell nproc)
 endif
+
+MAKEFLAGS += -j
 
 # List of source files
 SRCS := $(wildcard $(SRC_DIR)/*.cpp)
@@ -46,6 +44,11 @@ $(OBJ_DIR):
 # Clean up build artifacts
 .PHONY: clean
 clean:
-	$(RM) $(OBJ_DIR) || $(DEL) $(OBJ_DIR)\* $(OBJ_DIR)
-	$(RM) $(EXE)$(EXE_EXT) || $(DEL) $(EXE)$(EXE_EXT)
+ifeq ($(OS),Windows_NT)
+	@if exist $(OBJ_DIR) $(RM) $(OBJ_DIR)
+	@if exist $(EXE)$(EXE_EXT) $(DEL) $(EXE)$(EXE_EXT)
+else
+	@rm -rf $(OBJ_DIR)
+	@rm -f $(EXE)$(EXE_EXT)
+endif
 	$(MAKE)
