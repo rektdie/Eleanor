@@ -21,7 +21,7 @@ inline bool searchStopped = false;
 //                   [id][ply]
 inline int killerMoves[2][64];
 
-inline int lmrTable[MAX_DEPTH][MAX_MOVES];
+inline int lmrTable[MAX_DEPTH+1][MAX_MOVES];
 
 void InitLMRTable();
 

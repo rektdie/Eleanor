@@ -19,7 +19,7 @@ inline PVLine pvLine;
 Stopwatch sw;
 
 void InitLMRTable() {
-    for (int depth = 0; depth < MAX_DEPTH; depth++) {
+    for (int depth = 0; depth <= MAX_DEPTH; depth++) {
         for (int move = 0; move < MAX_MOVES; move++) {
             if (depth == 0 || move == 0) {
                 lmrTable[depth][move] = 0;
@@ -341,7 +341,7 @@ static SearchResults ID(Board &board, SearchParams params) {
     int elapsed = 0;
     sw.Restart();
 
-    for (int depth = 1; depth <= 99; depth++) {
+    for (int depth = 1; depth <= MAX_DEPTH; depth++) {
         timeToSearch = std::max((fullTime / 20) + (inc / 2), 4);
         int softTime = timeToSearch * 0.65;
 
