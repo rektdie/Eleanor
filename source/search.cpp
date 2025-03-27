@@ -117,7 +117,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
 }
 
 static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
-    if (!benchStarted) {
+    if (!benchStarted && nodes % 1024 == 0) {
         if (sw.GetElapsedMS() >= timeToSearch) {
             StopSearch();
             return 0;
@@ -166,7 +166,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
 
 template <bool isPV>
 SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
-    if (!benchStarted) {
+    if (!benchStarted && nodes % 1024 == 0) {
         if (sw.GetElapsedMS() >= timeToSearch) {
             StopSearch();
             return 0;
