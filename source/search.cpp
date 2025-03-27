@@ -269,12 +269,13 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
             score = -PVS<isPV>(copy, depth - 1, -beta, -alpha, ply + 1).score;
         }
 
+        if (searchStopped) return 0;
+
         moveSeen++;
         positionIndex--;
 
         // Fail high (beta cutoff)
         if (score >= beta) {
-            if (searchStopped) return 0;
             if (!currMove.IsCapture()) {
                 killerMoves[1][ply] = killerMoves[0][ply];
                 killerMoves[0][ply] = currMove;
