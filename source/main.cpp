@@ -3,11 +3,13 @@
 #include "uci.h"
 #include "utils.h"
 #include "benchmark.h"
+#include "search.h"
 
 int main(int argc, char* argv[]) {
 	MOVEGEN::initLeaperAttacks();
 	MOVEGEN::initSliderAttacks();
     UTILS::InitZobrist();
+    SEARCH::InitLMRTable();
 
 	Board board;
 

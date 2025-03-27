@@ -63,7 +63,7 @@ constexpr std::array<std::string_view, 50> fenPositions = {
 
 void RunBenchmark() {
     Board board;
-    int depth = 6;
+    int depth = 8;
     int ply = 0;
     benchStarted = true;
     searchStopped = false;
