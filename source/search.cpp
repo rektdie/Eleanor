@@ -313,8 +313,6 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
 // Iterative deepening
 static SearchResults ID(Board &board, SearchParams params) {
-    sw.Restart();
-
     int fullTime = board.sideToMove ? params.btime : params.wtime;
     int inc = board.sideToMove ? params.binc : params.winc;
 
@@ -328,11 +326,15 @@ static SearchResults ID(Board &board, SearchParams params) {
 
     int ply = 0;
 
+    int elapsed = 0;
+    sw.Restart();
+
     for (int depth = 1; depth <= 99; depth++) {
-        timeToSearch = (fullTime / 20) + (inc / 2);
+        timeToSearch = std::max((fullTime / 20) + (inc / 2), 4);
         int softTime = timeToSearch * 0.65;
 
         SearchResults currentResults = PVS<true>(board, depth, alpha, beta, ply);
+        elapsed = sw.GetElapsedMS();
 
         // If we fell outside the window, try again with full width
         if ((currentResults.score <= alpha)
@@ -361,6 +363,7 @@ static SearchResults ID(Board &board, SearchParams params) {
 
             std::cout << "info ";
             std::cout << "depth " << depth;
+            std::cout << " time " << elapsed;
             std::cout << " score cp " << safeResults.score;
             std::cout << " nodes " << nodes << " nps " << int(nodes/sw.GetElapsedSec());
             std::cout << " hashfull " << TT.GetUsedPercentage();
