@@ -22,7 +22,7 @@ void Board::Reset() {
 	pieceThreats = std::array<Bitboard, 6>();
 	colorThreats = std::array<Bitboard, 2>();
 
-    moveList = std::array<Move, 218>();
+    moveList = std::array<Move, MAX_MOVES>();
 
     currentMoveIndex = 0;
 

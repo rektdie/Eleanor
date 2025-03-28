@@ -7,6 +7,8 @@
 constexpr int nullPieceType = 100;
 constexpr int noEPTarget = -1;
 
+constexpr int MAX_MOVES = 218;
+
 inline int positionIndex = 0;
 inline U64 positionHistory[1000];
 
@@ -24,7 +26,7 @@ public:
     std::array<Bitboard, 6> pieceThreats;
 	std::array<Bitboard, 2> colorThreats;
 
-    std::array<Move, 218> moveList;
+    std::array<Move, MAX_MOVES> moveList;
     int currentMoveIndex = 0;
 
 	bool sideToMove = White;

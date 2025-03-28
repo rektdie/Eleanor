@@ -18,6 +18,21 @@ inline PVLine pvLine;
 
 Stopwatch sw;
 
+void InitLMRTable() {
+    for (int depth = 0; depth <= MAX_DEPTH; depth++) {
+        for (int move = 0; move < MAX_MOVES; move++) {
+            if (depth == 0 || move == 0) {
+                lmrTable[depth][move] = 0;
+            } else {
+                double base = 0.77;
+                double divisor = 2.36;
+
+                lmrTable[depth][move] = std::floor(base + std::log(depth) * std::log(move) / divisor);
+            }
+        }
+    }
+}
+
 static int ScoreMove(Board &board, Move &move, int ply) {
     TTEntry *current = TT.GetRawEntry(board.hashKey);
     if (current->bestMove == move) {
@@ -48,8 +63,8 @@ static int ScoreMove(Board &board, Move &move, int ply) {
 }
 
 static void SortMoves(Board &board, int ply) {
-    std::array<int, 218> scores;
-    std::array<int, 218> indices;
+    std::array<int, MAX_MOVES> scores;
+    std::array<int, MAX_MOVES> indices;
 
     // Initialize scores and indices
     for (int i = 0; i < board.currentMoveIndex; i++) {
@@ -64,7 +79,7 @@ static void SortMoves(Board &board, int ply) {
               });
 
     // Create a temporary move list and reorder the moveList based on the sorted indices
-    std::array<Move, 218> sortedMoves;
+    std::array<Move, MAX_MOVES> sortedMoves;
     for (int i = 0; i < board.currentMoveIndex; i++) {
         sortedMoves[i] = board.moveList[indices[i]];
     }
@@ -107,10 +122,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     
     // Late Move Reduction
     if (depth >= 3 && moveSeen >= 3 && !move.IsCapture()) {
-        double base = 0.77;
-        double divisor = 2.36;
-
-        reduction = std::floor(base + std::log(depth) * std::log(moveSeen) / divisor);
+        reduction = lmrTable[depth][moveSeen];
     }
 
     return reduction;
@@ -329,7 +341,7 @@ static SearchResults ID(Board &board, SearchParams params) {
     int elapsed = 0;
     sw.Restart();
 
-    for (int depth = 1; depth <= 99; depth++) {
+    for (int depth = 1; depth <= MAX_DEPTH; depth++) {
         timeToSearch = std::max((fullTime / 20) + (inc / 2), 4);
         int softTime = timeToSearch * 0.65;
 

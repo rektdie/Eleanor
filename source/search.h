@@ -8,8 +8,8 @@
 namespace SEARCH {
 
 constexpr int MATE_SCORE = -99000;
-constexpr int maxDepth = 64;
-constexpr int maxHistory = 16384;
+constexpr int MAX_DEPTH = 64;
+constexpr int MAX_HISTORY = 16384;
 
 extern U64 nodes;
 extern bool benchStarted;
@@ -20,6 +20,10 @@ inline bool searchStopped = false;
 
 //                   [id][ply]
 inline int killerMoves[2][64];
+
+inline int lmrTable[MAX_DEPTH+1][MAX_MOVES];
+
+void InitLMRTable();
 
 class SearchResults {
 public:
@@ -43,9 +47,9 @@ private:
     int historyMoves[2][64][64];
 public:
     void Update(bool stm, Move move, int bonus) {
-        int clampedBonus = std::clamp(bonus, -maxHistory, maxHistory);
+        int clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
         historyMoves[stm][move.MoveFrom()][move.MoveTo()] += 
-            clampedBonus - historyMoves[stm][move.MoveFrom()][move.MoveTo()] * std::abs(clampedBonus) / maxHistory;
+            clampedBonus - historyMoves[stm][move.MoveFrom()][move.MoveTo()] * std::abs(clampedBonus) / MAX_HISTORY;
     }
 
     void Clear() {
@@ -67,8 +71,8 @@ inline History history;
 
 class PVLine {
 private:
-    int length[maxDepth] = {};
-    Move table[maxDepth][maxDepth] = {};
+    int length[MAX_DEPTH] = {};
+    Move table[MAX_DEPTH][MAX_DEPTH] = {};
 public:
     void SetLength(int ply) {
         length[ply] = ply;
@@ -92,8 +96,8 @@ public:
     }
 
     void Clear() {
-        length[maxDepth - 1] = {};
-        table[maxDepth - 1][maxDepth - 1] = {};
+        length[MAX_DEPTH - 1] = {};
+        table[MAX_DEPTH - 1][MAX_DEPTH - 1] = {};
     }
 };
 
