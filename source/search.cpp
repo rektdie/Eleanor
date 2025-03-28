@@ -208,7 +208,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
             // Reverse Futility Pruning
             int margin = 100 * depth;
             if (staticEval - margin >= beta && depth < 7) {
-                return staticEval;
+                return (beta + (staticEval - beta) / 3);
             }
 
             // Null Move Pruning
