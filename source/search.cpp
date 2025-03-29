@@ -244,6 +244,8 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
     SearchResults results(-inf);
 
     int moveSeen = 0;
+    std::array<Move, MAX_MOVES> seenQuiets;
+    int seenQuietsCount = 0;
 
     // For all moves
     for (int i = 0; i < board.currentMoveIndex; i++) {
@@ -289,6 +291,11 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
         if (searchStopped) return 0;
 
+        if (currMove.IsQuiet()) {
+            seenQuiets[seenQuietsCount] = currMove;
+            seenQuietsCount++;
+        }
+
         moveSeen++;
         positionIndex--;
 
@@ -298,8 +305,13 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
                 killerMoves[1][ply] = killerMoves[0][ply];
                 killerMoves[0][ply] = currMove;
 
-                
-                history.Update(board.sideToMove, currMove, depth * depth);
+                int bonus = depth * depth;
+
+                history.Update(board.sideToMove, currMove, bonus);
+
+                for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
+                    history.Update(board.sideToMove, seenQuiets[moveIndex], -bonus);
+                }
             }
 
             TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
