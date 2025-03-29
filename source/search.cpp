@@ -137,20 +137,15 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
         }
     }
 
+    int bestScore = HCE::Evaluate(board);
+
     if constexpr (!isPV) {
         TTEntry *entry = TT.GetRawEntry(board.hashKey);
         if (entry->hashKey == board.hashKey) {
-            if (entry->nodeType == PV){
-                return {entry->score, entry->bestMove};
-            } else if (entry->nodeType == AllNode && entry->score <= alpha) {
-                return entry->score;
-            } else if (entry->nodeType == CutNode && entry->score >= beta) {
-                return entry->score;
-            }
+            bestScore = entry->score;
         }
     }
 
-    int bestScore = HCE::Evaluate(board);
 
     if (bestScore >= beta) {
         return bestScore;
