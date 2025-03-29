@@ -207,9 +207,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
     const int staticEval = HCE::Evaluate(board);
 
-    if (board.InCheck()) {
-        depth++;
-    } else {
+    if (!board.InCheck()) {
         if (ply) {
             // Reverse Futility Pruning
             int margin = 100 * depth;
@@ -267,26 +265,28 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
         int reductions = GetReductions(board, currMove, depth, moveSeen, ply);
 
+        int newDepth = depth + board.InCheck() - 1;
+
         // First move (suspected PV node)
         if (!i) {
             // Full search
-            score = -PVS<isPV>(copy, depth - 1, -beta, -alpha, ply + 1).score;
+            score = -PVS<isPV>(copy, newDepth, -beta, -alpha, ply + 1).score;
         } else if (reductions) {
             // Null-window search with reductions
-            score = -PVS<false>(copy, depth - 1 - reductions, -alpha-1, -alpha, ply + 1).score;
+            score = -PVS<false>(copy, newDepth - reductions, -alpha-1, -alpha, ply + 1).score;
 
             if (score > alpha) {
                 // Null-window search now without the reduction
-                score = -PVS<false>(copy, depth - 1, -alpha-1, -alpha, ply + 1).score;
+                score = -PVS<false>(copy, newDepth, -alpha-1, -alpha, ply + 1).score;
             }
         } else {
             // Null-window search
-            score = -PVS<false>(copy, depth - 1, -alpha-1, -alpha, ply + 1).score;
+            score = -PVS<false>(copy, newDepth, -alpha-1, -alpha, ply + 1).score;
         }
 
         // Check if we need to do full window re-search
         if (i && score > alpha && score < beta) {
-            score = -PVS<isPV>(copy, depth - 1, -beta, -alpha, ply + 1).score;
+            score = -PVS<isPV>(copy, newDepth, -beta, -alpha, ply + 1).score;
         }
 
         if (searchStopped) return 0;
