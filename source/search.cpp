@@ -268,7 +268,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         int newDepth = depth + board.InCheck() - 1;
 
         // First move (suspected PV node)
-        if (!i) {
+        if (!moveSeen) {
             // Full search
             score = -PVS<isPV>(copy, newDepth, -beta, -alpha, ply + 1).score;
         } else if (reductions) {
@@ -285,7 +285,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         }
 
         // Check if we need to do full window re-search
-        if (i && score > alpha && score < beta) {
+        if (moveSeen && score > alpha && score < beta) {
             score = -PVS<isPV>(copy, newDepth, -beta, -alpha, ply + 1).score;
         }
 
