@@ -265,7 +265,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
         int reductions = GetReductions(board, currMove, depth, moveSeen, ply);
 
-        int newDepth = depth + board.InCheck() - 1;
+        int newDepth = depth + copy.InCheck() - 1;
 
         // First move (suspected PV node)
         if (!moveSeen) {
