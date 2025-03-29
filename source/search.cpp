@@ -138,7 +138,13 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
 
     int bestScore = HCE::Evaluate(board);
 
-    if (bestScore>= beta) {
+    TTEntry *entry = TT.GetRawEntry(board.hashKey);
+    if (entry->hashKey == board.hashKey) {
+        bestScore = entry->score;
+    }
+
+
+    if (bestScore >= beta) {
         return bestScore;
     }
 
