@@ -128,6 +128,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     return reduction;
 }
 
+template <bool isPV>
 static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
     if (!benchStarted && nodes % 1024 == 0) {
         if (sw.GetElapsedMS() >= timeToSearch) {
@@ -136,9 +137,22 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
         }
     }
 
+    if constexpr (!isPV) {
+        TTEntry *entry = TT.GetRawEntry(board.hashKey);
+        if (entry->hashKey == board.hashKey) {
+            if (entry->nodeType == PV){
+                return {entry->score, entry->bestMove};
+            } else if (entry->nodeType == AllNode && entry->score <= alpha) {
+                return entry->score;
+            } else if (entry->nodeType == CutNode && entry->score >= beta) {
+                return entry->score;
+            }
+        }
+    }
+
     int bestScore = HCE::Evaluate(board);
 
-    if (bestScore>= beta) {
+    if (bestScore >= beta) {
         return bestScore;
     }
 
@@ -156,7 +170,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
         Board copy = board;
         int isLegal = copy.MakeMove(board.moveList[i]);
         if (!isLegal) continue;
-        int score = -Quiescence(copy, -beta, -alpha, ply + 1).score;
+        int score = -Quiescence<isPV>(copy, -beta, -alpha, ply + 1).score;
         positionIndex--;
 
         if (score >= beta) {
@@ -197,7 +211,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         }
     }
 
-    if (depth <= 0) return Quiescence(board, alpha, beta, ply);
+    if (depth <= 0) return Quiescence<isPV>(board, alpha, beta, ply);
 
     const int staticEval = HCE::Evaluate(board);
 
