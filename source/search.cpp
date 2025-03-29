@@ -253,7 +253,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         // If our static eval is far below alpha, there is only a small chance
         // that a quiet move will help us so we skip them
         int fpMargin = 100 * depth;
-        if (!isPV && ply && !board.InCheck() && currMove.IsQuiet()
+        if (!isPV && ply && currMove.IsQuiet()
             && depth <= 5 && staticEval + fpMargin < alpha && results.score > MATE_SCORE) {
             continue;
         }
