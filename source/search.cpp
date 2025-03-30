@@ -117,6 +117,11 @@ static bool IsFifty(Board &board) {
     return (board.halfMoves >= 100);
 }
 
+static bool IsInsuffMat(Board &board) {
+    return (board.occupied.PopCount() <= 3 
+        && !(board.pieces[Pawn] | board.pieces[Queen] | board.pieces[Rook]));
+}
+
 static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply) {
     int reduction = 0;
     
@@ -192,7 +197,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
     }
 
     pvLine.SetLength(ply);
-    if (ply && (IsThreefold(board) || IsFifty(board))) return 0;
+    if (ply && (IsThreefold(board) || IsFifty(board) || IsInsuffMat(board))) return 0;
 
 
     // if NOT PV node then we try to hit the TTable
