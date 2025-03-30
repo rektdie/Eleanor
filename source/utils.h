@@ -29,4 +29,7 @@ std::vector<std::string> split(std::string_view str, char delim);
 int parseSquare(std::string_view str);
 
 Move parseMove(Board &board, std::string_view str);
+
+std::array<uint8_t, 32> CompressPieces(Board &board);
+
 }

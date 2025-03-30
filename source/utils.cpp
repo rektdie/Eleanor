@@ -146,4 +146,33 @@ Move parseMove(Board &board, std::string_view str) {
 
     return Move(from, to, flag);
 }
+
+std::array<uint8_t, 32> CompressPieces(Board &board) {
+    std::array<uint8_t, 32> compressed;
+    
+    for (int square = a1; square <= h8; square++) {
+        int pieceCode = 0;
+
+        for (int pieceType = Pawn; pieceType <= King; pieceType++) {
+            if (board.pieces[pieceType].IsSet(square)) {
+                if (board.pieces[pieceType] & board.colors[White]) {
+                    pieceCode = pieceType + 1; // White pieces: 1-6
+                } else {
+                    pieceCode = pieceType + 7; // Black pieces: 7-12
+                }
+                break;
+            }
+        }
+
+        int byteIndex = square / 2;
+
+        if (square % 2 == 0) {
+            compressed[byteIndex] = (compressed[byteIndex] & 0xF0) | (pieceCode & 0x0F);
+        } else {
+            compressed[byteIndex] = (compressed[byteIndex] & 0x0F) | ((pieceCode & 0x0F) << 4);
+        }
+    }
+
+    return compressed;
+}
 }
