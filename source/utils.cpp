@@ -148,24 +148,45 @@ Move parseMove(Board &board, std::string_view str) {
 }
 
 std::array<uint8_t, 32> CompressPieces(Board &board) {
+    const uint8_t UNMOVED_ROOK = 0x10;  // Special value for unmoved rooks
+
     std::array<uint8_t, 32> compressed;
-    
+
     for (int square = a1; square <= h8; square++) {
         int pieceCode = 0;
 
         for (int pieceType = Pawn; pieceType <= King; pieceType++) {
-            if (board.pieces[pieceType].IsSet(square)) {
-                if (board.pieces[pieceType] & board.colors[White]) {
-                    pieceCode = pieceType + 1; // White pieces: 1-6
+            Bitboard pieceBitboard = board.pieces[pieceType];
+
+            if (pieceBitboard.IsSet(square)) {
+                if (board.colors[White] & board.pieces[pieceType]) {
+                    pieceCode = pieceType + 1;  // White pieces: 1-6
                 } else {
-                    pieceCode = pieceType + 7; // Black pieces: 7-12
+                    pieceCode = pieceType + 7;  // Black pieces: 7-12
+                }
+
+                // If it's a rook and hasn't moved (check castling rights)
+                if (pieceType == Rook) {
+                    if (board.sideToMove == White) {
+                        // If the white rooks are still eligible for castling, they haven't moved
+                        if ((board.castlingRights & (whiteKingRight | whiteQueenRight)) != 0) {
+                            pieceCode |= UNMOVED_ROOK;  // Mark as unmoved rook
+                        }
+                    } else if (board.sideToMove == Black) {
+                        // If the black rooks are still eligible for castling, they haven't moved
+                        if ((board.castlingRights & (blackKingRight | blackQueenRight)) != 0) {
+                            pieceCode |= UNMOVED_ROOK;  // Mark as unmoved rook
+                        }
+                    }
                 }
                 break;
             }
         }
 
+        // Determine the byte index for storing the piece code (since we are packing 2 pieces per byte)
         int byteIndex = square / 2;
 
+        // Pack the piece code into the byte array
         if (square % 2 == 0) {
             compressed[byteIndex] = (compressed[byteIndex] & 0xF0) | (pieceCode & 0x0F);
         } else {
@@ -175,4 +196,5 @@ std::array<uint8_t, 32> CompressPieces(Board &board) {
 
     return compressed;
 }
+
 }
