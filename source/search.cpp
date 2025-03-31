@@ -125,7 +125,7 @@ static bool IsInsuffMat(Board &board) {
 }
 
 bool IsDraw(Board &board) {
-    return IsFifty || IsInsuffMat || IsThreefold;
+    return IsFifty(board) || IsInsuffMat(board) || IsThreefold(board);
 }
 
 static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply) {

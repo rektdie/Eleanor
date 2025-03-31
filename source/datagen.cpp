@@ -22,20 +22,7 @@ static void PlayRandMoves(Board &board) {
 }
 
 static bool IsGameOver(Board &board) {
-    Board copy = board;
-    // Checkmate / stalemate
-    int moveCounter = 0;
-    for (int i = 0; board.currentMoveIndex; i++) {
-        bool isLegal = copy.MakeMove(board.moveList[i]);
-        if (!isLegal) continue;
-        positionIndex--;
-        moveCounter++;
-    }
-
-    if (moveCounter == 0) return true;
-
-    // Draws
-    return SEARCH::IsDraw(board);
+    // TODO
 }
 
 void Run(int games) {
@@ -51,7 +38,14 @@ void Run(int games) {
 
         SEARCH::SearchResults safeResults;
         
-        // TODO: Game loop
+        // while (!IsGameOver(board)) {
+        //     SEARCH::SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams());
+
+        //     if (!results.bestMove) break;
+        //     safeResults = results;
+
+        //     board.MakeMove(results.bestMove);
+        // }
         
         if (std::abs(safeResults.score) >= SEARCH::inf - SEARCH::MAX_DEPTH) {
             wdl = board.sideToMove ? 2 : 0; 
