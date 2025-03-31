@@ -124,6 +124,10 @@ static bool IsInsuffMat(Board &board) {
         && !(board.pieces[Pawn] | board.pieces[Queen] | board.pieces[Rook]));
 }
 
+bool IsDraw(Board &board) {
+    return IsFifty || IsInsuffMat || IsThreefold;
+}
+
 static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply) {
     int reduction = 0;
     
@@ -445,7 +449,7 @@ static SearchResults ID(Board &board, SearchParams params) {
 }
 
 template <searchMode mode>
-void SearchPosition(Board &board, SearchParams params) {
+SearchResults SearchPosition(Board &board, SearchParams params) {
     searchStopped = false;
     if constexpr (mode != bench) {
         nodes = 0;
@@ -454,11 +458,13 @@ void SearchPosition(Board &board, SearchParams params) {
 
     SearchResults results = ID<mode>(board, params);
 
-    if constexpr (mode != normal) return;
+    if constexpr (mode != normal) return results;
 
     std::cout << "bestmove ";
     results.bestMove.PrintMove();
     std::cout << std::endl;
+
+    return results;
 }
 
 void StopSearch() {
@@ -472,8 +478,8 @@ template SearchResults PVS<false, searchMode::normal>(Board, int, int, int, int)
 template SearchResults PVS<true, searchMode::datagen>(Board, int, int, int, int);
 template SearchResults PVS<false, searchMode::datagen>(Board, int, int, int, int);
 
-template void SearchPosition<normal>(Board &board, SearchParams params);
-template void SearchPosition<bench>(Board &board, SearchParams params);
-template void SearchPosition<datagen>(Board &board, SearchParams params);
+template SearchResults SearchPosition<normal>(Board &board, SearchParams params);
+template SearchResults SearchPosition<bench>(Board &board, SearchParams params);
+template SearchResults SearchPosition<datagen>(Board &board, SearchParams params);
 
 }

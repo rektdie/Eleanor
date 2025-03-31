@@ -50,5 +50,5 @@ struct Game {
     }
 };
 
-void Run();
+void Run(int games);
 }

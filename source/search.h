@@ -111,8 +111,10 @@ template <bool isPV, searchMode mode>
 SearchResults PVS(Board board, int depth, int alpha, int beta, int ply);
 
 template <searchMode mode>
-void SearchPosition(Board &board, SearchParams params);
+SearchResults SearchPosition(Board &board, SearchParams params);
 void StopSearch();
+
+bool IsDraw(Board &board);
 
 constexpr int moveScoreTable[6][6] = {
     105, 205, 305, 405, 505, 605,
