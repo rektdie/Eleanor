@@ -147,10 +147,10 @@ Move parseMove(Board &board, std::string_view str) {
     return Move(from, to, flag);
 }
 
-std::array<uint8_t, 32> CompressPieces(Board &board) {
+std::array<uint8_t, 16> CompressPieces(Board &board) {
     const uint8_t UNMOVED_ROOK = 0x10;  // Special value for unmoved rooks
 
-    std::array<uint8_t, 32> compressed;
+    std::array<uint8_t, 16> compressed;
 
     for (int square = a1; square <= h8; square++) {
         int pieceCode = 0;

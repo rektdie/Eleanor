@@ -30,6 +30,6 @@ int parseSquare(std::string_view str);
 
 Move parseMove(Board &board, std::string_view str);
 
-std::array<uint8_t, 32> CompressPieces(Board &board);
+std::array<uint8_t, 16> CompressPieces(Board &board);
 
 }
