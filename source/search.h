@@ -7,6 +7,12 @@
 
 namespace SEARCH {
 
+enum searchMode {
+    normal,
+    bench,
+    datagen
+};
+
 constexpr int MATE_SCORE = -99000;
 constexpr int MAX_DEPTH = 64;
 constexpr int MAX_HISTORY = 16384;
@@ -101,9 +107,10 @@ public:
     }
 };
 
-template <bool isPV>
+template <bool isPV, searchMode mode>
 SearchResults PVS(Board board, int depth, int alpha, int beta, int ply);
 
+template <searchMode mode>
 void SearchPosition(Board &board, SearchParams params);
 void StopSearch();
 

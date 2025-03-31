@@ -63,7 +63,7 @@ constexpr std::array<std::string_view, 50> fenPositions = {
 
 void RunBenchmark() {
     Board board;
-    int depth = 8;
+    int depth = BENCH_DEPTH;
     int ply = 0;
     benchStarted = true;
     searchStopped = false;
@@ -80,7 +80,7 @@ void RunBenchmark() {
     Stopwatch sw;
     for (int i = 0; i < fenPositions.size(); i++) {
         board.SetByFen(fenPositions[i]);
-        PVS<true>(board, depth, -inf, inf, ply);
+        SearchPosition<bench>(board, SearchParams());
     }
 
     std::cout << nodes << " nodes " << int(nodes/sw.GetElapsedSec()) << " nps" << std::endl;

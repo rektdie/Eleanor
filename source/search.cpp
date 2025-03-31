@@ -5,6 +5,8 @@
 #include <cmath>
 #include "tt.h"
 #include "stopwatch.h"
+#include "datagen.h"
+#include "benchmark.h"
 
 namespace SEARCH {
 
@@ -187,12 +189,21 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
     return results;
 }
 
-template <bool isPV>
+template <bool isPV, searchMode mode>
 SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
-    if (!benchStarted && nodes % 1024 == 0) {
-        if (sw.GetElapsedMS() >= timeToSearch) {
-            StopSearch();
-            return 0;
+    if constexpr (mode != bench) {
+        if (nodes % 1024 == 0) {
+            if constexpr (mode == normal) {
+                if (sw.GetElapsedMS() >= timeToSearch) {
+                    StopSearch();
+                    return 0;
+                }
+            } else {
+                if (nodes >= DATAGEN::HARD_NODES) {
+                    StopSearch();
+                    return 0;
+                }
+            }
         }
     }
 
@@ -228,7 +239,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
                     // Always legal so we dont check it
     
                     doingNullMove = true;
-                    int score = -PVS<false>(copy, depth - 3, -beta, -beta + 1, ply + 1).score;
+                    int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1).score;
                     doingNullMove = false;
     
                     if (searchStopped) return 0;
@@ -275,23 +286,23 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         // First move (suspected PV node)
         if (!moveSeen) {
             // Full search
-            score = -PVS<isPV>(copy, newDepth, -beta, -alpha, ply + 1).score;
+            score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1).score;
         } else if (reductions) {
             // Null-window search with reductions
-            score = -PVS<false>(copy, newDepth - reductions, -alpha-1, -alpha, ply + 1).score;
+            score = -PVS<false, mode>(copy, newDepth - reductions, -alpha-1, -alpha, ply + 1).score;
 
             if (score > alpha) {
                 // Null-window search now without the reduction
-                score = -PVS<false>(copy, newDepth, -alpha-1, -alpha, ply + 1).score;
+                score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1).score;
             }
         } else {
             // Null-window search
-            score = -PVS<false>(copy, newDepth, -alpha-1, -alpha, ply + 1).score;
+            score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1).score;
         }
 
         // Check if we need to do full window re-search
         if (moveSeen && score > alpha && score < beta) {
-            score = -PVS<isPV>(copy, newDepth, -beta, -alpha, ply + 1).score;
+            score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1).score;
         }
 
         if (searchStopped) return 0;
@@ -347,12 +358,19 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 }
 
 // Iterative deepening
+template <searchMode mode>
 static SearchResults ID(Board &board, SearchParams params) {
     int fullTime = board.sideToMove ? params.btime : params.wtime;
     int inc = board.sideToMove ? params.binc : params.winc;
 
     SearchResults safeResults;
     safeResults.score = -inf;
+
+    int toDepth = MAX_DEPTH;
+
+    if constexpr (mode == bench) {
+        toDepth = BENCH_DEPTH;
+    }
 
     int alpha = -inf;
     int beta = inf;
@@ -362,13 +380,16 @@ static SearchResults ID(Board &board, SearchParams params) {
     int ply = 0;
 
     int elapsed = 0;
-    sw.Restart();
 
-    for (int depth = 1; depth <= MAX_DEPTH; depth++) {
+    if constexpr (mode == normal) {
+        sw.Restart();
+    }
+
+    for (int depth = 1; depth <= toDepth; depth++) {
         timeToSearch = std::max((fullTime / 20) + (inc / 2), 4);
         int softTime = timeToSearch * 0.65;
 
-        SearchResults currentResults = PVS<true>(board, depth, alpha, beta, ply);
+        SearchResults currentResults = PVS<true, mode>(board, depth, alpha, beta, ply);
         elapsed = sw.GetElapsedMS();
 
         // If we fell outside the window, try again with full width
@@ -396,19 +417,26 @@ static SearchResults ID(Board &board, SearchParams params) {
                 safeResults = currentResults;
             }
 
-            std::cout << "info ";
-            std::cout << "depth " << depth;
-            std::cout << " time " << elapsed;
-            std::cout << " score cp " << safeResults.score;
-            std::cout << " nodes " << nodes << " nps " << int(nodes/sw.GetElapsedSec());
-            std::cout << " hashfull " << TT.GetUsedPercentage();
-            std::cout << " pv ";
-            pvLine.Print(0);
-            std::cout << std::endl;
-            
-            if (sw.GetElapsedMS() >= softTime) {
-                StopSearch();
-                break;
+            if constexpr (mode == normal) {
+                std::cout << "info ";
+                std::cout << "depth " << depth;
+                std::cout << " time " << elapsed;
+                std::cout << " score cp " << safeResults.score;
+                std::cout << " nodes " << nodes << " nps " << int(nodes/sw.GetElapsedSec());
+                std::cout << " hashfull " << TT.GetUsedPercentage();
+                std::cout << " pv ";
+                pvLine.Print(0);
+                std::cout << std::endl;
+
+                if (sw.GetElapsedMS() >= softTime) {
+                    StopSearch();
+                    break;
+                }
+            } else if constexpr (mode == datagen) {
+                if (nodes >= DATAGEN::SOFT_NODES) {
+                    StopSearch();
+                    break;
+                }
             }
         }
     }
@@ -416,12 +444,17 @@ static SearchResults ID(Board &board, SearchParams params) {
     return safeResults;
 }
 
+template <searchMode mode>
 void SearchPosition(Board &board, SearchParams params) {
     searchStopped = false;
-    nodes = 0;
+    if constexpr (mode != bench) {
+        nodes = 0;
+    }
     pvLine.Clear();
 
-    SearchResults results = ID(board, params);
+    SearchResults results = ID<mode>(board, params);
+
+    if constexpr (mode != normal) return;
 
     std::cout << "bestmove ";
     results.bestMove.PrintMove();
@@ -431,4 +464,16 @@ void SearchPosition(Board &board, SearchParams params) {
 void StopSearch() {
     searchStopped = true;
 }
+
+template SearchResults PVS<true, searchMode::bench>(Board, int, int, int, int);
+template SearchResults PVS<false, searchMode::bench>(Board, int, int, int, int);
+template SearchResults PVS<true, searchMode::normal>(Board, int, int, int, int);
+template SearchResults PVS<false, searchMode::normal>(Board, int, int, int, int);
+template SearchResults PVS<true, searchMode::datagen>(Board, int, int, int, int);
+template SearchResults PVS<false, searchMode::datagen>(Board, int, int, int, int);
+
+template void SearchPosition<normal>(Board &board, SearchParams params);
+template void SearchPosition<bench>(Board &board, SearchParams params);
+template void SearchPosition<datagen>(Board &board, SearchParams params);
+
 }

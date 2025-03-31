@@ -82,7 +82,7 @@ static void ParseGo(Board &board, std::string &command) {
         params.btime = ReadParam("movetime", command);
     }
     
-    auto worker = std::thread(SEARCH::SearchPosition, std::ref(board), params);
+    auto worker = std::thread(SEARCH::SearchPosition<SEARCH::normal>, std::ref(board), params);
     worker.detach();
 }
 
