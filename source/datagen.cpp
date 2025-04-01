@@ -1,5 +1,6 @@
 #include <random>
 #include <cstring>
+#include <fstream>
 #include "datagen.h"
 #include "movegen.h"
 #include "evaluate.h"
@@ -42,6 +43,79 @@ static bool IsGameOver(Board &board) {
     return false;
 }
 
+
+// Serialize MarlinFormat
+std::ostream &operator<<(std::ostream &os, const MarlinFormat &format) {
+    os.write(reinterpret_cast<const char *>(&format), sizeof(MarlinFormat));
+    return os;
+}
+
+// Deserialize MarlinFormat
+std::istream &operator>>(std::istream &is, MarlinFormat &format) {
+    is.read(reinterpret_cast<char *>(&format), sizeof(MarlinFormat));
+    return is;
+}
+
+// Serialize ScoredMove
+std::ostream &operator<<(std::ostream &os, const ScoredMove &move) {
+    os.write(reinterpret_cast<const char *>(&move), sizeof(ScoredMove));
+    return os;
+}
+
+// Deserialize ScoredMove
+std::istream &operator>>(std::istream &is, ScoredMove &move) {
+    is.read(reinterpret_cast<char *>(&move), sizeof(ScoredMove));
+    return is;
+}
+
+// Serialize Game
+std::ostream &operator<<(std::ostream &os, const Game &game) {
+    os << game.format;  // Write MarlinFormat
+
+    uint32_t moveCount = game.moves.size();
+    os.write(reinterpret_cast<const char *>(&moveCount), sizeof(moveCount));  // Write move count
+
+    for (const auto &move : game.moves) {
+        os << move;  // Write each move
+    }
+
+    return os;
+}
+
+// Deserialize Game
+std::istream &operator>>(std::istream &is, Game &game) {
+    is >> game.format;  // Read MarlinFormat
+
+    uint32_t moveCount;
+    is.read(reinterpret_cast<char *>(&moveCount), sizeof(moveCount));  // Read move count
+
+    game.moves.resize(moveCount);
+    for (auto &move : game.moves) {
+        is >> move;  // Read each move
+    }
+
+    return is;
+}
+
+void WriteToFile(const Game &game, const std::string &filename) {
+    std::ofstream file(filename, std::ios::binary);
+    if (!file) throw std::runtime_error("Failed to open file for writing");
+
+    // Write MarlinFormat (full format)
+    file.write(reinterpret_cast<const char*>(&game.format), sizeof(MarlinFormat));
+
+    // Write each ScoredMove
+    for (const auto &move : game.moves) {
+        file.write(reinterpret_cast<const char*>(&move), sizeof(ScoredMove));
+    }
+
+    // Write 4 zero bytes at the end
+    uint32_t zero = 0;
+    file.write(reinterpret_cast<const char*>(&zero), sizeof(zero));
+
+    file.close();
+}
+
 void Run(int games) {
     for (int i = 0; i < games; i++) {
         Game game;
@@ -76,6 +150,7 @@ void Run(int games) {
         }
 
         game.format.packFrom(board, staticEval, wdl);
+        WriteToFile(game, "data.binpack");
     }
 }
 }

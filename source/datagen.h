@@ -34,6 +34,8 @@ struct ScoredMove {
     uint16_t move;
     int16_t score;
 
+    ScoredMove() : move(0), score(0) {}
+
     ScoredMove(Move m, int s) {
         move = m;
         score = s;
