@@ -11,6 +11,7 @@
 namespace SEARCH {
 
 U64 nodes = 0;
+U64 nodesToGo = 0;
 bool benchStarted = false;
 
 static inline int timeToSearch = 0;
@@ -139,14 +140,22 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     return reduction;
 }
 
+template <searchMode mode>
 static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
-    if (!benchStarted && nodes % 1024 == 0) {
-        if (sw.GetElapsedMS() >= timeToSearch) {
+    if constexpr (mode != nodesMode)  {
+        if (!benchStarted && nodes % 1024 == 0) {
+            if (sw.GetElapsedMS() >= timeToSearch) {
+                StopSearch();
+                return 0;
+            }
+        }
+    } else {
+        if (nodes >= nodesToGo) {
             StopSearch();
             return 0;
         }
     }
-
+    
     int bestScore = HCE::Evaluate(board);
 
     TTEntry *entry = TT.GetRawEntry(board.hashKey);
@@ -173,7 +182,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
         Board copy = board;
         int isLegal = copy.MakeMove(board.moveList[i]);
         if (!isLegal) continue;
-        int score = -Quiescence(copy, -beta, -alpha, ply + 1).score;
+        int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1).score;
         positionIndex--;
 
         if (score >= beta) {
@@ -195,19 +204,24 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
 
 template <bool isPV, searchMode mode>
 SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
-    if constexpr (mode != bench) {
+    if constexpr (mode != bench || mode != nodesMode) {
         if (nodes % 1024 == 0) {
             if constexpr (mode == normal) {
                 if (sw.GetElapsedMS() >= timeToSearch) {
                     StopSearch();
                     return 0;
                 }
-            } else {
+            } else if constexpr (mode == datagen) {
                 if (nodes >= DATAGEN::HARD_NODES) {
                     StopSearch();
                     return 0;
                 }
             }
+        }
+    } else if constexpr (mode == nodesMode) {
+        if (nodes >= nodesToGo) {
+            StopSearch();
+            return 0;
         }
     }
 
@@ -223,7 +237,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         }
     }
 
-    if (depth <= 0) return Quiescence(board, alpha, beta, ply);
+    if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply);
 
     const int staticEval = HCE::Evaluate(board);
 
@@ -385,9 +399,7 @@ static SearchResults ID(Board &board, SearchParams params) {
 
     int elapsed = 0;
 
-    if constexpr (mode == normal) {
-        sw.Restart();
-    }
+    sw.Restart();
 
     for (int depth = 1; depth <= toDepth; depth++) {
         timeToSearch = std::max((fullTime / 20) + (inc / 2), 4);
@@ -421,7 +433,7 @@ static SearchResults ID(Board &board, SearchParams params) {
                 safeResults = currentResults;
             }
 
-            if constexpr (mode == normal) {
+            if constexpr (mode == normal || mode == nodesMode) {
                 std::cout << "info ";
                 std::cout << "depth " << depth;
                 std::cout << " time " << elapsed;
@@ -432,9 +444,11 @@ static SearchResults ID(Board &board, SearchParams params) {
                 pvLine.Print(0);
                 std::cout << std::endl;
 
-                if (sw.GetElapsedMS() >= softTime) {
-                    StopSearch();
-                    break;
+                if constexpr (mode == normal) {
+                    if (sw.GetElapsedMS() >= softTime) {
+                        StopSearch();
+                        break;
+                    }
                 }
             } else if constexpr (mode == datagen) {
                 if (nodes >= DATAGEN::SOFT_NODES) {
@@ -453,6 +467,10 @@ SearchResults SearchPosition(Board &board, SearchParams params) {
     searchStopped = false;
     if constexpr (mode != bench) {
         nodes = 0;
+
+        if constexpr (mode == nodesMode) {
+            nodesToGo = params.nodes;
+        }
     }
     pvLine.Clear();
 
@@ -481,5 +499,6 @@ template SearchResults PVS<false, searchMode::datagen>(Board, int, int, int, int
 template SearchResults SearchPosition<normal>(Board &board, SearchParams params);
 template SearchResults SearchPosition<bench>(Board &board, SearchParams params);
 template SearchResults SearchPosition<datagen>(Board &board, SearchParams params);
+template SearchResults SearchPosition<nodesMode>(Board &board, SearchParams params);
 
 }

@@ -10,7 +10,8 @@ namespace SEARCH {
 enum searchMode {
     normal,
     bench,
-    datagen
+    datagen,
+    nodesMode
 };
 
 constexpr int MATE_SCORE = -99000;

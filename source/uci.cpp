@@ -76,14 +76,20 @@ static void ParseGo(Board &board, std::string &command) {
     params.winc = ReadParam("winc", command);
     params.binc = ReadParam("binc", command);
     params.movesToGo = ReadParam("movestogo", command);
+    params.nodes = ReadParam("nodes", command);
 
     if (command.find("movetime") != std::string::npos) {
         params.wtime = ReadParam("movetime", command);
         params.btime = ReadParam("movetime", command);
     }
-    
-    auto worker = std::thread(SEARCH::SearchPosition<SEARCH::normal>, std::ref(board), params);
-    worker.detach();
+
+    if (params.nodes) {
+        auto worker = std::thread(SEARCH::SearchPosition<SEARCH::nodesMode>, std::ref(board), params);
+        worker.detach();
+    } else {
+        auto worker = std::thread(SEARCH::SearchPosition<SEARCH::normal>, std::ref(board), params);
+        worker.detach();
+    }
 }
 
 static void SetOption(std::string &command) {
