@@ -150,7 +150,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
             }
         }
     } else {
-        if (nodes >= nodesToGo) {
+        if (nodes > nodesToGo) {
             StopSearch();
             return 0;
         }
@@ -219,7 +219,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
             }
         }
     } else if constexpr (mode == nodesMode) {
-        if (nodes >= nodesToGo) {
+        if (nodes > nodesToGo) {
             StopSearch();
             return 0;
         }
