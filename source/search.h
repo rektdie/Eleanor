@@ -16,6 +16,7 @@ enum searchMode {
 
 constexpr int MATE_SCORE = -99000;
 constexpr int MAX_DEPTH = 64;
+constexpr int MAX_PLY = 128;
 constexpr int MAX_HISTORY = 16384;
 
 extern U64 nodes;
@@ -78,8 +79,8 @@ inline History history;
 
 class PVLine {
 private:
-    int length[MAX_DEPTH] = {};
-    Move table[MAX_DEPTH][MAX_DEPTH] = {};
+    int length[MAX_PLY] = {};
+    Move table[MAX_PLY][MAX_PLY] = {};
 public:
     void SetLength(int ply) {
         length[ply] = ply;
