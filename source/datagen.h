@@ -44,6 +44,8 @@ struct Game {
     MarlinFormat format;
     std::vector<ScoredMove> moves;
 
+    Game(){};
+
     Game(MarlinFormat f, std::vector<ScoredMove> m) {
         format = f;
         moves = m;

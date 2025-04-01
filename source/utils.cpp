@@ -148,11 +148,10 @@ Move parseMove(Board &board, std::string_view str) {
 }
 
 std::array<uint8_t, 16> CompressPieces(Board &board) {
-    const uint8_t UNMOVED_ROOK = 0x10;  // Special value for unmoved rooks
+    const uint8_t UNMOVED_ROOK = 0x08;  // We only have 4 bits, so we use bit 3 to mark unmoved rooks
+    std::array<uint8_t, 16> compressed{};  // Zero-initialize
 
-    std::array<uint8_t, 16> compressed;
-
-    for (int square = a1; square <= h8; square++) {
+    for (int square = 0; square < 64; square++) {
         int pieceCode = 0;
 
         for (int pieceType = Pawn; pieceType <= King; pieceType++) {
@@ -160,38 +159,25 @@ std::array<uint8_t, 16> CompressPieces(Board &board) {
 
             if (pieceBitboard.IsSet(square)) {
                 if (board.colors[White] & board.pieces[pieceType]) {
-                    pieceCode = pieceType + 1;  // White pieces: 1-6
+                    pieceCode = pieceType;  // White: 1-6
                 } else {
-                    pieceCode = pieceType + 7;  // Black pieces: 7-12
+                    pieceCode = pieceType + 6;  // Black: 7-12
                 }
 
-                // If it's a rook and hasn't moved (check castling rights)
+                // Check for unmoved rook
                 if (pieceType == Rook) {
-                    if (board.sideToMove == White) {
-                        // If the white rooks are still eligible for castling, they haven't moved
-                        if ((board.castlingRights & (whiteKingRight | whiteQueenRight)) != 0) {
-                            pieceCode |= UNMOVED_ROOK;  // Mark as unmoved rook
-                        }
-                    } else if (board.sideToMove == Black) {
-                        // If the black rooks are still eligible for castling, they haven't moved
-                        if ((board.castlingRights & (blackKingRight | blackQueenRight)) != 0) {
-                            pieceCode |= UNMOVED_ROOK;  // Mark as unmoved rook
-                        }
+                    if ((board.castlingRights & (whiteKingRight | whiteQueenRight | blackKingRight | blackQueenRight)) != 0) {
+                        pieceCode |= UNMOVED_ROOK;  // Mark as unmoved rook (bit 3 set)
                     }
                 }
                 break;
             }
         }
 
-        // Determine the byte index for storing the piece code (since we are packing 2 pieces per byte)
-        int byteIndex = square / 2;
+        int byteIndex = square / 4;
+        int shift = (square % 4) * 4;
 
-        // Pack the piece code into the byte array
-        if (square % 2 == 0) {
-            compressed[byteIndex] = (compressed[byteIndex] & 0xF0) | (pieceCode & 0x0F);
-        } else {
-            compressed[byteIndex] = (compressed[byteIndex] & 0x0F) | ((pieceCode & 0x0F) << 4);
-        }
+        compressed[byteIndex] |= (pieceCode & 0x0F) << shift;  // Pack 4-bit pieceCode
     }
 
     return compressed;
