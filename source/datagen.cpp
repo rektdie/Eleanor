@@ -150,7 +150,7 @@ static void WriteToFile(const Game &game, const std::string &filename) {
     file.close();
 }
 
-void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch) {
+void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int threads) {
     double elapsed = stopwatch.GetElapsedSec();
     double positionsPerSec = elapsed > 0 ? positions / elapsed : 0;
 
@@ -187,6 +187,12 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch) {
     std::string positionsPerSecText = "Positions/sec: " + std::to_string(static_cast<int>(round(positionsPerSec)));
     int positionsPerSecPadding = (width - positionsPerSecText.length()) / 2;
     std::cout << std::setw(positionsPerSecPadding + positionsPerSecText.length()) << positionsPerSecText << std::endl;
+
+    std::cout << std::endl;
+
+    std::string threadsText = "Threads: " + std::to_string(static_cast<int>(threads));
+    int threadsTextPadding = (width - threadsText.length()) / 2;
+    std::cout << std::setw(threadsTextPadding + threadsText.length()) << threadsText << std::endl;
 
     std::cout << std::endl;
 
@@ -268,7 +274,7 @@ void Run(int targetPositions, int threads) {
 
         if (positions / 100 > lastPrintedPosition) {
             lastPrintedPosition = positions / 1000;
-            PrintProgress(positions, targetPositions * 1000000, stopwatch);
+            PrintProgress(positions, targetPositions * 1000000, stopwatch, threads);
         }
     }
 
