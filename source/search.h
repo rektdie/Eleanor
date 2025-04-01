@@ -27,7 +27,7 @@ constexpr int inf = 100000;
 inline bool searchStopped = false;
 
 //                   [id][ply]
-inline int killerMoves[2][64];
+inline int killerMoves[2][MAX_PLY];
 
 inline int lmrTable[MAX_DEPTH+1][MAX_MOVES];
 
