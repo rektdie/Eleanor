@@ -14,34 +14,30 @@
 #include <windows.h>
 #endif
 
-// Function to hide the cursor on Windows
 #ifdef _WIN32
-void HideCursor() {
+static void HideCursor() {
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_CURSOR_INFO cursorInfo;
     GetConsoleCursorInfo(hConsole, &cursorInfo);
-    cursorInfo.bVisible = FALSE;  // Set cursor visibility to false
+    cursorInfo.bVisible = FALSE;
     SetConsoleCursorInfo(hConsole, &cursorInfo);
 }
 
-// Function to show the cursor on Windows
-void ShowCursor() {
+static void ShowCursor() {
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_CURSOR_INFO cursorInfo;
     GetConsoleCursorInfo(hConsole, &cursorInfo);
-    cursorInfo.bVisible = TRUE;  // Set cursor visibility to true
+    cursorInfo.bVisible = TRUE;
     SetConsoleCursorInfo(hConsole, &cursorInfo);
 }
 #endif
 
-// Function to hide the cursor on Linux/macOS
-void HideCursorLinux() {
-    std::cout << "\033[?25l";  // ANSI escape sequence to hide the cursor
+static void HideCursorLinux() {
+    std::cout << "\033[?25l";
 }
 
-// Function to show the cursor on Linux/macOS
-void ShowCursorLinux() {
-    std::cout << "\033[?25h";  // ANSI escape sequence to show the cursor
+static void ShowCursorLinux() {
+    std::cout << "\033[?25h";
 }
 
 namespace DATAGEN {
@@ -100,7 +96,6 @@ std::istream &operator>>(std::istream &is, ScoredMove &move) {
     return is;
 }
 
-// Serialize Game
 std::ostream &operator<<(std::ostream &os, const Game &game) {
     os << game.format;
 
@@ -114,7 +109,6 @@ std::ostream &operator<<(std::ostream &os, const Game &game) {
     return os;
 }
 
-// Deserialize Game
 std::istream &operator>>(std::istream &is, Game &game) {
     is >> game.format;
 
@@ -129,19 +123,29 @@ std::istream &operator>>(std::istream &is, Game &game) {
     return is;
 }
 
-void WriteToFile(const Game &game, const std::string &filename) {
-    std::ofstream file(filename, std::ios::binary | std::ios::app);
-    if (!file) throw std::runtime_error("Failed to open file for writing");
+static void WriteToFile(const Game &game, const std::string &filename) {
+    // Create a buffer to store the serialized data [prevents corruption]
+    std::vector<char> buffer;
 
-    // Write MarlinFormat (full format)
-    file.write(reinterpret_cast<const char*>(&game.format), sizeof(MarlinFormat));
+    const size_t formatSize = sizeof(MarlinFormat);
+    buffer.resize(formatSize + sizeof(uint32_t) * game.moves.size() + sizeof(uint32_t));
+
+    std::memcpy(buffer.data(), &game.format, formatSize);
+
+    size_t offset = formatSize;
 
     for (const auto &move : game.moves) {
-        file.write(reinterpret_cast<const char*>(&move), sizeof(ScoredMove));
+        std::memcpy(buffer.data() + offset, &move, sizeof(ScoredMove));
+        offset += sizeof(ScoredMove);
     }
 
     uint32_t zero = 0;
-    file.write(reinterpret_cast<const char*>(&zero), sizeof(zero));
+    std::memcpy(buffer.data() + offset, &zero, sizeof(zero));
+
+    std::ofstream file(filename, std::ios::binary | std::ios::out | std::ios::trunc);
+    if (!file) throw std::runtime_error("Failed to open file for writing");
+
+    file.write(buffer.data(), buffer.size());
 
     file.close();
 }
@@ -150,27 +154,73 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch) {
     double elapsed = stopwatch.GetElapsedSec();
     double positionsPerSec = elapsed > 0 ? positions / elapsed : 0;
 
-    double positionsInThousands = positions / 1000.0;
-    double targetInThousands = targetPositions / 1000.0;
+    int positionsInThousands = static_cast<int>(round(positions / 1000.0));
+    int targetInThousands = static_cast<int>(round(targetPositions / 1000.0));
 
     std::cout << "\033[H";
-    std::cout << "Datagen: " << std::fixed << std::setprecision(2) << std::setw(6)
-              << positionsInThousands << "K positions processed | "
-              << std::setw(6) << targetInThousands << "K target" << std::endl;
 
-    std::cout << "Elapsed Time: " << std::fixed << std::setprecision(2) << elapsed << " sec" << std::endl;
-    std::cout << "Positions/sec: " << std::fixed << std::setprecision(2) << positionsPerSec << std::endl;
-    std::cout.flush();
+    int width = 60;
+
+    std::string title = "Eleanor - Datagen";
+    int titlePadding = (width - title.length()) / 2;
+    std::cout << std::setw(titlePadding + title.length()) << title << std::endl;
+
+    std::cout << std::string(width, '=') << std::endl;
+
+    std::cout << std::endl;
+
+    std::cout << std::fixed << std::setprecision(0);
+
+    std::ostringstream datagenTextStream;
+    datagenTextStream << std::fixed << std::setprecision(2) 
+                    << "Positions processed: " << positions / 1000.0 << "K | Target: " << targetPositions / 1000.0 << "K";
+    std::string datagenText = datagenTextStream.str();
+    int datagenPadding = (width - datagenText.length()) / 2;
+    std::cout << std::setw(datagenPadding + datagenText.length()) << datagenText << std::endl;
+
+    std::cout << std::endl;
+
+    std::string elapsedText = "Elapsed Time: " + std::to_string(static_cast<int>(round(elapsed))) + " sec";
+    int elapsedPadding = (width - elapsedText.length()) / 2;
+    std::cout << std::setw(elapsedPadding + elapsedText.length()) << elapsedText << std::endl;
+
+    std::string positionsPerSecText = "Positions/sec: " + std::to_string(static_cast<int>(round(positionsPerSec)));
+    int positionsPerSecPadding = (width - positionsPerSecText.length()) / 2;
+    std::cout << std::setw(positionsPerSecPadding + positionsPerSecText.length()) << positionsPerSecText << std::endl;
+
+    std::cout << std::endl;
+
+    int barWidth = 50;
+    double progress = (double)positions / targetPositions;
+    int pos = (int)(progress * barWidth);
+
+    std::string progressBar = "[";
+    for (int i = 0; i < barWidth; ++i) {
+        if (i < pos) {
+            progressBar += "=";
+        } else if (i == pos) {
+            progressBar += ">";
+        } else {
+            progressBar += " ";
+        }
+    }
+    progressBar += "] " + std::to_string(static_cast<int>(round(progress * 100.0))) + " %";
+
+    int progressPadding = (width - progressBar.length()) / 2;
+    std::cout << std::setw(progressPadding + progressBar.length()) << progressBar << std::endl;
+
+    std::cout << std::endl;
+
+    std::cout << std::string(width, '-') << std::endl;
 }
 
 void Run(int targetPositions, int threads) {
-    // Clear the console and hide the cursor
     #ifdef _WIN32
         system("cls");
-        HideCursor();  // Hide the cursor on Windows
+        HideCursor();
     #else
-        std::cout << "\033[2J\033[H";  // Clear console and move cursor to top-left on Linux/macOS
-        HideCursorLinux();  // Hide the cursor on Linux/macOS
+        std::cout << "\033[2J\033[H";
+        HideCursorLinux();
     #endif
 
     Stopwatch stopwatch;
@@ -222,11 +272,10 @@ void Run(int targetPositions, int threads) {
         }
     }
 
-    // Show the cursor again after the process is done
     #ifdef _WIN32
-        ShowCursor();  // Show the cursor on Windows
+        ShowCursor();
     #else
-        ShowCursorLinux();  // Show the cursor on Linux/macOS
+        ShowCursorLinux();
     #endif
 }
 }
