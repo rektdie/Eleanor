@@ -142,7 +142,7 @@ static void WriteToFile(const Game &game, const std::string &filename) {
     uint32_t zero = 0;
     std::memcpy(buffer.data() + offset, &zero, sizeof(zero));
 
-    std::ofstream file(filename, std::ios::binary | std::ios::out | std::ios::trunc);
+    std::ofstream file(filename, std::ios::binary | std::ios::out | std::ios::app);
     if (!file) throw std::runtime_error("Failed to open file for writing");
 
     file.write(buffer.data(), buffer.size());
@@ -234,8 +234,9 @@ void Run(int targetPositions, int threads) {
 
     int positions = 0;
     int lastPrintedPosition = 0;
+    double lastPrintedTime = stopwatch.GetElapsedSec();
 
-    while (positions < targetPositions * 1000000) {
+    while (positions < targetPositions * 1000) {
         Game game;
         Board board;
 
@@ -262,7 +263,10 @@ void Run(int targetPositions, int threads) {
             board.MakeMove(results.bestMove);
             MOVEGEN::GenerateMoves<All>(board);
 
-            positions++;
+            // Increment positions, but do not exceed target
+            if (positions < targetPositions * 1000) {
+                positions++;
+            }
         }
 
         if (std::abs(safeResults.score) >= std::abs(SEARCH::MATE_SCORE) - SEARCH::MAX_PLY) {
@@ -272,11 +276,15 @@ void Run(int targetPositions, int threads) {
         game.format.packFrom(board, staticEval, wdl);
         WriteToFile(game, "data.binpack");
 
-        if (positions / 100 > lastPrintedPosition) {
-            lastPrintedPosition = positions / 1000;
-            PrintProgress(positions, targetPositions * 1000000, stopwatch, threads);
+        // Print progress every second
+        double currentTime = stopwatch.GetElapsedSec();
+        if (currentTime - lastPrintedTime >= 1) {
+            lastPrintedTime = currentTime;
+            PrintProgress(positions, targetPositions * 1000, stopwatch, threads);
         }
     }
+
+    PrintProgress(positions, targetPositions * 1000, stopwatch, threads);
 
     #ifdef _WIN32
         ShowCursor();
@@ -284,4 +292,5 @@ void Run(int targetPositions, int threads) {
         ShowCursorLinux();
     #endif
 }
+
 }
