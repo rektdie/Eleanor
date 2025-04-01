@@ -148,8 +148,8 @@ Move parseMove(Board &board, std::string_view str) {
 }
 
 std::array<uint8_t, 16> CompressPieces(Board &board) {
-    const uint8_t UNMOVED_ROOK = 0x08;  // We use bit 3 to mark unmoved rooks
-    std::array<uint8_t, 16> compressed{};  // Zero-initialize
+    const uint8_t UNMOVED_ROOK = 0x08;
+    std::array<uint8_t, 16> compressed{};
 
     for (int square = 0; square < 64; square++) {
         int pieceCode = 0;
@@ -164,13 +164,12 @@ std::array<uint8_t, 16> CompressPieces(Board &board) {
                     pieceCode = pieceType + 6;  // Black: 7-12
                 }
 
-                // Check for unmoved rooks (based solely on castling rights)
                 if (pieceType == Rook) {
                     if ((board.colors[White] & board.pieces[Rook]) && (board.castlingRights & (whiteKingRight | whiteQueenRight))) {
-                        pieceCode |= UNMOVED_ROOK;  // Mark as unmoved rook (bit 3 set)
+                        pieceCode |= UNMOVED_ROOK;
                     }
                     if ((board.colors[Black] & board.pieces[Rook]) && (board.castlingRights & (blackKingRight | blackQueenRight))) {
-                        pieceCode |= UNMOVED_ROOK;  // Mark as unmoved rook (bit 3 set)
+                        pieceCode |= UNMOVED_ROOK;
                     }
                 }
                 break;
@@ -180,7 +179,7 @@ std::array<uint8_t, 16> CompressPieces(Board &board) {
         int byteIndex = square / 4;
         int shift = (square % 4) * 4;
 
-        compressed[byteIndex] |= (pieceCode & 0x0F) << shift;  // Pack 4-bit pieceCode
+        compressed[byteIndex] |= (pieceCode & 0x0F) << shift;
     }
 
     return compressed;

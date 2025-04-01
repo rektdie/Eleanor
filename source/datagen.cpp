@@ -1,11 +1,48 @@
 #include <random>
 #include <cstring>
 #include <fstream>
+#include <iomanip>
+#include <thread>
 #include "datagen.h"
 #include "movegen.h"
 #include "evaluate.h"
 #include "search.h"
 #include "movegen.h"
+#include "stopwatch.h"
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+// Function to hide the cursor on Windows
+#ifdef _WIN32
+void HideCursor() {
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_CURSOR_INFO cursorInfo;
+    GetConsoleCursorInfo(hConsole, &cursorInfo);
+    cursorInfo.bVisible = FALSE;  // Set cursor visibility to false
+    SetConsoleCursorInfo(hConsole, &cursorInfo);
+}
+
+// Function to show the cursor on Windows
+void ShowCursor() {
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_CURSOR_INFO cursorInfo;
+    GetConsoleCursorInfo(hConsole, &cursorInfo);
+    cursorInfo.bVisible = TRUE;  // Set cursor visibility to true
+    SetConsoleCursorInfo(hConsole, &cursorInfo);
+}
+#endif
+
+// Function to hide the cursor on Linux/macOS
+void HideCursorLinux() {
+    std::cout << "\033[?25l";  // ANSI escape sequence to hide the cursor
+}
+
+// Function to show the cursor on Linux/macOS
+void ShowCursorLinux() {
+    std::cout << "\033[?25h";  // ANSI escape sequence to show the cursor
+}
 
 namespace DATAGEN {
 
@@ -43,26 +80,21 @@ static bool IsGameOver(Board &board) {
     return false;
 }
 
-
-// Serialize MarlinFormat
 std::ostream &operator<<(std::ostream &os, const MarlinFormat &format) {
     os.write(reinterpret_cast<const char *>(&format), sizeof(MarlinFormat));
     return os;
 }
 
-// Deserialize MarlinFormat
 std::istream &operator>>(std::istream &is, MarlinFormat &format) {
     is.read(reinterpret_cast<char *>(&format), sizeof(MarlinFormat));
     return is;
 }
 
-// Serialize ScoredMove
 std::ostream &operator<<(std::ostream &os, const ScoredMove &move) {
     os.write(reinterpret_cast<const char *>(&move), sizeof(ScoredMove));
     return os;
 }
 
-// Deserialize ScoredMove
 std::istream &operator>>(std::istream &is, ScoredMove &move) {
     is.read(reinterpret_cast<char *>(&move), sizeof(ScoredMove));
     return is;
@@ -70,13 +102,13 @@ std::istream &operator>>(std::istream &is, ScoredMove &move) {
 
 // Serialize Game
 std::ostream &operator<<(std::ostream &os, const Game &game) {
-    os << game.format;  // Write MarlinFormat
+    os << game.format;
 
     uint32_t moveCount = game.moves.size();
-    os.write(reinterpret_cast<const char *>(&moveCount), sizeof(moveCount));  // Write move count
+    os.write(reinterpret_cast<const char *>(&moveCount), sizeof(moveCount));
 
     for (const auto &move : game.moves) {
-        os << move;  // Write each move
+        os << move;
     }
 
     return os;
@@ -84,40 +116,70 @@ std::ostream &operator<<(std::ostream &os, const Game &game) {
 
 // Deserialize Game
 std::istream &operator>>(std::istream &is, Game &game) {
-    is >> game.format;  // Read MarlinFormat
+    is >> game.format;
 
     uint32_t moveCount;
-    is.read(reinterpret_cast<char *>(&moveCount), sizeof(moveCount));  // Read move count
+    is.read(reinterpret_cast<char *>(&moveCount), sizeof(moveCount));
 
     game.moves.resize(moveCount);
     for (auto &move : game.moves) {
-        is >> move;  // Read each move
+        is >> move;
     }
 
     return is;
 }
 
 void WriteToFile(const Game &game, const std::string &filename) {
-    std::ofstream file(filename, std::ios::binary);
+    std::ofstream file(filename, std::ios::binary | std::ios::app);
     if (!file) throw std::runtime_error("Failed to open file for writing");
 
     // Write MarlinFormat (full format)
     file.write(reinterpret_cast<const char*>(&game.format), sizeof(MarlinFormat));
 
-    // Write each ScoredMove
     for (const auto &move : game.moves) {
         file.write(reinterpret_cast<const char*>(&move), sizeof(ScoredMove));
     }
 
-    // Write 4 zero bytes at the end
     uint32_t zero = 0;
     file.write(reinterpret_cast<const char*>(&zero), sizeof(zero));
 
     file.close();
 }
 
-void Run(int games) {
-    for (int i = 0; i < games; i++) {
+void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch) {
+    double elapsed = stopwatch.GetElapsedSec();
+    double positionsPerSec = elapsed > 0 ? positions / elapsed : 0;
+
+    double positionsInThousands = positions / 1000.0;
+    double targetInThousands = targetPositions / 1000.0;
+
+    std::cout << "\033[H";
+    std::cout << "Datagen: " << std::fixed << std::setprecision(2) << std::setw(6)
+              << positionsInThousands << "K positions processed | "
+              << std::setw(6) << targetInThousands << "K target" << std::endl;
+
+    std::cout << "Elapsed Time: " << std::fixed << std::setprecision(2) << elapsed << " sec" << std::endl;
+    std::cout << "Positions/sec: " << std::fixed << std::setprecision(2) << positionsPerSec << std::endl;
+    std::cout.flush();
+}
+
+void Run(int targetPositions, int threads) {
+    // Clear the console and hide the cursor
+    #ifdef _WIN32
+        system("cls");
+        HideCursor();  // Hide the cursor on Windows
+    #else
+        std::cout << "\033[2J\033[H";  // Clear console and move cursor to top-left on Linux/macOS
+        HideCursorLinux();  // Hide the cursor on Linux/macOS
+    #endif
+
+    Stopwatch stopwatch;
+    stopwatch.Restart();
+
+    int positions = 0;
+    int lastPrintedPosition = 0;
+
+    while (positions < targetPositions * 1000000) {
         Game game;
         Board board;
 
@@ -143,6 +205,8 @@ void Run(int games) {
             game.moves.push_back(ScoredMove(results.bestMove, results.score));
             board.MakeMove(results.bestMove);
             MOVEGEN::GenerateMoves<All>(board);
+
+            positions++;
         }
 
         if (std::abs(safeResults.score) >= std::abs(SEARCH::MATE_SCORE) - SEARCH::MAX_PLY) {
@@ -151,6 +215,18 @@ void Run(int games) {
 
         game.format.packFrom(board, staticEval, wdl);
         WriteToFile(game, "data.binpack");
+
+        if (positions / 100 > lastPrintedPosition) {
+            lastPrintedPosition = positions / 1000;
+            PrintProgress(positions, targetPositions * 1000000, stopwatch);
+        }
     }
+
+    // Show the cursor again after the process is done
+    #ifdef _WIN32
+        ShowCursor();  // Show the cursor on Windows
+    #else
+        ShowCursorLinux();  // Show the cursor on Linux/macOS
+    #endif
 }
 }

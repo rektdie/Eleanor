@@ -54,5 +54,5 @@ struct Game {
     }
 };
 
-void Run(int games);
+void Run(int targetPositions, int threads);
 }

@@ -18,11 +18,16 @@ int main(int argc, char* argv[]) {
         if (std::string(argv[1]) == "bench") {
             RunBenchmark();
         } else if (std::string(argv[1]) == "datagen") {
-            int count = 1;
+            int positions = 1;
+            int threads = 1;
             if (argc > 2) {
-                count = std::stoi(argv[2]);
+                positions = std::stoi(argv[2]);
+
+                if (argc > 3) {
+                    threads = std::stoi(argv[3]);
+                }
             }
-            DATAGEN::Run(count);
+            DATAGEN::Run(positions, threads);
         }
     } else {
         UCILoop(board);
