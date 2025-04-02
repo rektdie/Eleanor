@@ -147,15 +147,17 @@ Move parseMove(Board &board, std::string_view str) {
     return Move(from, to, flag);
 }
 
-std::array<uint8_t, 16> CompressPieces(Board &board) {
+std::array<uint8_t, 16> CompressPieces(Board board) {
     const uint8_t UNMOVED_ROOK = 6;
     std::array<uint8_t, 16> compressed{};
+
     Bitboard occupancy = board.occupied;
     int index = 0;
 
     while (occupancy) {
         int square = occupancy.getLS1BIndex();
         int pieceType = board.GetPieceType(square);
+        int pieceColor = board.GetPieceColor(square);
         int pieceCode = pieceType;
 
         if (pieceType == Rook) {
@@ -166,7 +168,7 @@ std::array<uint8_t, 16> CompressPieces(Board &board) {
                 pieceCode = UNMOVED_ROOK;
         }
 
-        pieceCode |= (board.sideToMove == Black ? (1 << 3) : 0);
+        pieceCode |= (pieceColor << 3);  // Shift the color to the 3rd bit (bit 3)
 
         int byteIndex = index / 2;
         int bitShift = (index % 2) * 4;
@@ -179,5 +181,4 @@ std::array<uint8_t, 16> CompressPieces(Board &board) {
 
     return compressed;
 }
-
 }
