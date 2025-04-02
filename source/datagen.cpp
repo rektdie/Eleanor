@@ -259,7 +259,7 @@ void Run(int targetPositions, int threads) {
             if (!results.bestMove) break;
             safeResults = results;
 
-            game.moves.push_back(ScoredMove(results.bestMove, results.score));
+            game.moves.push_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(), results.score));
             board.MakeMove(results.bestMove);
             MOVEGEN::GenerateMoves<All>(board);
 

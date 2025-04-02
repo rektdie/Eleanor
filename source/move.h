@@ -76,6 +76,48 @@ public:
         }
     }
 
+    uint16_t ConvertToViriMoveFormat() {
+        uint16_t viriMove = 0;
+        int flags = GetFlags();
+        
+        // Set from and to squares (6 bits each)
+        viriMove |= MoveFrom();
+        viriMove |= MoveTo() << 6;
+        
+        // Determine move type (bits 12-13)
+        uint16_t moveType = 0;
+        uint16_t promoPiece = 0;
+        
+        if (flags == kingCastle || flags == queenCastle) {
+            moveType = 1; // Castling
+        } 
+        else if (flags == epCapture) {
+            moveType = 2; // En passant
+        } 
+        else if (flags >= knightPromotion && flags <= queenPromoCapture) {
+            moveType = 3; // Promotion
+            // Set promo piece (bits 14-15)
+            if (flags == knightPromotion || flags == knightPromoCapture) {
+                promoPiece = 0; // Knight
+            } 
+            else if (flags == bishopPromotion || flags == bishopPromoCapture) {
+                promoPiece = 1; // Bishop
+            } 
+            else if (flags == rookPromotion || flags == rookPromoCapture) {
+                promoPiece = 2; // Rook
+            } 
+            else if (flags == queenPromotion || flags == queenPromoCapture) {
+                promoPiece = 3; // Queen
+            }
+        }
+        // else moveType remains 0 (normal move)
+        
+        viriMove |= moveType << 12;
+        viriMove |= promoPiece << 14;
+        
+        return viriMove;
+    }
+
     operator uint16_t() {
         return m_move;
     }

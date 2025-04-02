@@ -59,7 +59,7 @@ struct ScoredMove {
 
     ScoredMove() : move(0), score(0) {}
 
-    ScoredMove(Move m, int s) {
+    ScoredMove(uint16_t m, int16_t s) {
         move = m;
         score = s;
     }
