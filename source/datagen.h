@@ -1,6 +1,7 @@
 #pragma once
 #include "board.h"
 #include "utils.h"
+#include <fstream>
 
 namespace DATAGEN {
 
@@ -19,14 +20,36 @@ struct MarlinFormat {
     uint8_t extra;           // 1 byte: Reserved for future use or additional data
 
     void packFrom(Board& board, int16_t eval, uint8_t wdl) {
+        const uint8_t stm = board.sideToMove == Black ? (1 << 7) : 0;
+
         occupancy = board.occupied;
         pieces = UTILS::CompressPieces(board);
-        uint8_t stm_ep_square = (board.sideToMove<< 7) | (board.enPassantTarget & 0x3F);
+        stmEPSquare = stm | (board.enPassantTarget == noEPTarget ? 64 : board.enPassantTarget);
+
         halfmoveClock = board.halfMoves;
         fullmoveNumber = board.fullMoves;
         this->eval = eval;
         this->wdl = wdl;
         extra = 0;
+    }
+
+    void writeToFile(const std::string& filename) const {
+        std::ofstream outFile(filename, std::ios::binary);
+        if (!outFile) {
+            std::cerr << "Error opening file for writing!" << std::endl;
+            return;
+        }
+
+        outFile.write(reinterpret_cast<const char*>(&occupancy), sizeof(occupancy));
+        outFile.write(reinterpret_cast<const char*>(&pieces), sizeof(pieces));
+        outFile.write(reinterpret_cast<const char*>(&stmEPSquare), sizeof(stmEPSquare));
+        outFile.write(reinterpret_cast<const char*>(&halfmoveClock), sizeof(halfmoveClock));
+        outFile.write(reinterpret_cast<const char*>(&fullmoveNumber), sizeof(fullmoveNumber));
+        outFile.write(reinterpret_cast<const char*>(&eval), sizeof(eval));
+        outFile.write(reinterpret_cast<const char*>(&wdl), sizeof(wdl));
+        outFile.write(reinterpret_cast<const char*>(&extra), sizeof(extra));
+
+        outFile.close();
     }
 };
 

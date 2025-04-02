@@ -148,38 +148,33 @@ Move parseMove(Board &board, std::string_view str) {
 }
 
 std::array<uint8_t, 16> CompressPieces(Board &board) {
-    const uint8_t UNMOVED_ROOK = 0x08;
+    const uint8_t UNMOVED_ROOK = 6;
     std::array<uint8_t, 16> compressed{};
+    Bitboard occupancy = board.occupied;
+    int index = 0;
 
-    for (int square = 0; square < 64; square++) {
-        int pieceCode = 0;
+    while (occupancy) {
+        int square = occupancy.getLS1BIndex();
+        int pieceType = board.GetPieceType(square);
+        int pieceCode = pieceType;
 
-        for (int pieceType = Pawn; pieceType <= King; pieceType++) {
-            Bitboard pieceBitboard = board.pieces[pieceType];
-
-            if (pieceBitboard.IsSet(square)) {
-                if (board.colors[White] & board.pieces[pieceType]) {
-                    pieceCode = pieceType;  // White: 1-6
-                } else {
-                    pieceCode = pieceType + 6;  // Black: 7-12
-                }
-
-                if (pieceType == Rook) {
-                    if ((board.colors[White] & board.pieces[Rook]) && (board.castlingRights & (whiteKingRight | whiteQueenRight))) {
-                        pieceCode |= UNMOVED_ROOK;
-                    }
-                    if ((board.colors[Black] & board.pieces[Rook]) && (board.castlingRights & (blackKingRight | blackQueenRight))) {
-                        pieceCode |= UNMOVED_ROOK;
-                    }
-                }
-                break;
-            }
+        if (pieceType == Rook) {
+            if ((square == a1 && (board.castlingRights & whiteQueenRight))
+                || (square == h1 && (board.castlingRights & whiteKingRight))
+                || (square == a8 && (board.castlingRights & blackQueenRight))
+                || (square == h8 && (board.castlingRights & blackKingRight)))
+                pieceCode = UNMOVED_ROOK;
         }
 
-        int byteIndex = square / 4;
-        int shift = (square % 4) * 4;
+        pieceCode |= (board.sideToMove == Black ? (1 << 3) : 0);
 
-        compressed[byteIndex] |= (pieceCode & 0x0F) << shift;
+        int byteIndex = index / 2;
+        int bitShift = (index % 2) * 4;
+
+        compressed[byteIndex] |= (pieceCode & 0x0F) << bitShift;
+
+        index++;
+        occupancy.PopBit(square);
     }
 
     return compressed;
