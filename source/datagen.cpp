@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <thread>
 #include <atomic>
+#include <mutex>
 #include "datagen.h"
 #include "movegen.h"
 #include "evaluate.h"
@@ -42,6 +43,8 @@ static void ShowCursorLinux() {
 }
 
 namespace DATAGEN {
+
+std::mutex mutex;
 
 static void PlayRandMoves(Board &board) {
     std::random_device dev;
@@ -125,6 +128,7 @@ std::istream &operator>>(std::istream &is, Game &game) {
 }
 
 static void WriteToFile(const Game &game, const std::string &filename) {
+    std::lock_guard<std::mutex> lock(mutex);
     // Create a buffer to store the serialized data [prevents corruption]
     std::vector<char> buffer;
 
@@ -278,8 +282,10 @@ void Run(int targetPositions, int threads) {
 
     std::atomic<int> positions = 0;
 
-    auto worker = std::thread(PlayGame, std::ref(positions), targetPositions * 1000);
-    worker.detach();
+    for (int i = 0; i < threads; i++) {
+        auto worker = std::thread(PlayGame, std::ref(positions), targetPositions * 1000);
+        worker.detach();
+    }
 
     int lastPrintedPosition = 0;
     double lastPrintedTime = stopwatch.GetElapsedSec();
