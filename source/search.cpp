@@ -437,7 +437,7 @@ static SearchResults ID(Board &board, SearchParams params) {
                 std::cout << "info ";
                 std::cout << "depth " << depth;
                 std::cout << " time " << elapsed;
-                std::cout << " score cp " << safeResults.score;
+                std::cout << " score cp " << UTILS::ConvertToWhiteRelative(board, safeResults.score);
                 std::cout << " nodes " << nodes << " nps " << int(nodes/sw.GetElapsedSec());
                 std::cout << " hashfull " << TT.GetUsedPercentage();
                 std::cout << " pv ";

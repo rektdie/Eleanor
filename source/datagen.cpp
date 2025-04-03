@@ -249,7 +249,7 @@ void PlayGame(std::atomic<int>& positions, int targetPositions) {
             if (!results.bestMove) break;
             safeResults = results;
 
-            game.moves.push_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(), results.score));
+            game.moves.push_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(), UTILS::ConvertToWhiteRelative(board, results.score)));
             board.MakeMove(results.bestMove);
             MOVEGEN::GenerateMoves<All>(board);
 
@@ -264,7 +264,7 @@ void PlayGame(std::atomic<int>& positions, int targetPositions) {
                 
             }
         }
-        game.format.packFrom(board, staticEval, wdl);
+        game.format.packFrom(board, UTILS::ConvertToWhiteRelative(board, staticEval), wdl);
         WriteToFile(game, "data.binpack");
     }
 }

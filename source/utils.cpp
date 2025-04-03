@@ -181,4 +181,9 @@ std::array<uint8_t, 16> CompressPieces(Board board) {
 
     return compressed;
 }
+
+int ConvertToWhiteRelative(Board &board, int score) {
+    return board.sideToMove == White ? score : -score;
+}
+
 }

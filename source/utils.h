@@ -32,4 +32,6 @@ Move parseMove(Board &board, std::string_view str);
 
 std::array<uint8_t, 16> CompressPieces(Board board);
 
+int ConvertToWhiteRelative(Board &board, int score);
+
 }
