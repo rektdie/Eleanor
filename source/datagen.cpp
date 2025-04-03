@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iomanip>
 #include <thread>
+#include <atomic>
 #include "datagen.h"
 #include "movegen.h"
 #include "evaluate.h"
@@ -220,23 +221,8 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
     std::cout << std::string(width, '-') << std::endl;
 }
 
-void Run(int targetPositions, int threads) {
-    #ifdef _WIN32
-        system("cls");
-        HideCursor();
-    #else
-        std::cout << "\033[2J\033[H";
-        HideCursorLinux();
-    #endif
-
-    Stopwatch stopwatch;
-    stopwatch.Restart();
-
-    int positions = 0;
-    int lastPrintedPosition = 0;
-    double lastPrintedTime = stopwatch.GetElapsedSec();
-
-    while (positions < targetPositions * 1000) {
+void PlayGame(std::atomic<int>& positions, int targetPositions) {
+    while (positions.load(std::memory_order_relaxed) < targetPositions) {
         Game game;
         Board board;
 
@@ -264,18 +250,41 @@ void Run(int targetPositions, int threads) {
             MOVEGEN::GenerateMoves<All>(board);
 
             // Increment positions, but do not exceed target
-            if (positions < targetPositions * 1000) {
-                positions++;
+            if (positions.load(std::memory_order_relaxed) < targetPositions) {
+                positions.fetch_add(1, std::memory_order_relaxed);
+
+                if (std::abs(safeResults.score) >= std::abs(SEARCH::MATE_SCORE) - SEARCH::MAX_PLY) {
+                    wdl = board.sideToMove ? 2 : 0; 
+                }
+        
+                
             }
         }
-
-        if (std::abs(safeResults.score) >= std::abs(SEARCH::MATE_SCORE) - SEARCH::MAX_PLY) {
-            wdl = board.sideToMove ? 2 : 0; 
-        }
-
         game.format.packFrom(board, staticEval, wdl);
         WriteToFile(game, "data.binpack");
+    }
+}
 
+void Run(int targetPositions, int threads) {
+    #ifdef _WIN32
+        system("cls");
+        HideCursor();
+    #else
+        std::cout << "\033[2J\033[H";
+        HideCursorLinux();
+    #endif
+
+    Stopwatch stopwatch;
+
+    std::atomic<int> positions = 0;
+
+    auto worker = std::thread(PlayGame, std::ref(positions), targetPositions * 1000);
+    worker.detach();
+
+    int lastPrintedPosition = 0;
+    double lastPrintedTime = stopwatch.GetElapsedSec();
+
+    while (positions.load(std::memory_order_relaxed) < targetPositions * 1000) {
         // Print progress every second
         double currentTime = stopwatch.GetElapsedSec();
         if (currentTime - lastPrintedTime >= 1) {

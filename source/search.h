@@ -19,15 +19,15 @@ constexpr int MAX_DEPTH = 64;
 constexpr int MAX_PLY = 128;
 constexpr int MAX_HISTORY = 16384;
 
-extern U64 nodes;
-extern bool benchStarted;
+thread_local extern U64 nodes;
+thread_local extern bool benchStarted;
 
 constexpr int inf = 100000;
 
-inline bool searchStopped = false;
+thread_local inline bool searchStopped = false;
 
-//                   [id][ply]
-inline int killerMoves[2][MAX_PLY];
+//                                 [id][ply]
+thread_local inline int killerMoves[2][MAX_PLY];
 
 inline int lmrTable[MAX_DEPTH+1][MAX_MOVES];
 
@@ -75,7 +75,7 @@ public:
     }
 };
 
-inline History history;
+thread_local inline History history;
 
 class PVLine {
 private:
