@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "benchmark.h"
 #include "search.h"
+#include "datagen.h"
 
 int main(int argc, char* argv[]) {
 	MOVEGEN::initLeaperAttacks();
@@ -16,6 +17,17 @@ int main(int argc, char* argv[]) {
     if (argc > 1) {
         if (std::string(argv[1]) == "bench") {
             RunBenchmark();
+        } else if (std::string(argv[1]) == "datagen") {
+            int positions = 1;
+            int threads = 1;
+            if (argc > 2) {
+                positions = std::stoi(argv[2]);
+
+                if (argc > 3) {
+                    threads = std::stoi(argv[3]);
+                }
+            }
+            DATAGEN::Run(positions, threads);
         }
     } else {
         UCILoop(board);

@@ -9,8 +9,8 @@ constexpr int noEPTarget = -1;
 
 constexpr int MAX_MOVES = 218;
 
-inline int positionIndex = 0;
-inline U64 positionHistory[1000];
+thread_local inline int positionIndex = 0;
+thread_local inline U64 positionHistory[1000];
 
 class Board {
 public:

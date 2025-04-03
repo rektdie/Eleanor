@@ -7,19 +7,27 @@
 
 namespace SEARCH {
 
+enum searchMode {
+    normal,
+    bench,
+    datagen,
+    nodesMode
+};
+
 constexpr int MATE_SCORE = -99000;
 constexpr int MAX_DEPTH = 64;
+constexpr int MAX_PLY = 128;
 constexpr int MAX_HISTORY = 16384;
 
-extern U64 nodes;
-extern bool benchStarted;
+thread_local extern U64 nodes;
+thread_local extern bool benchStarted;
 
 constexpr int inf = 100000;
 
-inline bool searchStopped = false;
+thread_local inline bool searchStopped = false;
 
-//                   [id][ply]
-inline int killerMoves[2][64];
+//                                 [id][ply]
+thread_local inline int killerMoves[2][MAX_PLY];
 
 inline int lmrTable[MAX_DEPTH+1][MAX_MOVES];
 
@@ -67,12 +75,12 @@ public:
     }
 };
 
-inline History history;
+thread_local inline History history;
 
 class PVLine {
 private:
-    int length[MAX_DEPTH] = {};
-    Move table[MAX_DEPTH][MAX_DEPTH] = {};
+    int length[MAX_PLY] = {};
+    Move table[MAX_PLY][MAX_PLY] = {};
 public:
     void SetLength(int ply) {
         length[ply] = ply;
@@ -101,11 +109,14 @@ public:
     }
 };
 
-template <bool isPV>
+template <bool isPV, searchMode mode>
 SearchResults PVS(Board board, int depth, int alpha, int beta, int ply);
 
-void SearchPosition(Board &board, SearchParams params);
+template <searchMode mode>
+SearchResults SearchPosition(Board &board, SearchParams params);
 void StopSearch();
+
+bool IsDraw(Board &board);
 
 constexpr int moveScoreTable[6][6] = {
     105, 205, 305, 405, 505, 605,

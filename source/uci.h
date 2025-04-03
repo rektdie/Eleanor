@@ -9,6 +9,7 @@ public:
     int winc = 0;
     int binc = 0;
     int movesToGo = 0;
+    int nodes = 0;
 
     SearchParams(){}
 };

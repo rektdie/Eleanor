@@ -222,6 +222,7 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 }
 
 bool Board::MakeMove(Move move) {
+	Board save = *this;
 	// Null Move
     if (!move) {
 		int newEpTarget = noEPTarget;
@@ -347,7 +348,10 @@ bool Board::MakeMove(Move move) {
 	MOVEGEN::GenThreatMaps(*this);
 
     sideToMove = !sideToMove;
-    if (InCheck()) return false;
+    if (InCheck())  {
+		*this = save;
+		return false;	
+	}
     sideToMove = !sideToMove;
 
 	if (attackerColor == Black) fullMoves++;
