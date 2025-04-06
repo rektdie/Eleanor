@@ -10,7 +10,6 @@
 #include "evaluate.h"
 #include "search.h"
 #include "movegen.h"
-#include "stopwatch.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -80,79 +79,100 @@ static bool IsGameOver(Board &board) {
     return false;
 }
 
-std::ostream &operator<<(std::ostream &os, const MarlinFormat &format) {
-    os.write(reinterpret_cast<const char *>(&format), sizeof(MarlinFormat));
-    return os;
+static void WriteToFile(std::vector<Game> &gamesBuffer, std::ofstream &file) {
+    int32_t zeroes = 0;
+    for (const Game& game : gamesBuffer) {
+        file.write(reinterpret_cast<const char*>(&game.format), sizeof(game.format));
+        file.write(reinterpret_cast<const char*>(game.moves.data()), sizeof(ScoredMove) * game.moves.size());
+        file.write(reinterpret_cast<const char*>(&zeroes), 4);
+    }
+    file.flush();
 }
 
-std::istream &operator>>(std::istream &is, MarlinFormat &format) {
-    is.read(reinterpret_cast<char *>(&format), sizeof(MarlinFormat));
-    return is;
+void PlayGame(std::atomic<int>& positions, U64 targetPositions, std::vector<Game> &gamesBuffer, std::ofstream &file) {
+    while (positions.load(std::memory_order_relaxed) < targetPositions) {
+        Game game;
+        Board board;
+
+        uint8_t wdl = 1;
+        positionIndex = 0;
+        std::memset(SEARCH::killerMoves, 0, sizeof(SEARCH::killerMoves));
+        SEARCH::history.Clear();
+
+        PlayRandMoves(board);
+
+        int staticEval = HCE::Evaluate(board);
+
+        SEARCH::SearchResults safeResults;
+
+        MOVEGEN::GenerateMoves<All>(board);
+
+        while (!IsGameOver(board)) {
+            SEARCH::SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams());
+
+            if (!results.bestMove) break;
+            safeResults = results;
+
+            game.moves.push_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(), UTILS::ConvertToWhiteRelative(board, results.score)));
+            board.MakeMove(results.bestMove);
+            MOVEGEN::GenerateMoves<All>(board);
+
+            positions.fetch_add(1, std::memory_order_relaxed);
+
+            if (std::abs(safeResults.score) >= std::abs(SEARCH::MATE_SCORE) - SEARCH::MAX_PLY) {
+                wdl = board.sideToMove ? 2 : 0; 
+            }
+        }
+        game.format.packFrom(board, UTILS::ConvertToWhiteRelative(board, staticEval), wdl);
+        gamesBuffer.push_back(game);
+
+        std::lock_guard<std::mutex> guard(mutex);
+        if (gamesBuffer.size() >= GAME_BUFFER) {
+            WriteToFile(gamesBuffer, file);
+            gamesBuffer.clear();
+        }
+    }
 }
 
-std::ostream &operator<<(std::ostream &os, const ScoredMove &move) {
-    os.write(reinterpret_cast<const char *>(&move), sizeof(ScoredMove));
-    return os;
-}
+void Run(int targetPositions, int threads) {
+    #ifdef _WIN32
+        system("cls");
+        HideCursor();
+    #else
+        std::cout << "\033[2J\033[H";
+        HideCursorLinux();
+    #endif
 
-std::istream &operator>>(std::istream &is, ScoredMove &move) {
-    is.read(reinterpret_cast<char *>(&move), sizeof(ScoredMove));
-    return is;
-}
+    Stopwatch stopwatch;
 
-std::ostream &operator<<(std::ostream &os, const Game &game) {
-    os << game.format;
+    std::atomic<int> positions = 0;
+    std::vector<Game> gamesBuffer;
 
-    uint32_t moveCount = game.moves.size();
-    os.write(reinterpret_cast<const char *>(&moveCount), sizeof(moveCount));
+    std::ofstream file("data.binpack", std::ios::app | std::ios::binary);
 
-    for (const auto &move : game.moves) {
-        os << move;
+    for (int i = 0; i < threads; i++) {
+        auto worker = std::thread(PlayGame, std::ref(positions), targetPositions * 1000, std::ref(gamesBuffer), std::ref(file));
+        worker.detach();
     }
 
-    return os;
-}
+    int lastPrintedPosition = 0;
+    double lastPrintedTime = stopwatch.GetElapsedSec();
 
-std::istream &operator>>(std::istream &is, Game &game) {
-    is >> game.format;
-
-    uint32_t moveCount;
-    is.read(reinterpret_cast<char *>(&moveCount), sizeof(moveCount));
-
-    game.moves.resize(moveCount);
-    for (auto &move : game.moves) {
-        is >> move;
+    while (positions.load(std::memory_order_relaxed) < targetPositions * 1000) {
+        // Print progress every second
+        PrintProgress(positions, targetPositions * 1000, stopwatch, threads);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 
-    return is;
-}
+    PrintProgress(positions, targetPositions * 1000, stopwatch, threads);
+    WriteToFile(gamesBuffer, file);
 
-static void WriteToFile(const Game &game, const std::string &filename) {
-    std::lock_guard<std::mutex> lock(mutex);
-    // Create a buffer to store the serialized data [prevents corruption]
-    std::vector<char> buffer;
 
-    const size_t formatSize = sizeof(MarlinFormat);
-    buffer.resize(formatSize + sizeof(uint32_t) * game.moves.size() + sizeof(uint32_t));
-
-    std::memcpy(buffer.data(), &game.format, formatSize);
-
-    size_t offset = formatSize;
-
-    for (const auto &move : game.moves) {
-        std::memcpy(buffer.data() + offset, &move, sizeof(ScoredMove));
-        offset += sizeof(ScoredMove);
-    }
-
-    uint32_t zero = 0;
-    std::memcpy(buffer.data() + offset, &zero, sizeof(zero));
-
-    std::ofstream file(filename, std::ios::binary | std::ios::out | std::ios::app);
-    if (!file) throw std::runtime_error("Failed to open file for writing");
-
-    file.write(buffer.data(), buffer.size());
-
-    file.close();
+    #ifdef _WIN32
+        ShowCursor();
+    #else
+        ShowCursorLinux();
+    #endif
 }
 
 void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int threads) {
@@ -223,89 +243,6 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
     std::cout << std::endl;
 
     std::cout << std::string(width, '-') << std::endl;
-}
-
-void PlayGame(std::atomic<int>& positions, int targetPositions) {
-    while (positions.load(std::memory_order_relaxed) < targetPositions) {
-        Game game;
-        Board board;
-
-        uint8_t wdl = 1;
-        positionIndex = 0;
-        std::memset(SEARCH::killerMoves, 0, sizeof(SEARCH::killerMoves));
-        SEARCH::history.Clear();
-
-        PlayRandMoves(board);
-
-        int staticEval = HCE::Evaluate(board);
-
-        SEARCH::SearchResults safeResults;
-
-        MOVEGEN::GenerateMoves<All>(board);
-
-        while (!IsGameOver(board)) {
-            SEARCH::SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams());
-
-            if (!results.bestMove) break;
-            safeResults = results;
-
-            game.moves.push_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(), UTILS::ConvertToWhiteRelative(board, results.score)));
-            board.MakeMove(results.bestMove);
-            MOVEGEN::GenerateMoves<All>(board);
-
-            // Increment positions, but do not exceed target
-            if (positions.load(std::memory_order_relaxed) < targetPositions) {
-                positions.fetch_add(1, std::memory_order_relaxed);
-
-                if (std::abs(safeResults.score) >= std::abs(SEARCH::MATE_SCORE) - SEARCH::MAX_PLY) {
-                    wdl = board.sideToMove ? 2 : 0; 
-                }
-        
-                
-            }
-        }
-        game.format.packFrom(board, UTILS::ConvertToWhiteRelative(board, staticEval), wdl);
-        WriteToFile(game, "data.binpack");
-    }
-}
-
-void Run(int targetPositions, int threads) {
-    #ifdef _WIN32
-        system("cls");
-        HideCursor();
-    #else
-        std::cout << "\033[2J\033[H";
-        HideCursorLinux();
-    #endif
-
-    Stopwatch stopwatch;
-
-    std::atomic<int> positions = 0;
-
-    for (int i = 0; i < threads; i++) {
-        auto worker = std::thread(PlayGame, std::ref(positions), targetPositions * 1000);
-        worker.detach();
-    }
-
-    int lastPrintedPosition = 0;
-    double lastPrintedTime = stopwatch.GetElapsedSec();
-
-    while (positions.load(std::memory_order_relaxed) < targetPositions * 1000) {
-        // Print progress every second
-        double currentTime = stopwatch.GetElapsedSec();
-        if (currentTime - lastPrintedTime >= 1) {
-            lastPrintedTime = currentTime;
-            PrintProgress(positions, targetPositions * 1000, stopwatch, threads);
-        }
-    }
-
-    PrintProgress(positions, targetPositions * 1000, stopwatch, threads);
-
-    #ifdef _WIN32
-        ShowCursor();
-    #else
-        ShowCursorLinux();
-    #endif
 }
 
 }
