@@ -43,7 +43,8 @@ static void ShowCursorLinux() {
 
 namespace DATAGEN {
 
-std::mutex mutex;
+// Atomic bool for locking
+std::atomic<bool> bufferLockFlag(false);
 
 static void PlayRandMoves(Board &board) {
     std::random_device dev;
@@ -54,6 +55,7 @@ static void PlayRandMoves(Board &board) {
         std::uniform_int_distribution<std::mt19937::result_type> dist(0, board.currentMoveIndex - 1);
 
         bool isLegal = board.MakeMove(board.moveList[dist(rng)]);
+
         if (!isLegal) count--;
     }
 
@@ -89,8 +91,10 @@ static void WriteToFile(std::vector<Game> &gamesBuffer, std::ofstream &file) {
     file.flush();
 }
 
-void PlayGame(std::atomic<int>& positions, U64 targetPositions, std::vector<Game> &gamesBuffer, std::ofstream &file) {
-    while (positions.load(std::memory_order_relaxed) < targetPositions) {
+void PlayGame(std::atomic<int>& positions, U64 targetPositions, std::vector<Game> &gamesBuffer, 
+              std::ofstream &file, std::atomic<bool>& shouldStop) {
+    while (!shouldStop.load(std::memory_order_relaxed) && 
+           positions.load(std::memory_order_relaxed) < targetPositions) {
         Game game;
         Board board;
 
@@ -123,13 +127,30 @@ void PlayGame(std::atomic<int>& positions, U64 targetPositions, std::vector<Game
                 wdl = board.sideToMove ? 2 : 0; 
             }
         }
-        game.format.packFrom(board, UTILS::ConvertToWhiteRelative(board, staticEval), wdl);
-        gamesBuffer.push_back(game);
+        
+        // Only add the game to buffer if we haven't been told to stop
+        if (!shouldStop.load(std::memory_order_relaxed)) {
+            game.format.packFrom(board, UTILS::ConvertToWhiteRelative(board, staticEval), wdl);
 
-        std::lock_guard<std::mutex> guard(mutex);
-        if (gamesBuffer.size() >= GAME_BUFFER) {
-            WriteToFile(gamesBuffer, file);
-            gamesBuffer.clear();
+            // Wait until the lock is available
+            while (!shouldStop.load(std::memory_order_relaxed) && 
+                   bufferLockFlag.exchange(true, std::memory_order_acquire)) {
+                // Spin-wait
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+
+            // One final check before writing
+            if (!shouldStop.load(std::memory_order_relaxed)) {
+                gamesBuffer.push_back(game);
+
+                if (gamesBuffer.size() >= GAME_BUFFER) {
+                    WriteToFile(gamesBuffer, file);
+                    gamesBuffer.clear();
+                }
+            }
+
+            // Unlock the buffer after writing
+            bufferLockFlag.store(false, std::memory_order_release);
         }
     }
 }
@@ -146,27 +167,48 @@ void Run(int targetPositions, int threads) {
     Stopwatch stopwatch;
 
     std::atomic<int> positions = 0;
+    std::atomic<bool> shouldStop(false);
     std::vector<Game> gamesBuffer;
+    std::vector<std::thread> workers;
 
     std::ofstream file("data.binpack", std::ios::app | std::ios::binary);
 
+    // Create and start worker threads
     for (int i = 0; i < threads; i++) {
-        auto worker = std::thread(PlayGame, std::ref(positions), targetPositions * 1000, std::ref(gamesBuffer), std::ref(file));
-        worker.detach();
+        workers.push_back(std::thread(PlayGame, std::ref(positions), 
+                         targetPositions * 1000, std::ref(gamesBuffer), 
+                         std::ref(file), std::ref(shouldStop)));
     }
 
     int lastPrintedPosition = 0;
     double lastPrintedTime = stopwatch.GetElapsedSec();
 
+    // Monitor progress
     while (positions.load(std::memory_order_relaxed) < targetPositions * 1000) {
-        // Print progress every second
         PrintProgress(positions, targetPositions * 1000, stopwatch, threads);
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 
-    PrintProgress(positions, targetPositions * 1000, stopwatch, threads);
-    WriteToFile(gamesBuffer, file);
+    // Signal threads to stop
+    shouldStop.store(true, std::memory_order_relaxed);
+    
+    // Wait for all threads to finish
+    for (auto& worker : workers) {
+        if (worker.joinable()) {
+            worker.join();
+        }
+    }
 
+    // Final progress update and buffer flush
+    PrintProgress(positions, targetPositions * 1000, stopwatch, threads);
+    
+    // Final check - lock buffer to ensure exclusive access
+    while (bufferLockFlag.exchange(true, std::memory_order_acquire)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    
+    WriteToFile(gamesBuffer, file);
+    bufferLockFlag.store(false, std::memory_order_release);
 
     #ifdef _WIN32
         ShowCursor();
@@ -176,8 +218,19 @@ void Run(int targetPositions, int threads) {
 }
 
 void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int threads) {
+    static double lastPositions = 0; // To track how many positions were processed last time
+    static double lastElapsed = 0; // To track the last elapsed time for more frequent updates
+    static double refreshInterval = 1.0; // Update every second
+
     double elapsed = stopwatch.GetElapsedSec();
-    double positionsPerSec = elapsed > 0 ? positions / elapsed : 0;
+    double positionsPerSec = 0;
+
+    // Update positionsPerSec if the time difference is above the threshold
+    if (elapsed - lastElapsed >= refreshInterval) {
+        positionsPerSec = (positions - lastPositions) / (elapsed - lastElapsed);
+        lastPositions = positions;
+        lastElapsed = elapsed;
+    }
 
     int positionsInThousands = static_cast<int>(round(positions / 1000.0));
     int targetInThousands = static_cast<int>(round(targetPositions / 1000.0));
@@ -226,6 +279,7 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
     int pos = (int)(progress * barWidth);
 
     std::string progressBar = "[";
+
     for (int i = 0; i < barWidth; ++i) {
         if (i < pos) {
             progressBar += "=";
@@ -235,14 +289,13 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
             progressBar += " ";
         }
     }
+
     progressBar += "] " + std::to_string(static_cast<int>(round(progress * 100.0))) + " %";
 
     int progressPadding = (width - progressBar.length()) / 2;
     std::cout << std::setw(progressPadding + progressBar.length()) << progressBar << std::endl;
 
     std::cout << std::endl;
-
-    std::cout << std::string(width, '-') << std::endl;
 }
 
 }
