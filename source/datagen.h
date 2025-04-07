@@ -2,9 +2,11 @@
 #include "board.h"
 #include "utils.h"
 #include <fstream>
+#include "stopwatch.h"
 
 namespace DATAGEN {
 
+constexpr int GAME_BUFFER = 1000;
 constexpr int SOFT_NODES = 5000;
 constexpr int HARD_NODES = 100000;
 constexpr int RAND_MOVES = 8;
@@ -78,4 +80,6 @@ struct Game {
 };
 
 void Run(int targetPositions, int threads);
+
+void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int threads);
 }
