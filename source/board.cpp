@@ -156,6 +156,8 @@ void Board::PrintNNUE() {
     }
 
     std::cout << std::endl;
+
+	std::cout << "Final eval: " << NNUE::net.Evaluate(*this) << std::endl;
 }
 
 void Board::AddMove(Move move) {

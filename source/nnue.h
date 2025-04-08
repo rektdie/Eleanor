@@ -3,6 +3,8 @@
 #include <string>
 #include <array>
 
+class Board;
+
 namespace NNUE {
 
 constexpr int INPUT_SIZE = 768;
@@ -19,6 +21,8 @@ struct Network {
     int16_t output_bias;
 
     void Load(const std::string& path);
+
+    int16_t Evaluate(const Board& board);
 };
 
 inline Network net;

@@ -1,10 +1,12 @@
 #include <immintrin.h>
 #include <fstream>
+#include <algorithm>
 
 #include "nnue.h"
 #include "accumulator.h"
 #include "board.h"
 #include "types.h"
+#include "search.h"
 
 namespace NNUE {
 
@@ -72,5 +74,9 @@ static int32_t Forward(const Board& board,
 
     return (eval * SCALE) / (QA * QB);
 }
-    
+
+int16_t Network::Evaluate(const Board& board) {
+    return Forward(board, this);
+}
+
 }
