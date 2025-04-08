@@ -147,9 +147,9 @@ void Board::PrintNNUE() {
 
     std::cout << "Output neuron bias: " << NNUE::net.output_bias << std::endl;
 
-    std::cout << "Active indices (white)";
+    std::cout << "First 16 accumulator values (pre-activation)[white] ";
 
-    for (int i = 0; i < NNUE::HL_SIZE; i++) {
+    for (int i = 0; i < 16; i++) {
         if (accPair.white.values[i] != 0) {
             std::cout << accPair.white.values[i] << ' ';
         }
