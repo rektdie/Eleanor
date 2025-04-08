@@ -19,7 +19,6 @@ struct Network {
     int16_t output_bias;
 
     void Load(const std::string& path);
-    void Print();
 };
 
 inline Network net;

@@ -1,5 +1,6 @@
 #include "accumulator.h"
 #include "types.h"
+#include "bitboard.h"
 
 namespace ACC {
 

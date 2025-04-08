@@ -42,14 +42,17 @@ public:
 
     U64 hashKey = 0ULL;
 
-	void Init();
 	void Reset();
 	void SetByFen(std::string_view fen);
 	void PrintBoard();
 
+	void PrintNNUE();
+
 	void AddMove(Move move);
 	void ResetMoves();
 	void ListMoves();
+
+	void ResetAccPair();
 
 	int GetPieceType(int square);
 	int GetPieceColor(int square);

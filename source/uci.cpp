@@ -195,7 +195,7 @@ void UCILoop(Board &board) {
         }
 
         if (input.find("nnue") != std::string::npos) {
-            NNUE::net.Print();
+            board.PrintNNUE();
         }
     }
 }

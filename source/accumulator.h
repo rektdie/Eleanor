@@ -4,7 +4,7 @@
 namespace ACC {
 
 struct Accumulator {
-    int16_t values[NNUE::HL_SIZE];
+    std::array<int16_t, NNUE::HL_SIZE> values;
 
     void Add(const NNUE::Network* net, int index);
     void Sub(const NNUE::Network* net, int index);

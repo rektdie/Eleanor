@@ -16,10 +16,10 @@ void Board::Reset() {
 	sideToMove = White;
 	occupied = 0ULL;
 
-    accPair = ACC::AccumulatorPair();
-
 	pieces = std::array<Bitboard, 6>();
 	colors = std::array<Bitboard, 2>();
+
+	accPair = ACC::AccumulatorPair();
 
 	pieceThreats = std::array<Bitboard, 6>();
 	colorThreats = std::array<Bitboard, 2>();
@@ -81,6 +81,7 @@ void Board::SetByFen(std::string_view fen) {
     hashKey = UTILS::GetHashKey(*this);
 	MOVEGEN::GenThreatMaps(*this);
 	MOVEGEN::GenerateMoves<All>(*this);
+	ResetAccPair();
 }
 
 void Board::PrintBoard() {
@@ -133,6 +134,28 @@ void Board::PrintBoard() {
 	std::cout << std::endl << std::endl;
 
     std::cout << "      Hashkey: 0x" << std::hex << hashKey << std::dec << std::endl;
+}
+
+void Board::PrintNNUE() {
+	std::cout << "First 16 HL biases: ";
+
+    for (int i = 0; i < 16; i++) {
+        std::cout << NNUE::net.accumulator_biases[i] << ' ';
+    }
+
+    std::cout << std::endl;
+
+    std::cout << "Output neuron bias: " << NNUE::net.output_bias << std::endl;
+
+    std::cout << "Active indices (white)";
+
+    for (int i = 0; i < NNUE::HL_SIZE; i++) {
+        if (accPair.white.values[i] != 0) {
+            std::cout << accPair.white.values[i] << ' ';
+        }
+    }
+
+    std::cout << std::endl;
 }
 
 void Board::AddMove(Move move) {
@@ -379,4 +402,40 @@ bool Board::InPossibleZug() {
     }
 
     return !toCheck;
+}
+
+void Board::ResetAccPair() {
+	Bitboard whitePieces = colors[White];
+	Bitboard blackPieces = colors[Black];
+
+	accPair.white.values = NNUE::net.accumulator_biases;
+	accPair.black.values = NNUE::net.accumulator_biases;
+
+	while (whitePieces) {
+		int square = whitePieces.getLS1BIndex();
+
+		int wInput = ACC::CalculateIndex(White, square, GetPieceType(square), White);
+		int bInput = ACC::CalculateIndex(Black, square, GetPieceType(square), White);
+
+		for (int i = 0; i < NNUE::HL_SIZE; i++) {
+			accPair.white.values[i] += NNUE::net.accumulator_weights[wInput * NNUE::HL_SIZE + i];
+			accPair.black.values[i] += NNUE::net.accumulator_weights[bInput * NNUE::HL_SIZE + i];
+		}
+
+		whitePieces.PopBit(square);
+	}
+
+	while (blackPieces) {
+		int square = blackPieces.getLS1BIndex();
+
+		int wInput = ACC::CalculateIndex(White, square, GetPieceType(square), Black);
+		int bInput = ACC::CalculateIndex(Black, square, GetPieceType(square), Black);
+
+		for (int i = 0; i < NNUE::HL_SIZE; i++) {
+			accPair.white.values[i] += NNUE::net.accumulator_weights[wInput * NNUE::HL_SIZE + i];
+			accPair.black.values[i] += NNUE::net.accumulator_weights[bInput * NNUE::HL_SIZE + i];
+		}
+
+		blackPieces.PopBit(square);
+	}
 }

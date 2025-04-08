@@ -33,18 +33,6 @@ void Network::Load(const std::string& path) {
     file.read(reinterpret_cast<char*>(&output_bias), sizeof(int16_t));
 }
 
-void Network::Print() {
-    std::cout << "First 16 HL biases: ";
-
-    for (int i = 0; i < 16; i++) {
-        std::cout << accumulator_biases[i] << ' ';
-    }
-
-    std::cout << std::endl;
-
-    std::cout << "Output neuron bias: " << output_bias << std::endl;
-}
-
 static int32_t Forward(const Board& board,
                        const Network* net) {
     const ACC::Accumulator& stmAcc = board.sideToMove == White ? board.accPair.white : board.accPair.black;
