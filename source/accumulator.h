@@ -4,12 +4,12 @@
 namespace ACC {
 
 struct Accumulator {
-    std::array<int16_t, NNUE::HL_SIZE> values;
+    alignas(32) std::array<int16_t, NNUE::HL_SIZE> values;
 };
 
 struct AccumulatorPair {
-    Accumulator white;
-    Accumulator black;
+    alignas(32) Accumulator white;
+    alignas(32) Accumulator black;
 
     // yoinked from Quinniboi - Prelude
     void addSub(bool stm, int add, int addPT, int sub, int subPT);
