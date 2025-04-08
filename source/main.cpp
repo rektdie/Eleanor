@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
     UTILS::InitZobrist();
     SEARCH::InitLMRTable();
 
-    NNUE::net.Load("beans.bin");
+    NNUE::net.Load("nnue.bin");
 
 	Board board;
 

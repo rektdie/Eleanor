@@ -60,6 +60,10 @@ public:
         || GetFlags() == queenCastle || GetFlags() == doublePawnPush);
     }
 
+    bool IsPromo() {
+        return (GetFlags() >= knightPromotion);
+    }
+
     void PrintMove() {
         std::cout << squareCoords[MoveFrom()] << squareCoords[MoveTo()];
 
