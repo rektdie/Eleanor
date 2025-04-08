@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <array>
+#include <string_view>
 
 using U64 = uint64_t;
 

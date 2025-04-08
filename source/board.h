@@ -3,6 +3,7 @@
 #include "bitboard.h"
 #include "types.h"
 #include "move.h"
+#include "accumulator.h"
 
 constexpr int nullPieceType = 100;
 constexpr int noEPTarget = -1;
@@ -22,6 +23,8 @@ public:
 	std::array<Bitboard, 2> colors;
 
 	Bitboard occupied;
+
+    ACC::AccumulatorPair accPair;
 
     std::array<Bitboard, 6> pieceThreats;
 	std::array<Bitboard, 2> colorThreats;

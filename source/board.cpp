@@ -16,6 +16,8 @@ void Board::Reset() {
 	sideToMove = White;
 	occupied = 0ULL;
 
+    accPair = ACC::AccumulatorPair();
+
 	pieces = std::array<Bitboard, 6>();
 	colors = std::array<Bitboard, 2>();
 
