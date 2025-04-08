@@ -7,13 +7,46 @@
 #include "datagen.h"
 #include "nnue.h"
 
+#ifndef EVALFILE
+    #define EVALFILE "./nnue.bin"
+#endif
+
+#ifdef _MSC_VER
+    #define MSVC
+    #pragma push_macro("_MSC_VER")
+    #undef _MSC_VER
+#endif
+
+#include "../external/incbin.h"
+
+#ifdef MSVC
+    #pragma pop_macro("_MSC_VER")
+    #undef MSVC
+#endif
+
+#if !defined(_MSC_VER) || defined(__clang__)
+INCBIN(EVAL, EVALFILE);
+#endif
+
 int main(int argc, char* argv[]) {
+    auto loadDefaultNet = [&]([[maybe_unused]] bool warnMSVC = false) {
+    #if defined(_MSC_VER) && !defined(__clang__)
+            NNUE::net.Load(EVALFILE);
+            if (warnMSVC)
+                cerr << "WARNING: This file was compiled with MSVC, this means that an nnue was NOT embedded into the exe." << endl;
+    #else
+            NNUE::net = *reinterpret_cast<const NNUE::Network*>(gEVALData);
+    #endif
+        };
+    
+    loadDefaultNet(true);
+
+        
+
 	MOVEGEN::initLeaperAttacks();
 	MOVEGEN::initSliderAttacks();
     UTILS::InitZobrist();
     SEARCH::InitLMRTable();
-
-    NNUE::net.Load("nnue.bin");
 
 	Board board;
 

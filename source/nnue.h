@@ -3,6 +3,8 @@
 #include <string>
 #include <array>
 
+#include "../external/fmt/fmt/format.h"
+
 class Board;
 
 namespace NNUE {
