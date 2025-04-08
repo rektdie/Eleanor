@@ -76,7 +76,8 @@ static int32_t Forward(const Board& board,
 }
 
 int16_t Network::Evaluate(const Board& board) {
-    return Forward(board, this);
+    return std::clamp(Forward(board, this), (-SEARCH::MATE_SCORE + SEARCH::MAX_PLY),
+        (SEARCH::MATE_SCORE - SEARCH::MAX_PLY));
 }
 
 }
