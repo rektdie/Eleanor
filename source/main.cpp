@@ -5,12 +5,15 @@
 #include "benchmark.h"
 #include "search.h"
 #include "datagen.h"
+#include "nnue.h"
 
 int main(int argc, char* argv[]) {
 	MOVEGEN::initLeaperAttacks();
 	MOVEGEN::initSliderAttacks();
     UTILS::InitZobrist();
     SEARCH::InitLMRTable();
+
+    NNUE::net.Load("beans.bin");
 
 	Board board;
 

@@ -1,10 +1,49 @@
 #include <immintrin.h>
+#include <fstream>
+
 #include "nnue.h"
 #include "accumulator.h"
 #include "board.h"
 #include "types.h"
 
 namespace NNUE {
+
+void Network::Load(const std::string& path) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file.is_open()){
+        std::cerr << "Failed to open file " + path << std::endl;
+    }
+
+    // HL weights
+    for (int i = 0; i < accumulator_weights.size(); i++) {
+        file.read(reinterpret_cast<char*>(&accumulator_weights[i]), sizeof(int16_t));
+    }
+
+    // HL biases
+    for (int i = 0; i < accumulator_biases.size(); i++) {
+        file.read(reinterpret_cast<char*>(&accumulator_biases[i]), sizeof(int16_t));
+    }
+
+    // Output weights
+    for (int i = 0; i < output_weights.size(); i++) {
+        file.read(reinterpret_cast<char*>(&output_weights[i]), sizeof(int16_t));
+    }
+
+    // Output bias
+    file.read(reinterpret_cast<char*>(&output_bias), sizeof(int16_t));
+}
+
+void Network::Print() {
+    std::cout << "First 16 HL biases: ";
+
+    for (int i = 0; i < 16; i++) {
+        std::cout << accumulator_biases[i] << ' ';
+    }
+
+    std::cout << std::endl;
+
+    std::cout << "Output neuron bias: " << output_bias << std::endl;
+}
 
 static int32_t Forward(const Board& board,
                        const Network* net) {

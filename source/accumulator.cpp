@@ -15,15 +15,14 @@ int CalculateIndex(bool perspective, int square, int pieceType, bool side) {
 
 void Accumulator::Add(const NNUE::Network* net, int index) {
     for (int i = 0; i < NNUE::HL_SIZE; i ++) {
-        values[i] += net->accumulator_weights[index][i];
+        values[i] += net->accumulator_weights[index * NNUE::INPUT_SIZE + i];
     }
 }
 
 void Accumulator::Sub(const NNUE::Network* net, int index) {
     for (int i = 0; i < NNUE::HL_SIZE; i ++) {
-        values[i] -= net->accumulator_weights[index][i];
+        values[i] -= net->accumulator_weights[index * NNUE::INPUT_SIZE + i];
     }
 }
-
 
 }
