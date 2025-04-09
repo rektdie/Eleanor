@@ -19,6 +19,8 @@ void Board::Reset() {
 	pieces = std::array<Bitboard, 6>();
 	colors = std::array<Bitboard, 2>();
 
+	accPair = ACC::AccumulatorPair();
+
 	pieceThreats = std::array<Bitboard, 6>();
 	colorThreats = std::array<Bitboard, 2>();
 
@@ -79,6 +81,7 @@ void Board::SetByFen(std::string_view fen) {
     hashKey = UTILS::GetHashKey(*this);
 	MOVEGEN::GenThreatMaps(*this);
 	MOVEGEN::GenerateMoves<All>(*this);
+	ResetAccPair();
 }
 
 void Board::PrintBoard() {
@@ -131,6 +134,30 @@ void Board::PrintBoard() {
 	std::cout << std::endl << std::endl;
 
     std::cout << "      Hashkey: 0x" << std::hex << hashKey << std::dec << std::endl;
+}
+
+void Board::PrintNNUE() {
+	std::cout << "First 16 HL biases: ";
+
+    for (int i = 0; i < 16; i++) {
+        std::cout << NNUE::net.accumulator_biases[i] << ' ';
+    }
+
+    std::cout << std::endl;
+
+    std::cout << "Output neuron bias: " << NNUE::net.output_bias << std::endl;
+
+    std::cout << "First 16 accumulator values (pre-activation)[white] ";
+
+    for (int i = 0; i < 16; i++) {
+        if (accPair.white.values[i] != 0) {
+            std::cout << accPair.white.values[i] << ' ';
+        }
+    }
+
+    std::cout << std::endl;
+
+	std::cout << "Final eval: " << NNUE::net.Evaluate(*this) << std::endl;
 }
 
 void Board::AddMove(Move move) {
@@ -251,8 +278,32 @@ bool Board::MakeMove(Move move) {
 	int targetPiece = GetPieceType(move.MoveTo());
 	int direction = attackerColor ? south : north;
 
+	int endPiece = attackerPiece;
+
 	// Removing attacker piece from old position
 	RemovePiece(attackerPiece, move.MoveFrom(), attackerColor);
+
+	if (move.IsPromo()) {
+		if (move.IsCapture()) {
+			endPiece = move.GetFlags() - 9;
+			Promote(move.MoveTo(), endPiece, sideToMove, true);
+		} else {
+			endPiece = move.GetFlags() - 5;
+			Promote(move.MoveTo(), endPiece, sideToMove, false);
+		}
+	}
+
+	if (move.IsCapture()) {
+		if (move.GetFlags() != epCapture) {
+			accPair.addSubSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, move.MoveTo(), targetPiece);
+		} else {
+			accPair.addSubSub(sideToMove, enPassantTarget, endPiece, move.MoveFrom(), attackerPiece, move.MoveTo() - direction, Pawn);
+		}
+	} else {
+		if (move.GetFlags() != kingCastle && move.GetFlags() != queenCastle) {
+			accPair.addSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece);
+		}
+	}
 
 	switch (move.GetFlags())
 	{
@@ -285,6 +336,8 @@ bool Board::MakeMove(Move move) {
 			SetPiece(Rook, rookSquare - 2, attackerColor);
 
 			SetPiece(attackerPiece, move.MoveTo(), attackerColor);
+
+			accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare - 2, Rook, move.MoveFrom(), King, rookSquare, Rook);
 			break;
 		}
 	case queenCastle:
@@ -298,32 +351,9 @@ bool Board::MakeMove(Move move) {
 			SetPiece(Rook, rookSquare + 3, attackerColor);
 
 			SetPiece(attackerPiece, move.MoveTo(), attackerColor);
+			accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare + 3, Rook, move.MoveFrom(), King, rookSquare, Rook);
 			break;
 		}
-	case knightPromotion:
-		Promote(move.MoveTo(), Knight, attackerColor, false);
-		break;
-	case bishopPromotion:
-		Promote(move.MoveTo(), Bishop, attackerColor, false);
-		break;
-	case rookPromotion:
-		Promote(move.MoveTo(), Rook, attackerColor, false);
-		break;
-	case queenPromotion:
-		Promote(move.MoveTo(), Queen, attackerColor, false);
-		break;
-	case knightPromoCapture:
-		Promote(move.MoveTo(), Knight, attackerColor, true);
-		break;
-	case bishopPromoCapture:
-		Promote(move.MoveTo(), Bishop, attackerColor, true);
-		break;
-	case rookPromoCapture:
-		Promote(move.MoveTo(), Rook, attackerColor, true);
-		break;
-	case queenPromoCapture:
-		Promote(move.MoveTo(), Queen, attackerColor, true);
-		break;
 	default:
 		break;
 	}
@@ -343,7 +373,6 @@ bool Board::MakeMove(Move move) {
     }
 
 	enPassantTarget = newEpTarget;
-	
 
 	MOVEGEN::GenThreatMaps(*this);
 
@@ -360,7 +389,7 @@ bool Board::MakeMove(Move move) {
 	} else {
 		halfMoves++;
 	}
-
+	
     positionIndex++;
     positionHistory[positionIndex] = hashKey;
 
@@ -377,4 +406,40 @@ bool Board::InPossibleZug() {
     }
 
     return !toCheck;
+}
+
+void Board::ResetAccPair() {
+	Bitboard whitePieces = colors[White];
+	Bitboard blackPieces = colors[Black];
+
+	accPair.white.values = NNUE::net.accumulator_biases;
+	accPair.black.values = NNUE::net.accumulator_biases;
+
+	while (whitePieces) {
+		int square = whitePieces.getLS1BIndex();
+
+		int wInput = ACC::CalculateIndex(White, White, GetPieceType(square), square);
+		int bInput = ACC::CalculateIndex(Black, White, GetPieceType(square), square);
+
+		for (int i = 0; i < NNUE::HL_SIZE; i++) {
+			accPair.white.values[i] += NNUE::net.accumulator_weights[wInput * NNUE::HL_SIZE + i];
+			accPair.black.values[i] += NNUE::net.accumulator_weights[bInput * NNUE::HL_SIZE + i];
+		}
+
+		whitePieces.PopBit(square);
+	}
+
+	while (blackPieces) {
+		int square = blackPieces.getLS1BIndex();
+
+		int wInput = ACC::CalculateIndex(White, Black, GetPieceType(square), square);
+		int bInput = ACC::CalculateIndex(Black, Black, GetPieceType(square), square);
+
+		for (int i = 0; i < NNUE::HL_SIZE; i++) {
+			accPair.white.values[i] += NNUE::net.accumulator_weights[wInput * NNUE::HL_SIZE + i];
+			accPair.black.values[i] += NNUE::net.accumulator_weights[bInput * NNUE::HL_SIZE + i];
+		}
+
+		blackPieces.PopBit(square);
+	}
 }

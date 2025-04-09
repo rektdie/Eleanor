@@ -8,6 +8,8 @@ CXX ?= g++
 # Set default executable name, but allow override from the command line
 EXE ?= Eleanor
 
+EVALFILE = ./nnue.bin
+
 # Determine platform
 ifeq ($(OS),Windows_NT)
     EXE_EXT := .exe
@@ -26,12 +28,9 @@ MAKEFLAGS += -j
 # List of source files
 SRCS := $(wildcard $(SRC_DIR)/*.cpp)
 
-# List of object files
-OBJS := $(addprefix $(OBJ_DIR)/, $(notdir $(SRCS:.cpp=.o)))
-
-# Target executable
-$(EXE)$(EXE_EXT): $(OBJS)
-	$(CXX) -std=c++23 -o $@ $^ -O3 -lpthread -march=native -flto -ftree-vectorize
+# Link the executable
+$(EXE)$(EXE_EXT): $(SRCS)
+	$(CXX) $(CXXFLAGS) -DEVALFILE=\"$(EVALFILE)\" $(SRCS) ./external/fmt/format.cc -o $@ -O3 -lpthread -march=native -flto -ftree-vectorize
 
 # Rule to compile source files to object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)

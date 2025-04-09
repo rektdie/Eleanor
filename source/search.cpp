@@ -288,7 +288,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         // that a quiet move will help us so we skip them
         int fpMargin = 100 * depth;
         if (!isPV && ply && currMove.IsQuiet()
-            && depth <= 5 && staticEval + fpMargin < alpha && results.score > MATE_SCORE) {
+            && depth <= 5 && staticEval + fpMargin < alpha && results.score > -MATE_SCORE) {
             continue;
         }
 
@@ -364,7 +364,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
     if (moveSeen == 0) {
         if (board.InCheck()) { // checkmate
-            return MATE_SCORE + ply;
+            return -MATE_SCORE + ply;
         } else { // stalemate
             return 0;
         }

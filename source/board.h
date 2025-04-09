@@ -3,6 +3,7 @@
 #include "bitboard.h"
 #include "types.h"
 #include "move.h"
+#include "accumulator.h"
 
 constexpr int nullPieceType = 100;
 constexpr int noEPTarget = -1;
@@ -23,6 +24,8 @@ public:
 
 	Bitboard occupied;
 
+    ACC::AccumulatorPair accPair;
+
     std::array<Bitboard, 6> pieceThreats;
 	std::array<Bitboard, 2> colorThreats;
 
@@ -39,14 +42,17 @@ public:
 
     U64 hashKey = 0ULL;
 
-	void Init();
 	void Reset();
 	void SetByFen(std::string_view fen);
 	void PrintBoard();
 
+	void PrintNNUE();
+
 	void AddMove(Move move);
 	void ResetMoves();
 	void ListMoves();
+
+	void ResetAccPair();
 
 	int GetPieceType(int square);
 	int GetPieceColor(int square);
