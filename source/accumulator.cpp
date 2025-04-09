@@ -39,8 +39,8 @@ void AccumulatorPair::addSubSub(bool stm, int add, int addPT, int sub1, int subP
     int subW1 = CalculateIndex(White, stm, subPT1, sub1);
     int subB1 = CalculateIndex(Black, stm, subPT1, sub1);
 
-    int subW2 = CalculateIndex(White, ~stm, subPT2, sub2);
-    int subB2 = CalculateIndex(Black, ~stm, subPT2, sub2);
+    int subW2 = CalculateIndex(White, !stm, subPT2, sub2);
+    int subB2 = CalculateIndex(Black, !stm, subPT2, sub2);
 
     for (int i = 0; i < NNUE::HL_SIZE; i++) {
         white.values[i] += NNUE::net.accumulator_weights[addW * NNUE::HL_SIZE + i];

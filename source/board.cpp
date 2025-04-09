@@ -297,7 +297,7 @@ bool Board::MakeMove(Move move) {
 		if (move.GetFlags() != epCapture) {
 			accPair.addSubSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, move.MoveTo(), targetPiece);
 		} else {
-			accPair.addSubSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, enPassantTarget, Pawn);
+			accPair.addSubSub(sideToMove, enPassantTarget, endPiece, move.MoveFrom(), attackerPiece, move.MoveTo() - direction, Pawn);
 		}
 	} else {
 		if (move.GetFlags() != kingCastle && move.GetFlags() != queenCastle) {
