@@ -2,7 +2,7 @@
 SRC_DIR := source
 OBJ_DIR := obj
 
-CXX ?= g++
+CXX ?= clang++
 EXE ?= Eleanor
 EVALFILE := ./nnue.bin
 
@@ -26,11 +26,11 @@ OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
 # Final binary
 $(EXE)$(EXE_EXT): $(OBJS)
-	$(CXX) $(CXXFLAGS) -DEVALFILE=\"$(EVALFILE)\" $^ ./external/fmt/format.cc -o $@ -O3 -lpthread -march=native -flto -ftree-vectorize
+	$(CXX) $(CXXFLAGS) -DEVALFILE=\"$(EVALFILE)\" $^ ./external/fmt/format.cc -o $@ -O3 -march=native -fuse-ld=lld -flto
 
 # Compile .cpp -> .o
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	$(CXX) -std=c++23 -c -o $@ $< -O3 -lpthread -march=native -flto -ftree-vectorize
+	$(CXX) -std=c++23 -c -o $@ $< -O3 -march=native -fuse-ld=lld -flto
 
 # Create object directory
 $(OBJ_DIR):
