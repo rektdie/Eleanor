@@ -10,16 +10,16 @@
 
 namespace SEARCH {
 
-thread_local U64 nodes = 0;
-thread_local U64 nodesToGo = 0;
-thread_local bool benchStarted = false;
+U64 nodes = 0;
+U64 nodesToGo = 0;
+bool benchStarted = false;
 
-thread_local static inline int timeToSearch = 0;
-thread_local static inline bool doingNullMove = false;
+static inline int timeToSearch = 0;
+static inline bool doingNullMove = false;
 
-thread_local inline PVLine pvLine;
+inline PVLine pvLine;
 
-thread_local Stopwatch sw;
+Stopwatch sw;
 
 void InitLMRTable() {
     for (int depth = 0; depth <= MAX_DEPTH; depth++) {

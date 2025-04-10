@@ -21,7 +21,7 @@ constexpr U64 maxHash = (64* 1000000) / sizeof(TTEntry);
 // 5 MB
 constexpr U64 defaultHash = (5 * 1000000) / sizeof(TTEntry);
 
-thread_local inline U64 hashSize = defaultHash;
+inline U64 hashSize = defaultHash;
 
 constexpr int invalidEntry = 111111;
 
@@ -61,4 +61,4 @@ public:
     void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move besteMove);
 };
 
-thread_local inline TTable TT;
+inline TTable TT;
