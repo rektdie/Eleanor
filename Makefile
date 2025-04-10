@@ -26,11 +26,11 @@ OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
 # Final binary
 $(EXE)$(EXE_EXT): $(OBJS)
-	$(CXX) $(CXXFLAGS) -DEVALFILE=\"$(EVALFILE)\" $^ ./external/fmt/format.cc -o $@ -O3 -march=native -flto
+	$(CXX) $(CXXFLAGS) -DEVALFILE=\"$(EVALFILE)\" $^ ./external/fmt/format.cc -o $@ -O3 -fuse-ld=lld -march=native -flto -static
 
 # Compile .cpp -> .o
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	$(CXX) -std=c++20 -c -o $@ $< -O3 -march=native -flto
+	$(CXX) -std=c++20 -c -o $@ $< -O3 -march=native -fuse-ld=lld -flto -static
 
 # Create object directory
 $(OBJ_DIR):
