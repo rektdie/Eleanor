@@ -4,6 +4,7 @@
 #include "benchmark.h"
 #include "search.h"
 #include "stopwatch.h"
+#include "tt.h"
 
 using namespace SEARCH;
 
@@ -65,7 +66,11 @@ void RunBenchmark() {
     int depth = BENCH_DEPTH;
     int ply = 0;
 
+    // Clearing
+    TT.Clear();
+
     SearchContext ctx;
+
 
     Stopwatch sw;
     for (int i = 0; i < fenPositions.size(); i++) {
@@ -74,4 +79,5 @@ void RunBenchmark() {
     }
 
     std::cout << ctx.nodes << " nodes " << int(ctx.nodes/sw.GetElapsedSec()) << " nps" << std::endl;
+    TT.Clear();
 }

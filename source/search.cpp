@@ -9,19 +9,6 @@
 
 namespace SEARCH {
 
-SearchContext::SearchContext() {
-    pvLine.Clear();
-    history.Clear();
-    TT = new TTable();
-    sw.Restart();
-    killerMoves = {};
-    positionHistory = {};
-}
-
-SearchContext::~SearchContext() {
-    delete TT;
-}
-
 void InitLMRTable() {
     for (int depth = 0; depth <= MAX_DEPTH; depth++) {
         for (int move = 0; move < MAX_MOVES; move++) {
@@ -38,7 +25,7 @@ void InitLMRTable() {
 }
 
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext& ctx) {
-    TTEntry *current = ctx.TT->GetRawEntry(board.hashKey);
+    TTEntry *current = TT.GetRawEntry(board.hashKey);
     if (current->bestMove == move) {
         return 50000;
     }
@@ -161,7 +148,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     
     int bestScore = HCE::Evaluate(board);
 
-    TTEntry *entry = ctx.TT->GetRawEntry(board.hashKey);
+    TTEntry *entry = TT.GetRawEntry(board.hashKey);
     if (entry->hashKey == board.hashKey) {
         bestScore = entry->score;
     }
@@ -235,7 +222,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     // if NOT PV node then we try to hit the TTable
     if constexpr (!isPV) {
-        SearchResults entry = ctx.TT->ReadEntry(board.hashKey, depth, alpha, beta);
+        SearchResults entry = TT.ReadEntry(board.hashKey, depth, alpha, beta);
         if (entry.score != invalidEntry) {
             return entry;
         }
@@ -353,7 +340,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 }
             }
 
-            ctx.TT->WriteEntry(board.hashKey, depth, score, CutNode, Move());
+            TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
             return score;
         }
 
@@ -376,7 +363,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     }
 
     if (ctx.searchStopped) return 0;
-    ctx.TT->WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
+    TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
     return results;
 }
 
@@ -444,7 +431,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
                 std::cout << " time " << elapsed;
                 std::cout << " score cp " << UTILS::ConvertToWhiteRelative(board, safeResults.score);
                 std::cout << " nodes " << ctx.nodes << " nps " << int(ctx.nodes/ctx.sw.GetElapsedSec());
-                std::cout << " hashfull " << ctx.TT->GetUsedPercentage();
+                std::cout << " hashfull " << TT.GetUsedPercentage();
                 std::cout << " pv ";
                 ctx.pvLine.Print(0);
                 std::cout << std::endl;

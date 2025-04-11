@@ -92,10 +92,10 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext& c
     }
 }
 
-static void SetOption(std::string &command, SEARCH::SearchContext& ctx) {
+static void SetOption(std::string &command) {
     if (command.find("Hash") != std::string::npos) {
         hashSize = (ReadParam("value", command) * 1000000) / sizeof(TTEntry);
-        ctx.TT->Resize(hashSize);
+        TT.Resize(hashSize);
     }
 }
 
@@ -134,7 +134,7 @@ void UCILoop(Board &board) {
             board.SetByFen(StartingFen);
             
             // Clearing
-            ctx.TT->Clear();
+            TT.Clear();
             
             ctx.killerMoves = {};
             ctx.history.Clear();
@@ -169,7 +169,7 @@ void UCILoop(Board &board) {
         }
 
         if (input.find("setoption") != std::string::npos) {
-            SetOption(input, ctx);
+            SetOption(input);
             continue;
         }
 
