@@ -113,7 +113,7 @@ static bool IsInsuffMat(Board& board) {
         && !(board.pieces[Pawn] | board.pieces[Queen] | board.pieces[Rook]));
 }
 
-static bool IsDraw(Board &board, SearchContext& ctx) {
+bool IsDraw(Board &board, SearchContext& ctx) {
     return IsFifty(board) || IsInsuffMat(board) || IsThreefold(board, ctx);
 }
 
