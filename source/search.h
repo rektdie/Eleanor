@@ -19,8 +19,6 @@ constexpr int MAX_DEPTH = 64;
 constexpr int MAX_PLY = 128;
 constexpr int MAX_HISTORY = 16384;
 
-extern bool benchStarted;
-
 constexpr int inf = 100000;
 
 inline bool searchStopped = false;

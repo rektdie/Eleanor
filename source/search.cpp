@@ -12,7 +12,6 @@ namespace SEARCH {
 
 U64 nodes = 0;
 U64 nodesToGo = 0;
-bool benchStarted = false;
 
 static inline int timeToSearch = 0;
 static inline bool doingNullMove = false;
@@ -143,10 +142,12 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
 template <searchMode mode>
 static SearchResults Quiescence(Board board, int alpha, int beta, int ply, SearchContext& ctx) {
     if constexpr (mode != nodesMode)  {
-        if (!benchStarted && ctx.nodes % 1024 == 0) {
-            if (sw.GetElapsedMS() >= timeToSearch) {
-                StopSearch();
-                return 0;
+        if constexpr (mode != bench) {
+            if (ctx.nodes % 1024 == 0) {
+                if (sw.GetElapsedMS() >= timeToSearch) {
+                    StopSearch();
+                    return 0;
+                }
             }
         }
     } else {

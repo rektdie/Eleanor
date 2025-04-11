@@ -65,7 +65,6 @@ void RunBenchmark() {
     Board board;
     int depth = BENCH_DEPTH;
     int ply = 0;
-    benchStarted = true;
     searchStopped = false;
     positionIndex = 0;
 
@@ -86,7 +85,6 @@ void RunBenchmark() {
 
     std::cout << ctx.nodes << " nodes " << int(ctx.nodes/sw.GetElapsedSec()) << " nps" << std::endl;
     TT.Clear();
-    benchStarted = false;
     std::memset(killerMoves, 0, sizeof(killerMoves));
     history.Clear();
     positionIndex = 0;
