@@ -14,7 +14,6 @@ static U64 HelperPerft(Board board, int depth) {
         bool isLegal = copy.MakeMove(board.moveList[i]);
         if (!isLegal) continue;
         nodes += HelperPerft(copy, depth - 1);
-        positionIndex--;
     }
     return nodes;
 }
@@ -30,7 +29,6 @@ void Perft(Board &board, int depth) {
         bool isLegal = copy.MakeMove(board.moveList[i]);
         if (!isLegal) continue;
         U64 nodeCount = HelperPerft(copy, depth - 1);
-        positionIndex--;
         totalNodes += nodeCount;
         board.moveList[i].PrintMove();
 

@@ -63,8 +63,7 @@ static void PlayRandMoves(Board &board) {
 }
 
 static bool IsGameOver(Board &board) {
-    bool isDraw = SEARCH::IsDraw(board);
-    if (isDraw) return true;
+    if (board.IsDraw()) return true;
 
     int moveSeen = 0;
 
@@ -73,7 +72,6 @@ static bool IsGameOver(Board &board) {
         bool isLegal = copy.MakeMove(board.moveList[i]);
 
         if (!isLegal) continue;
-        positionIndex--;
         moveSeen++;
     }
 
@@ -99,8 +97,6 @@ void PlayGame(std::atomic<int>& positions, U64 targetPositions, std::vector<Game
         Board board;
 
         uint8_t wdl = 1;
-        // Since positionIndex is thread-local, no need to protect it
-        positionIndex = 0;
         
         SEARCH::SearchContext ctx;
 
