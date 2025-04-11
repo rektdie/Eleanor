@@ -103,7 +103,6 @@ void PlayGame(std::atomic<int>& positions, U64 targetPositions, std::vector<Game
         positionIndex = 0;
         
         std::memset(SEARCH::killerMoves, 0, sizeof(SEARCH::killerMoves));
-        SEARCH::history.Clear();
 
         SEARCH::SearchContext ctx;
 

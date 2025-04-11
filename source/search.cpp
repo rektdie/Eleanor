@@ -29,7 +29,7 @@ void InitLMRTable() {
     }
 }
 
-static int ScoreMove(Board &board, Move &move, int ply) {
+static int ScoreMove(Board &board, Move &move, int ply, SearchContext& ctx) {
     TTEntry *current = TT.GetRawEntry(board.hashKey);
     if (current->bestMove == move) {
         return 50000;
@@ -51,20 +51,20 @@ static int ScoreMove(Board &board, Move &move, int ply) {
             return 18000;
         } else {
             // Max 16384
-            return history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
+            return ctx.history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
         }
     }
 
     return 0;
 }
 
-static void SortMoves(Board &board, int ply) {
+static void SortMoves(Board &board, int ply, SearchContext& ctx) {
     std::array<int, MAX_MOVES> scores;
     std::array<int, MAX_MOVES> indices;
 
     // Initialize scores and indices
     for (int i = 0; i < board.currentMoveIndex; i++) {
-        scores[i] = ScoreMove(board, board.moveList[i], ply);
+        scores[i] = ScoreMove(board, board.moveList[i], ply, ctx);
         indices[i] = i;
     }
 
@@ -86,14 +86,14 @@ static void SortMoves(Board &board, int ply) {
     }
 }
 
-void ListScores(Board &board, int ply) {
-    SortMoves(board, ply);
+void ListScores(Board &board, int ply, SearchContext& ctx) {
+    SortMoves(board, ply, ctx);
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Move currentMove = board.moveList[i];
 
         std::cout << squareCoords[currentMove.MoveFrom()] << squareCoords[currentMove.MoveTo()];
-        std::cout << ": " << ScoreMove(board, currentMove, ply) << '\n';
+        std::cout << ": " << ScoreMove(board, currentMove, ply, ctx) << '\n';
     }
 }
 
@@ -169,7 +169,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply, Searc
 
     MOVEGEN::GenerateMoves<Noisy>(board);
 
-    SortMoves(board, ply);
+    SortMoves(board, ply, ctx);
 
     SearchResults results;
 
@@ -265,7 +265,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
 
     MOVEGEN::GenerateMoves<All>(board);
 
-    SortMoves(board, ply);
+    SortMoves(board, ply, ctx);
 
     int score = -inf;
     int nodeType = AllNode;
@@ -338,10 +338,10 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
 
                 int bonus = depth * depth;
 
-                history.Update(board.sideToMove, currMove, bonus);
+                ctx.history.Update(board.sideToMove, currMove, bonus);
 
                 for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
-                    history.Update(board.sideToMove, seenQuiets[moveIndex], -bonus);
+                    ctx.history.Update(board.sideToMove, seenQuiets[moveIndex], -bonus);
                 }
             }
 

@@ -72,8 +72,6 @@ public:
     }
 };
 
-inline History history;
-
 class PVLine {
 private:
     int length[MAX_PLY] = {};
@@ -112,10 +110,13 @@ public:
     U64 nodesToGo = 0;
     
     bool doingNullMove = false;
+
     PVLine pvLine;
+    History history;
 
     SearchContext(){
         pvLine.Clear();
+        history.Clear();
     }
 };
 
@@ -137,5 +138,5 @@ constexpr int moveScoreTable[6][6] = {
     100, 200, 300, 400, 500, 600
 };
 
-void ListScores(Board &board);
+void ListScores(Board &board, SearchContext& ctx);
 }

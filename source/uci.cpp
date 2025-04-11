@@ -138,7 +138,7 @@ void UCILoop(Board &board) {
             TT.Clear();
             std::memset(SEARCH::killerMoves, 0, sizeof(SEARCH::killerMoves));
             
-            SEARCH::history.Clear();
+            ctx.history.Clear();
             positionIndex = 0;
 
             continue;
