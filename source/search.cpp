@@ -9,8 +9,6 @@
 
 namespace SEARCH {
 
-static inline int timeToSearch = 0;
-
 void InitLMRTable() {
     for (int depth = 0; depth <= MAX_DEPTH; depth++) {
         for (int move = 0; move < MAX_MOVES; move++) {
@@ -135,7 +133,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply, Searc
     if constexpr (mode != nodesMode)  {
         if constexpr (mode != bench) {
             if (ctx.nodes % 1024 == 0) {
-                if (ctx.sw.GetElapsedMS() >= timeToSearch) {
+                if (ctx.sw.GetElapsedMS() >= ctx.timeToSearch) {
                     StopSearch();
                     return 0;
                 }
@@ -200,7 +198,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
     if constexpr (mode != bench || mode != nodesMode) {
         if (ctx.nodes % 1024 == 0) {
             if constexpr (mode == normal) {
-                if (ctx.sw.GetElapsedMS() >= timeToSearch) {
+                if (ctx.sw.GetElapsedMS() >= ctx.timeToSearch) {
                     StopSearch();
                     return 0;
                 }
@@ -396,8 +394,8 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
     ctx.sw.Restart();
 
     for (int depth = 1; depth <= toDepth; depth++) {
-        timeToSearch = std::max((fullTime / 20) + (inc / 2), 4);
-        int softTime = timeToSearch * 0.65;
+        ctx.timeToSearch = std::max((fullTime / 20) + (inc / 2), 4);
+        int softTime = ctx.timeToSearch * 0.65;
 
         SearchResults currentResults = PVS<true, mode>(board, depth, alpha, beta, ply, ctx);
         elapsed = ctx.sw.GetElapsedMS();
