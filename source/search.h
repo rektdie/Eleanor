@@ -109,6 +109,7 @@ public:
 class SearchContext {
 public:
     U64 nodes = 0;
+    bool doingNullMove = false;
 
     SearchContext(){}
 };

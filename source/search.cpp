@@ -10,11 +10,9 @@
 
 namespace SEARCH {
 
-U64 nodes = 0;
 U64 nodesToGo = 0;
 
 static inline int timeToSearch = 0;
-static inline bool doingNullMove = false;
 
 inline PVLine pvLine;
 
@@ -252,15 +250,15 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
             }
 
             // Null Move Pruning
-            if (!doingNullMove && staticEval >= beta) {
+            if (!ctx.doingNullMove && staticEval >= beta) {
                 if (depth >= 3 && !board.InPossibleZug()) {
                     Board copy = board;
                     bool isLegal = copy.MakeMove(Move());
                     // Always legal so we dont check it
     
-                    doingNullMove = true;
+                    ctx.doingNullMove = true;
                     int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1, ctx).score;
-                    doingNullMove = false;
+                    ctx.doingNullMove = false;
     
                     if (searchStopped) return 0;
                     if (score >= beta) return score; 
