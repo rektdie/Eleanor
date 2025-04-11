@@ -94,7 +94,7 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext& c
 
 static void SetOption(std::string &command, SEARCH::SearchContext& ctx) {
     if (command.find("Hash") != std::string::npos) {
-        hashSize = (ReadParam("value", command) * 1000000) / sizeof(TTEntry);
+        U64 hashSize = (ReadParam("value", command) * 1000000) / sizeof(TTEntry);
         ctx.TT->Resize(hashSize);
     }
 }
