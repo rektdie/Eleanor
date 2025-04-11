@@ -110,8 +110,11 @@ class SearchContext {
 public:
     U64 nodes = 0;
     bool doingNullMove = false;
+    PVLine pvLine;
 
-    SearchContext(){}
+    SearchContext(){
+        pvLine.Clear();
+    }
 };
 
 template <bool isPV, searchMode mode>

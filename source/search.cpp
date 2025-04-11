@@ -14,8 +14,6 @@ U64 nodesToGo = 0;
 
 static inline int timeToSearch = 0;
 
-inline PVLine pvLine;
-
 Stopwatch sw;
 
 void InitLMRTable() {
@@ -225,7 +223,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
         }
     }
 
-    pvLine.SetLength(ply);
+    ctx.pvLine.SetLength(ply);
     if (ply && (IsThreefold(board) || IsFifty(board) || IsInsuffMat(board))) return 0;
 
 
@@ -359,7 +357,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
             nodeType = PV;
             alpha = score;
             results.bestMove = currMove;
-            pvLine.SetMove(ply, currMove);
+            ctx.pvLine.SetMove(ply, currMove);
         }
     }
 
@@ -442,7 +440,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
                 std::cout << " nodes " << ctx.nodes << " nps " << int(ctx.nodes/sw.GetElapsedSec());
                 std::cout << " hashfull " << TT.GetUsedPercentage();
                 std::cout << " pv ";
-                pvLine.Print(0);
+                ctx.pvLine.Print(0);
                 std::cout << std::endl;
 
                 if constexpr (mode == normal) {
@@ -473,7 +471,7 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& c
             nodesToGo = params.nodes;
         }
     }
-    pvLine.Clear();
+    ctx.pvLine.Clear();
 
     SearchResults results = ID<mode>(board, params, ctx);
 
