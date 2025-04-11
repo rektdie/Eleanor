@@ -1,6 +1,5 @@
 #include "board.h"
 #include "movegen.h"
-#include "tt.h"
 #include <iostream>
 #include <ranges>
 #include <string_view>

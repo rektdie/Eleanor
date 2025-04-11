@@ -6,6 +6,8 @@
 #include <algorithm>
 #include "stopwatch.h"
 
+class TTable;
+
 namespace SEARCH {
 
 enum searchMode {
@@ -111,19 +113,15 @@ public:
 
     PVLine pvLine;
     History history;
+    TTable* TT;
 
     std::array<std::array<int, MAX_PLY>, 2> killerMoves{};
     std::array<U64, 1000> positionHistory;
 
     Stopwatch sw;
 
-    SearchContext(){
-        pvLine.Clear();
-        history.Clear();
-        sw.Restart();
-        killerMoves = {};
-        positionHistory = {};
-    }
+    SearchContext();
+    ~SearchContext();
 };
 
 template <bool isPV, searchMode mode>
