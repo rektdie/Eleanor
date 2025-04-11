@@ -159,7 +159,7 @@ void UCILoop(Board &board) {
         // parse UCI "stop" command
         if (input.find("stop") != std::string::npos) {
             // stop the loop
-            SEARCH::StopSearch();
+            ctx.searchStopped = true;
             continue;
         }
 

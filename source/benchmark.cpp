@@ -65,7 +65,6 @@ void RunBenchmark() {
     Board board;
     int depth = BENCH_DEPTH;
     int ply = 0;
-    searchStopped = false;
     positionIndex = 0;
 
     // Clearing

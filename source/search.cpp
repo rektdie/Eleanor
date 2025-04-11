@@ -134,14 +134,14 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply, Searc
         if constexpr (mode != bench) {
             if (ctx.nodes % 1024 == 0) {
                 if (ctx.sw.GetElapsedMS() >= ctx.timeToSearch) {
-                    StopSearch();
+                    ctx.searchStopped = true;
                     return 0;
                 }
             }
         }
     } else {
         if (ctx.nodes > ctx.nodesToGo) {
-            StopSearch();
+            ctx.searchStopped = true;
             return 0;
         }
     }
@@ -189,7 +189,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply, Searc
     }
 
     results.score = bestScore;
-    if (searchStopped) return 0;
+    if (ctx.searchStopped) return 0;
     return results;
 }
 
@@ -199,19 +199,19 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
         if (ctx.nodes % 1024 == 0) {
             if constexpr (mode == normal) {
                 if (ctx.sw.GetElapsedMS() >= ctx.timeToSearch) {
-                    StopSearch();
+                    ctx.searchStopped = true;
                     return 0;
                 }
             } else if constexpr (mode == datagen) {
                 if (ctx.nodes >= DATAGEN::HARD_NODES) {
-                    StopSearch();
+                    ctx.searchStopped = true;
                     return 0;
                 }
             }
         }
     } else if constexpr (mode == nodesMode) {
         if (ctx.nodes > ctx.nodesToGo) {
-            StopSearch();
+            ctx.searchStopped = true;
             return 0;
         }
     }
@@ -251,7 +251,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
                     int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1, ctx).score;
                     ctx.doingNullMove = false;
     
-                    if (searchStopped) return 0;
+                    if (ctx.searchStopped) return 0;
                     if (score >= beta) return score; 
                 }
             }
@@ -318,7 +318,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
         moveSeen++;
         positionIndex--;
 
-        if (searchStopped) return 0;
+        if (ctx.searchStopped) return 0;
 
         if (currMove.IsQuiet()) {
             seenQuiets[seenQuietsCount] = currMove;
@@ -362,7 +362,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
         }
     }
 
-    if (searchStopped) return 0;
+    if (ctx.searchStopped) return 0;
     TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
     return results;
 }
@@ -410,7 +410,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
 
             depth--;
 
-            if (searchStopped) break;
+            if (ctx.searchStopped) break;
             continue;
         }
 
@@ -418,7 +418,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
         beta = currentResults.score + delta;
         delta = 50;
 
-        if (searchStopped) {
+        if (ctx.searchStopped) {
             break;
         } else {
             if (currentResults.bestMove) {
@@ -438,13 +438,13 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
 
                 if constexpr (mode == normal) {
                     if (ctx.sw.GetElapsedMS() >= softTime) {
-                        StopSearch();
+                        ctx.searchStopped = true;
                         break;
                     }
                 }
             } else if constexpr (mode == datagen) {
                 if (ctx.nodes >= DATAGEN::SOFT_NODES) {
-                    StopSearch();
+                    ctx.searchStopped = true;
                     break;
                 }
             }
@@ -456,7 +456,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
 
 template <searchMode mode>
 SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& ctx) {
-    searchStopped = false;
+    ctx.searchStopped = false;
     if constexpr (mode != bench) {
         ctx.nodes = 0;
 
@@ -475,10 +475,6 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& c
     std::cout << std::endl;
 
     return results;
-}
-
-void StopSearch() {
-    searchStopped = true;
 }
 
 template SearchResults PVS<true, searchMode::bench>(Board, int, int, int, int, SearchContext& ctx);

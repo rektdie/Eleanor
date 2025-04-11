@@ -22,8 +22,6 @@ constexpr int MAX_HISTORY = 16384;
 
 constexpr int inf = 100000;
 
-inline bool searchStopped = false;
-
 //                                 [id][ply]
 inline int killerMoves[2][MAX_PLY];
 
@@ -112,6 +110,7 @@ public:
     int timeToSearch = 0;
     
     bool doingNullMove = false;
+    bool searchStopped = false;
 
     PVLine pvLine;
     History history;
@@ -130,7 +129,6 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
 
 template <searchMode mode>
 SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& ctx);
-void StopSearch();
 
 bool IsDraw(Board &board);
 
