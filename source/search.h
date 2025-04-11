@@ -4,6 +4,7 @@
 #include <vector>
 #include "move.h"
 #include <algorithm>
+#include "stopwatch.h"
 
 namespace SEARCH {
 
@@ -114,9 +115,12 @@ public:
     PVLine pvLine;
     History history;
 
+    Stopwatch sw;
+
     SearchContext(){
         pvLine.Clear();
         history.Clear();
+        sw.Restart();
     }
 };
 

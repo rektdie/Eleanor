@@ -4,15 +4,12 @@
 #include <algorithm>
 #include <cmath>
 #include "tt.h"
-#include "stopwatch.h"
 #include "datagen.h"
 #include "benchmark.h"
 
 namespace SEARCH {
 
 static inline int timeToSearch = 0;
-
-Stopwatch sw;
 
 void InitLMRTable() {
     for (int depth = 0; depth <= MAX_DEPTH; depth++) {
@@ -138,7 +135,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply, Searc
     if constexpr (mode != nodesMode)  {
         if constexpr (mode != bench) {
             if (ctx.nodes % 1024 == 0) {
-                if (sw.GetElapsedMS() >= timeToSearch) {
+                if (ctx.sw.GetElapsedMS() >= timeToSearch) {
                     StopSearch();
                     return 0;
                 }
@@ -203,7 +200,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
     if constexpr (mode != bench || mode != nodesMode) {
         if (ctx.nodes % 1024 == 0) {
             if constexpr (mode == normal) {
-                if (sw.GetElapsedMS() >= timeToSearch) {
+                if (ctx.sw.GetElapsedMS() >= timeToSearch) {
                     StopSearch();
                     return 0;
                 }
@@ -396,14 +393,14 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
 
     int elapsed = 0;
 
-    sw.Restart();
+    ctx.sw.Restart();
 
     for (int depth = 1; depth <= toDepth; depth++) {
         timeToSearch = std::max((fullTime / 20) + (inc / 2), 4);
         int softTime = timeToSearch * 0.65;
 
         SearchResults currentResults = PVS<true, mode>(board, depth, alpha, beta, ply, ctx);
-        elapsed = sw.GetElapsedMS();
+        elapsed = ctx.sw.GetElapsedMS();
 
         // If we fell outside the window, try again with full width
         if ((currentResults.score <= alpha)
@@ -435,14 +432,14 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
                 std::cout << "depth " << depth;
                 std::cout << " time " << elapsed;
                 std::cout << " score cp " << UTILS::ConvertToWhiteRelative(board, safeResults.score);
-                std::cout << " nodes " << ctx.nodes << " nps " << int(ctx.nodes/sw.GetElapsedSec());
+                std::cout << " nodes " << ctx.nodes << " nps " << int(ctx.nodes/ctx.sw.GetElapsedSec());
                 std::cout << " hashfull " << TT.GetUsedPercentage();
                 std::cout << " pv ";
                 ctx.pvLine.Print(0);
                 std::cout << std::endl;
 
                 if constexpr (mode == normal) {
-                    if (sw.GetElapsedMS() >= softTime) {
+                    if (ctx.sw.GetElapsedMS() >= softTime) {
                         StopSearch();
                         break;
                     }
