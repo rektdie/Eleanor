@@ -129,7 +129,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
 }
 
 template <searchMode mode>
-static SearchResults Quiescence(Board board, int alpha, int beta, int ply, SearchContext& ctx) {
+static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext& ctx) {
     if constexpr (mode != nodesMode)  {
         if constexpr (mode != bench) {
             if (ctx.nodes % 1024 == 0) {
@@ -194,7 +194,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply, Searc
 }
 
 template <bool isPV, searchMode mode>
-SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchContext& ctx) {
+SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchContext& ctx) {
     if constexpr (mode != bench || mode != nodesMode) {
         if (ctx.nodes % 1024 == 0) {
             if constexpr (mode == normal) {
@@ -477,12 +477,12 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& c
     return results;
 }
 
-template SearchResults PVS<true, searchMode::bench>(Board, int, int, int, int, SearchContext& ctx);
-template SearchResults PVS<false, searchMode::bench>(Board, int, int, int, int, SearchContext& ctx);
-template SearchResults PVS<true, searchMode::normal>(Board, int, int, int, int, SearchContext& ctx);
-template SearchResults PVS<false, searchMode::normal>(Board, int, int, int, int, SearchContext& ctx);
-template SearchResults PVS<true, searchMode::datagen>(Board, int, int, int, int, SearchContext& ctx);
-template SearchResults PVS<false, searchMode::datagen>(Board, int, int, int, int, SearchContext& ctx);
+template SearchResults PVS<true, searchMode::bench>(Board&, int, int, int, int, SearchContext& ctx);
+template SearchResults PVS<false, searchMode::bench>(Board&, int, int, int, int, SearchContext& ctx);
+template SearchResults PVS<true, searchMode::normal>(Board&, int, int, int, int, SearchContext& ctx);
+template SearchResults PVS<false, searchMode::normal>(Board&, int, int, int, int, SearchContext& ctx);
+template SearchResults PVS<true, searchMode::datagen>(Board&, int, int, int, int, SearchContext& ctx);
+template SearchResults PVS<false, searchMode::datagen>(Board&, int, int, int, int, SearchContext& ctx);
 
 template SearchResults SearchPosition<normal>(Board &board, SearchParams params, SearchContext& ctx);
 template SearchResults SearchPosition<bench>(Board &board, SearchParams params, SearchContext& ctx);
