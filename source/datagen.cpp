@@ -102,8 +102,6 @@ void PlayGame(std::atomic<int>& positions, U64 targetPositions, std::vector<Game
         // Since positionIndex is thread-local, no need to protect it
         positionIndex = 0;
         
-        std::memset(SEARCH::killerMoves, 0, sizeof(SEARCH::killerMoves));
-
         SEARCH::SearchContext ctx;
 
         try {

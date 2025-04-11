@@ -40,9 +40,9 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext& ctx) {
 
         return moveScoreTable[attackerType][targetType] + 30000;
     } else {
-        if (killerMoves[0][ply] == move) {
+        if (ctx.killerMoves[0][ply] == move) {
             return 20000;
-        } else if (killerMoves[1][ply] == move) {
+        } else if (ctx.killerMoves[1][ply] == move) {
             return 18000;
         } else {
             // Max 16384
@@ -328,8 +328,8 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
         // Fail high (beta cutoff)
         if (score >= beta) {
             if (!currMove.IsCapture()) {
-                killerMoves[1][ply] = killerMoves[0][ply];
-                killerMoves[0][ply] = currMove;
+                ctx.killerMoves[1][ply] = ctx.killerMoves[0][ply];
+                ctx.killerMoves[0][ply] = currMove;
 
                 int bonus = depth * depth;
 

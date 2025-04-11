@@ -22,9 +22,6 @@ constexpr int MAX_HISTORY = 16384;
 
 constexpr int inf = 100000;
 
-//                                 [id][ply]
-inline int killerMoves[2][MAX_PLY];
-
 inline int lmrTable[MAX_DEPTH+1][MAX_MOVES];
 
 void InitLMRTable();
@@ -115,12 +112,15 @@ public:
     PVLine pvLine;
     History history;
 
+    std::array<std::array<int, MAX_PLY>, 2> killerMoves{};
+
     Stopwatch sw;
 
     SearchContext(){
         pvLine.Clear();
         history.Clear();
         sw.Restart();
+        killerMoves = {};
     }
 };
 

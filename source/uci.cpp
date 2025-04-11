@@ -136,9 +136,10 @@ void UCILoop(Board &board) {
             
             // Clearing
             TT.Clear();
-            std::memset(SEARCH::killerMoves, 0, sizeof(SEARCH::killerMoves));
             
+            ctx.killerMoves = {};
             ctx.history.Clear();
+            
             positionIndex = 0;
 
             continue;

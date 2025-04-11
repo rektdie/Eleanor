@@ -69,7 +69,6 @@ void RunBenchmark() {
 
     // Clearing
     TT.Clear();
-    std::memset(killerMoves, 0, sizeof(killerMoves));
 
     SearchContext ctx;
 
@@ -82,6 +81,5 @@ void RunBenchmark() {
 
     std::cout << ctx.nodes << " nodes " << int(ctx.nodes/sw.GetElapsedSec()) << " nps" << std::endl;
     TT.Clear();
-    std::memset(killerMoves, 0, sizeof(killerMoves));
     positionIndex = 0;
 }
