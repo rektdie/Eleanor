@@ -10,8 +10,6 @@
 
 namespace SEARCH {
 
-U64 nodesToGo = 0;
-
 static inline int timeToSearch = 0;
 
 Stopwatch sw;
@@ -147,7 +145,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply, Searc
             }
         }
     } else {
-        if (ctx.nodes > nodesToGo) {
+        if (ctx.nodes > ctx.nodesToGo) {
             StopSearch();
             return 0;
         }
@@ -217,7 +215,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
             }
         }
     } else if constexpr (mode == nodesMode) {
-        if (ctx.nodes > nodesToGo) {
+        if (ctx.nodes > ctx.nodesToGo) {
             StopSearch();
             return 0;
         }
@@ -468,7 +466,7 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& c
         ctx.nodes = 0;
 
         if constexpr (mode == nodesMode) {
-            nodesToGo = params.nodes;
+            ctx.nodesToGo = params.nodes;
         }
     }
     ctx.pvLine.Clear();

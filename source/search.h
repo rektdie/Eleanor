@@ -109,6 +109,8 @@ public:
 class SearchContext {
 public:
     U64 nodes = 0;
+    U64 nodesToGo = 0;
+    
     bool doingNullMove = false;
     PVLine pvLine;
 
