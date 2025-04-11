@@ -30,7 +30,7 @@ $(EXE)$(EXE_EXT): $(OBJS)
 
 # Compile .cpp -> .o
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	$(CXX) -std=c++20 -c -o $@ $< -O3 -march=native -fuse-ld=lld -flto -static
+	$(CXX) -std=c++20 -c -o $@ $< -O3 -march=native -flto -static
 
 # Create object directory
 $(OBJ_DIR):
