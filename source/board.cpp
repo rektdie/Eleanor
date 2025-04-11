@@ -393,7 +393,6 @@ bool Board::MakeMove(Move move) {
 	}
 	
     positionIndex++;
-    positionHistory[positionIndex] = hashKey;
 
     return true;
 }
@@ -443,29 +442,4 @@ void Board::ResetAccPair() {
 
 		blackPieces.PopBit(square);
 	}
-}
-
-static bool IsThreefold(Board& board) {
-    for (int i = 0; i < board.positionIndex; i++) {
-        if (positionHistory[i] == board.hashKey) {
-            // repetition found
-            return true;
-        }
-    }
-
-    // no repetition
-    return false;
-}
-
-static bool IsFifty(Board& board) {
-    return (board.halfMoves >= 100);
-}
-
-static bool IsInsuffMat(Board& board) {
-    return (board.occupied.PopCount() <= 3 
-        && !(board.pieces[Pawn] | board.pieces[Queen] | board.pieces[Rook]));
-}
-
-bool Board::IsDraw() {
-    return IsFifty(*this) || IsInsuffMat(*this) || IsThreefold(*this);
 }

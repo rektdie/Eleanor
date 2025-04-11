@@ -62,8 +62,8 @@ static void PlayRandMoves(Board &board) {
     MOVEGEN::GenerateMoves<All>(board);
 }
 
-static bool IsGameOver(Board &board) {
-    if (board.IsDraw()) return true;
+static bool IsGameOver(Board &board, SEARCH::SearchContext& ctx) {
+    if (SEARCH::IsDraw(board, ctx)) return true;
 
     int moveSeen = 0;
 
@@ -106,7 +106,7 @@ void PlayGame(std::atomic<int>& positions, U64 targetPositions, std::vector<Game
             SEARCH::SearchResults safeResults;
             MOVEGEN::GenerateMoves<All>(board);
 
-            while (!IsGameOver(board)) {
+            while (!IsGameOver(board, ctx)) {
                 SEARCH::SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx);
 
                 if (!results.bestMove) break;
