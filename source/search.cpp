@@ -141,16 +141,16 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
 }
 
 template <searchMode mode>
-static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
+static SearchResults Quiescence(Board board, int alpha, int beta, int ply, SearchContext& ctx) {
     if constexpr (mode != nodesMode)  {
-        if (!benchStarted && nodes % 1024 == 0) {
+        if (!benchStarted && ctx.nodes % 1024 == 0) {
             if (sw.GetElapsedMS() >= timeToSearch) {
                 StopSearch();
                 return 0;
             }
         }
     } else {
-        if (nodes > nodesToGo) {
+        if (ctx.nodes > nodesToGo) {
             StopSearch();
             return 0;
         }
@@ -182,7 +182,8 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
         Board copy = board;
         int isLegal = copy.MakeMove(board.moveList[i]);
         if (!isLegal) continue;
-        int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1).score;
+        ctx.nodes++;
+        int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1, ctx).score;
         positionIndex--;
 
         if (score >= beta) {
@@ -203,23 +204,23 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply) {
 }
 
 template <bool isPV, searchMode mode>
-SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
+SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchContext& ctx) {
     if constexpr (mode != bench || mode != nodesMode) {
-        if (nodes % 1024 == 0) {
+        if (ctx.nodes % 1024 == 0) {
             if constexpr (mode == normal) {
                 if (sw.GetElapsedMS() >= timeToSearch) {
                     StopSearch();
                     return 0;
                 }
             } else if constexpr (mode == datagen) {
-                if (nodes >= DATAGEN::HARD_NODES) {
+                if (ctx.nodes >= DATAGEN::HARD_NODES) {
                     StopSearch();
                     return 0;
                 }
             }
         }
     } else if constexpr (mode == nodesMode) {
-        if (nodes > nodesToGo) {
+        if (ctx.nodes > nodesToGo) {
             StopSearch();
             return 0;
         }
@@ -237,7 +238,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         }
     }
 
-    if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply);
+    if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
 
     const int staticEval = HCE::Evaluate(board);
 
@@ -257,7 +258,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
                     // Always legal so we dont check it
     
                     doingNullMove = true;
-                    int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1).score;
+                    int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1, ctx).score;
                     doingNullMove = false;
     
                     if (searchStopped) return 0;
@@ -296,6 +297,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         bool isLegal = copy.MakeMove(currMove);
 
         if (!isLegal) continue;
+        ctx.nodes++;
 
         int reductions = GetReductions(board, currMove, depth, moveSeen, ply);
 
@@ -304,23 +306,23 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
         // First move (suspected PV node)
         if (!moveSeen) {
             // Full search
-            score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1).score;
+            score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx).score;
         } else if (reductions) {
             // Null-window search with reductions
-            score = -PVS<false, mode>(copy, newDepth - reductions, -alpha-1, -alpha, ply + 1).score;
+            score = -PVS<false, mode>(copy, newDepth - reductions, -alpha-1, -alpha, ply + 1, ctx).score;
 
             if (score > alpha) {
                 // Null-window search now without the reduction
-                score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1).score;
+                score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx).score;
             }
         } else {
             // Null-window search
-            score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1).score;
+            score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx).score;
         }
 
         // Check if we need to do full window re-search
         if (moveSeen && score > alpha && score < beta) {
-            score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1).score;
+            score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx).score;
         }
 
         moveSeen++;
@@ -377,7 +379,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply) {
 
 // Iterative deepening
 template <searchMode mode>
-static SearchResults ID(Board &board, SearchParams params) {
+static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
     int fullTime = board.sideToMove ? params.btime : params.wtime;
     int inc = board.sideToMove ? params.binc : params.winc;
 
@@ -405,7 +407,7 @@ static SearchResults ID(Board &board, SearchParams params) {
         timeToSearch = std::max((fullTime / 20) + (inc / 2), 4);
         int softTime = timeToSearch * 0.65;
 
-        SearchResults currentResults = PVS<true, mode>(board, depth, alpha, beta, ply);
+        SearchResults currentResults = PVS<true, mode>(board, depth, alpha, beta, ply, ctx);
         elapsed = sw.GetElapsedMS();
 
         // If we fell outside the window, try again with full width
@@ -438,7 +440,7 @@ static SearchResults ID(Board &board, SearchParams params) {
                 std::cout << "depth " << depth;
                 std::cout << " time " << elapsed;
                 std::cout << " score cp " << UTILS::ConvertToWhiteRelative(board, safeResults.score);
-                std::cout << " nodes " << nodes << " nps " << int(nodes/sw.GetElapsedSec());
+                std::cout << " nodes " << ctx.nodes << " nps " << int(ctx.nodes/sw.GetElapsedSec());
                 std::cout << " hashfull " << TT.GetUsedPercentage();
                 std::cout << " pv ";
                 pvLine.Print(0);
@@ -451,7 +453,7 @@ static SearchResults ID(Board &board, SearchParams params) {
                     }
                 }
             } else if constexpr (mode == datagen) {
-                if (nodes >= DATAGEN::SOFT_NODES) {
+                if (ctx.nodes >= DATAGEN::SOFT_NODES) {
                     StopSearch();
                     break;
                 }
@@ -463,10 +465,10 @@ static SearchResults ID(Board &board, SearchParams params) {
 }
 
 template <searchMode mode>
-SearchResults SearchPosition(Board &board, SearchParams params) {
+SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& ctx) {
     searchStopped = false;
     if constexpr (mode != bench) {
-        nodes = 0;
+        ctx.nodes = 0;
 
         if constexpr (mode == nodesMode) {
             nodesToGo = params.nodes;
@@ -474,7 +476,7 @@ SearchResults SearchPosition(Board &board, SearchParams params) {
     }
     pvLine.Clear();
 
-    SearchResults results = ID<mode>(board, params);
+    SearchResults results = ID<mode>(board, params, ctx);
 
     if constexpr (mode != normal) return results;
 
@@ -489,16 +491,16 @@ void StopSearch() {
     searchStopped = true;
 }
 
-template SearchResults PVS<true, searchMode::bench>(Board, int, int, int, int);
-template SearchResults PVS<false, searchMode::bench>(Board, int, int, int, int);
-template SearchResults PVS<true, searchMode::normal>(Board, int, int, int, int);
-template SearchResults PVS<false, searchMode::normal>(Board, int, int, int, int);
-template SearchResults PVS<true, searchMode::datagen>(Board, int, int, int, int);
-template SearchResults PVS<false, searchMode::datagen>(Board, int, int, int, int);
+template SearchResults PVS<true, searchMode::bench>(Board, int, int, int, int, SearchContext& ctx);
+template SearchResults PVS<false, searchMode::bench>(Board, int, int, int, int, SearchContext& ctx);
+template SearchResults PVS<true, searchMode::normal>(Board, int, int, int, int, SearchContext& ctx);
+template SearchResults PVS<false, searchMode::normal>(Board, int, int, int, int, SearchContext& ctx);
+template SearchResults PVS<true, searchMode::datagen>(Board, int, int, int, int, SearchContext& ctx);
+template SearchResults PVS<false, searchMode::datagen>(Board, int, int, int, int, SearchContext& ctx);
 
-template SearchResults SearchPosition<normal>(Board &board, SearchParams params);
-template SearchResults SearchPosition<bench>(Board &board, SearchParams params);
-template SearchResults SearchPosition<datagen>(Board &board, SearchParams params);
-template SearchResults SearchPosition<nodesMode>(Board &board, SearchParams params);
+template SearchResults SearchPosition<normal>(Board &board, SearchParams params, SearchContext& ctx);
+template SearchResults SearchPosition<bench>(Board &board, SearchParams params, SearchContext& ctx);
+template SearchResults SearchPosition<datagen>(Board &board, SearchParams params, SearchContext& ctx);
+template SearchResults SearchPosition<nodesMode>(Board &board, SearchParams params, SearchContext& ctx);
 
 }

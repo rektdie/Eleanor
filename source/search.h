@@ -19,7 +19,6 @@ constexpr int MAX_DEPTH = 64;
 constexpr int MAX_PLY = 128;
 constexpr int MAX_HISTORY = 16384;
 
-extern U64 nodes;
 extern bool benchStarted;
 
 constexpr int inf = 100000;
@@ -109,11 +108,18 @@ public:
     }
 };
 
+class SearchContext {
+public:
+    U64 nodes = 0;
+
+    SearchContext(){}
+};
+
 template <bool isPV, searchMode mode>
-SearchResults PVS(Board board, int depth, int alpha, int beta, int ply);
+SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchContext& ctx);
 
 template <searchMode mode>
-SearchResults SearchPosition(Board &board, SearchParams params);
+SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& ctx);
 void StopSearch();
 
 bool IsDraw(Board &board);

@@ -68,7 +68,7 @@ static int ReadParam(std::string param, std::string &command) {
     return 0;
 }
 
-static void ParseGo(Board &board, std::string &command) {
+static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext& ctx) {
     SearchParams params;
 
     params.wtime = ReadParam("wtime", command);
@@ -84,10 +84,10 @@ static void ParseGo(Board &board, std::string &command) {
     }
 
     if (params.nodes) {
-        auto worker = std::thread(SEARCH::SearchPosition<SEARCH::nodesMode>, std::ref(board), params);
+        auto worker = std::thread(SEARCH::SearchPosition<SEARCH::nodesMode>, std::ref(board), params, std::ref(ctx));
         worker.detach();
     } else {
-        auto worker = std::thread(SEARCH::SearchPosition<SEARCH::normal>, std::ref(board), params);
+        auto worker = std::thread(SEARCH::SearchPosition<SEARCH::normal>, std::ref(board), params, std::ref(ctx));
         worker.detach();
     }
 }
@@ -109,6 +109,8 @@ static void PrintEngineInfo() {
 
 void UCILoop(Board &board) {
     std::string input = "";
+
+    SEARCH::SearchContext ctx;
 
     // main loop
     while (true) {
@@ -144,7 +146,7 @@ void UCILoop(Board &board) {
 
         // parse UCI "go" command
         if (input.find("go") != std::string::npos) {
-            ParseGo(board, input); 
+            ParseGo(board, input, ctx); 
             continue;
         }
 
