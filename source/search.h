@@ -4,6 +4,7 @@
 #include <vector>
 #include "move.h"
 #include <algorithm>
+#include "stopwatch.h"
 
 namespace SEARCH {
 
@@ -19,15 +20,7 @@ constexpr int MAX_DEPTH = 64;
 constexpr int MAX_PLY = 128;
 constexpr int MAX_HISTORY = 16384;
 
-extern U64 nodes;
-extern bool benchStarted;
-
 constexpr int inf = 100000;
-
-inline bool searchStopped = false;
-
-//                                 [id][ply]
-inline int killerMoves[2][MAX_PLY];
 
 inline int lmrTable[MAX_DEPTH+1][MAX_MOVES];
 
@@ -75,8 +68,6 @@ public:
     }
 };
 
-inline History history;
-
 class PVLine {
 private:
     int length[MAX_PLY] = {};
@@ -109,12 +100,35 @@ public:
     }
 };
 
+class SearchContext {
+public:
+    U64 nodes = 0;
+    U64 nodesToGo = 0;
+    int timeToSearch = 0;
+    
+    bool doingNullMove = false;
+    bool searchStopped = false;
+
+    PVLine pvLine;
+    History history;
+
+    std::array<std::array<int, MAX_PLY>, 2> killerMoves{};
+
+    Stopwatch sw;
+
+    SearchContext(){
+        pvLine.Clear();
+        history.Clear();
+        sw.Restart();
+        killerMoves = {};
+    }
+};
+
 template <bool isPV, searchMode mode>
-SearchResults PVS(Board board, int depth, int alpha, int beta, int ply);
+SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchContext& ctx);
 
 template <searchMode mode>
-SearchResults SearchPosition(Board &board, SearchParams params);
-void StopSearch();
+SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& ctx);
 
 bool IsDraw(Board &board);
 
@@ -127,5 +141,5 @@ constexpr int moveScoreTable[6][6] = {
     100, 200, 300, 400, 500, 600
 };
 
-void ListScores(Board &board);
+void ListScores(Board &board, SearchContext& ctx);
 }

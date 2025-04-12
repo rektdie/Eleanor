@@ -65,29 +65,21 @@ void RunBenchmark() {
     Board board;
     int depth = BENCH_DEPTH;
     int ply = 0;
-    benchStarted = true;
-    searchStopped = false;
     positionIndex = 0;
 
     // Clearing
     TT.Clear();
-    std::memset(killerMoves, 0, sizeof(killerMoves));
-    
-    history.Clear();
 
-    nodes = 0;
+    SearchContext ctx;
+
 
     Stopwatch sw;
     for (int i = 0; i < fenPositions.size(); i++) {
         board.SetByFen(fenPositions[i]);
-        SearchPosition<bench>(board, SearchParams());
+        SearchPosition<bench>(board, SearchParams(), ctx);
     }
 
-    std::cout << nodes << " nodes " << int(nodes/sw.GetElapsedSec()) << " nps" << std::endl;
-    nodes = 0;
+    std::cout << ctx.nodes << " nodes " << int(ctx.nodes/sw.GetElapsedSec()) << " nps" << std::endl;
     TT.Clear();
-    benchStarted = false;
-    std::memset(killerMoves, 0, sizeof(killerMoves));
-    history.Clear();
     positionIndex = 0;
 }

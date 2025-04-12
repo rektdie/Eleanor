@@ -393,7 +393,6 @@ bool Board::MakeMove(Move move) {
     positionIndex++;
     positionHistory[positionIndex] = hashKey;
 
-    SEARCH::nodes++;
     return true;
 }
 

@@ -102,8 +102,7 @@ void PlayGame(std::atomic<int>& positions, U64 targetPositions, std::vector<Game
         // Since positionIndex is thread-local, no need to protect it
         positionIndex = 0;
         
-        std::memset(SEARCH::killerMoves, 0, sizeof(SEARCH::killerMoves));
-        SEARCH::history.Clear();
+        SEARCH::SearchContext ctx;
 
         try {
             PlayRandMoves(board);
@@ -112,7 +111,7 @@ void PlayGame(std::atomic<int>& positions, U64 targetPositions, std::vector<Game
             MOVEGEN::GenerateMoves<All>(board);
 
             while (!IsGameOver(board)) {
-                SEARCH::SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams());
+                SEARCH::SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx);
 
                 if (!results.bestMove) break;
                 safeResults = results;
