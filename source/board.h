@@ -10,9 +10,6 @@ constexpr int noEPTarget = -1;
 
 constexpr int MAX_MOVES = 218;
 
-inline int positionIndex = 0;
-inline U64 positionHistory[1000];
-
 class Board {
 public:
 	Board() {
@@ -36,6 +33,8 @@ public:
 
     uint8_t castlingRights = 0;
 	int enPassantTarget = noEPTarget;
+
+	short positionIndex = 0;
 
 	int halfMoves = 0;
 	int fullMoves = 1;

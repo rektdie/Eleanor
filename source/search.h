@@ -114,6 +114,8 @@ public:
 
     std::array<std::array<int, MAX_PLY>, 2> killerMoves{};
 
+    std::array<U64, 1000> positionHistory{};
+
     Stopwatch sw;
 
     SearchContext(){
@@ -121,6 +123,7 @@ public:
         history.Clear();
         sw.Restart();
         killerMoves = {};
+        positionHistory = {};
     }
 };
 
@@ -130,7 +133,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 template <searchMode mode>
 SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& ctx);
 
-bool IsDraw(Board &board);
+bool IsDraw(Board &board, SearchContext& ctx);
 
 constexpr int moveScoreTable[6][6] = {
     105, 205, 305, 405, 505, 605,

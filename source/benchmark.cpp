@@ -65,13 +65,11 @@ void RunBenchmark() {
     Board board;
     int depth = BENCH_DEPTH;
     int ply = 0;
-    positionIndex = 0;
 
     // Clearing
     TT.Clear();
 
     SearchContext ctx;
-
 
     Stopwatch sw;
     for (int i = 0; i < fenPositions.size(); i++) {
@@ -81,5 +79,4 @@ void RunBenchmark() {
 
     std::cout << ctx.nodes << " nodes " << int(ctx.nodes/sw.GetElapsedSec()) << " nps" << std::endl;
     TT.Clear();
-    positionIndex = 0;
 }

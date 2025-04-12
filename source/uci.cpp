@@ -125,7 +125,6 @@ void UCILoop(Board &board) {
         // parse UCI "position" command
         if (input.find("position") != std::string::npos) {
             ParsePosition(board, input);
-            positionIndex = 0;
 
             continue;
         }
@@ -139,8 +138,6 @@ void UCILoop(Board &board) {
             
             ctx.killerMoves = {};
             ctx.history.Clear();
-            
-            positionIndex = 0;
 
             continue;
         }
