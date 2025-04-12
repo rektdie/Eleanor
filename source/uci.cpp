@@ -12,7 +12,7 @@
 #include "perft.h"
 #include "utils.h"
 
-static void ParsePosition(Board &board, std::string_view command) {
+static void ParsePosition(Board &board, std::string_view command, SEARCH::SearchContext& ctx) {
     if (command.find("startpos") != std::string::npos) {
         board.SetByFen(StartingFen);
     }
@@ -33,6 +33,7 @@ static void ParsePosition(Board &board, std::string_view command) {
 
         for (std::string_view move : moves) {
             bool isLegal = board.MakeMove(UTILS::parseMove(board, move));
+            ctx.positionHistory[board.positionIndex] = board.hashKey;
         }
     }
 
@@ -124,8 +125,7 @@ void UCILoop(Board &board) {
 
         // parse UCI "position" command
         if (input.find("position") != std::string::npos) {
-            ParsePosition(board, input);
-            positionIndex = 0;
+            ParsePosition(board, input, ctx);
 
             continue;
         }
@@ -139,8 +139,7 @@ void UCILoop(Board &board) {
             
             ctx.killerMoves = {};
             ctx.history.Clear();
-            
-            positionIndex = 0;
+            ctx.positionHistory = {};
 
             continue;
         }

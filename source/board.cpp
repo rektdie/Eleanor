@@ -26,6 +26,8 @@ void Board::Reset() {
 
     moveList = std::array<Move, MAX_MOVES>();
 
+	positionIndex = 0;
+
     currentMoveIndex = 0;
 
     hashKey = 0ULL;
@@ -391,7 +393,6 @@ bool Board::MakeMove(Move move) {
 	}
 	
     positionIndex++;
-    positionHistory[positionIndex] = hashKey;
 
     return true;
 }
