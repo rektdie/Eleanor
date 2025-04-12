@@ -125,7 +125,7 @@ public:
 };
 
 template <bool isPV, searchMode mode>
-SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchContext& ctx);
+SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchContext& ctx);
 
 template <searchMode mode>
 SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& ctx);
