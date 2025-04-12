@@ -10,6 +10,7 @@ constexpr int noEPTarget = -1;
 
 constexpr int MAX_MOVES = 218;
 
+inline int positionIndex = 0;
 inline U64 positionHistory[1000];
 
 class Board {
@@ -39,8 +40,6 @@ public:
 	int halfMoves = 0;
 	int fullMoves = 1;
 
-	int positionIndex = 0;
-
     U64 hashKey = 0ULL;
 
 	void Reset();
@@ -67,6 +66,4 @@ public:
 	bool MakeMove(Move move);
 
     bool InPossibleZug();
-
-	bool IsDraw();
 };

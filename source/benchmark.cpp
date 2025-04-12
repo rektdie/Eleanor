@@ -65,7 +65,7 @@ void RunBenchmark() {
     Board board;
     int depth = BENCH_DEPTH;
     int ply = 0;
-    board.positionIndex = 0;
+    positionIndex = 0;
 
     // Clearing
     TT.Clear();
@@ -81,5 +81,5 @@ void RunBenchmark() {
 
     std::cout << ctx.nodes << " nodes " << int(ctx.nodes/sw.GetElapsedSec()) << " nps" << std::endl;
     TT.Clear();
-    board.positionIndex = 0;
+    positionIndex = 0;
 }

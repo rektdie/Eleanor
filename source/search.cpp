@@ -92,6 +92,31 @@ void ListScores(Board &board, int ply, SearchContext& ctx) {
     }
 }
 
+static bool IsThreefold(Board &board) {
+    for (int i = 0; i < positionIndex; i++) {
+        if (positionHistory[i] == board.hashKey) {
+            // repetition found
+            return true;
+        }
+    }
+
+    // no repetition
+    return false;
+}
+
+static bool IsFifty(Board &board) {
+    return (board.halfMoves >= 100);
+}
+
+static bool IsInsuffMat(Board &board) {
+    return (board.occupied.PopCount() <= 3 
+        && !(board.pieces[Pawn] | board.pieces[Queen] | board.pieces[Rook]));
+}
+
+bool IsDraw(Board &board) {
+    return IsFifty(board) || IsInsuffMat(board) || IsThreefold(board);
+}
+
 static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply) {
     int reduction = 0;
     
@@ -149,6 +174,7 @@ static SearchResults Quiescence(Board board, int alpha, int beta, int ply, Searc
         if (!isLegal) continue;
         ctx.nodes++;
         int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1, ctx).score;
+        positionIndex--;
 
         if (score >= beta) {
             return score;
@@ -191,7 +217,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
     }
 
     ctx.pvLine.SetLength(ply);
-    if (ply && (board.IsDraw())) return 0;
+    if (ply && (IsThreefold(board) || IsFifty(board) || IsInsuffMat(board))) return 0;
 
 
     // if NOT PV node then we try to hit the TTable
@@ -290,6 +316,7 @@ SearchResults PVS(Board board, int depth, int alpha, int beta, int ply, SearchCo
         }
 
         moveSeen++;
+        positionIndex--;
 
         if (ctx.searchStopped) return 0;
 
