@@ -5,6 +5,7 @@
 #include "move.h"
 #include <algorithm>
 #include "stopwatch.h"
+#include "tt.h"
 
 namespace SEARCH {
 
@@ -25,23 +26,6 @@ constexpr int inf = 100000;
 inline int lmrTable[MAX_DEPTH+1][MAX_MOVES];
 
 void InitLMRTable();
-
-class SearchResults {
-public:
-    int score = 0;
-    Move bestMove = Move();
-
-    SearchResults(){}
-
-    SearchResults(int pScore, Move pMove) {
-        score = pScore;
-        bestMove = pMove;
-    }
-
-    SearchResults(int pScore) {
-        score = pScore;
-    }
-};
 
 class History {
 private:
@@ -116,11 +100,14 @@ public:
 
     std::array<U64, 1000> positionHistory{};
 
+    TTable TT;
+
     Stopwatch sw;
 
     SearchContext(){
         pvLine.Clear();
         history.Clear();
+        TT.Clear();
         sw.Restart();
         killerMoves = {};
         positionHistory = {};
