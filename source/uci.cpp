@@ -138,6 +138,7 @@ void UCILoop(Board &board) {
             
             ctx.killerMoves = {};
             ctx.history.Clear();
+            ctx.positionHistory = {};
 
             continue;
         }
