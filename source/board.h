@@ -10,6 +10,8 @@ constexpr int noEPTarget = -1;
 
 constexpr int MAX_MOVES = 218;
 
+inline U64 positionHistory[1000];
+
 class Board {
 public:
 	Board() {
@@ -65,4 +67,6 @@ public:
 	bool MakeMove(Move move);
 
     bool InPossibleZug();
+
+	bool IsDraw();
 };
