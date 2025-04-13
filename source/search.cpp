@@ -273,6 +273,19 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Move currMove = board.moveList[i];
 
+        // Late move pruning
+        // If we are near a leaf node we prune moves
+        // that are late in the list
+        if (!isPV && ply && currMove.IsQuiet() && results.score > (-MATE_SCORE + MAX_PLY)) {
+            int lmpBase = 3;
+
+            int lmpThreshold = lmpBase + depth * depth;
+
+            if (moveSeen >= lmpThreshold) {
+                continue;
+            }
+        }
+
         // Futility pruning
         // If our static eval is far below alpha, there is only a small chance
         // that a quiet move will help us so we skip them
