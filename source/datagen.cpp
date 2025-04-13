@@ -103,11 +103,12 @@ void PlayGame(std::atomic<int>& positions, U64 targetPositions, std::vector<Game
         try {
             PlayRandMoves(board);
             int staticEval = HCE::Evaluate(board);
-            SEARCH::SearchResults safeResults;
+            SearchResults safeResults;
             MOVEGEN::GenerateMoves<All>(board);
 
             while (!IsGameOver(board, ctx)) {
-                SEARCH::SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx);
+                SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx);
+                results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx);
 
                 if (!results.bestMove) break;
                 safeResults = results;
