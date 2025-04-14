@@ -5,7 +5,6 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
-#include <condition_variable>
 #include "datagen.h"
 #include "movegen.h"
 #include "evaluate.h"
@@ -44,9 +43,7 @@ static void ShowCursorLinux() {
 
 namespace DATAGEN {
 
-std::mutex bufferMutex;
-
-static void PlayRandMoves(Board &board) {
+static void PlayRandMoves(Board &board, SEARCH::SearchContext& ctx) {
     std::random_device dev;
     std::mt19937 rng(dev());
     
@@ -57,6 +54,7 @@ static void PlayRandMoves(Board &board) {
         bool isLegal = board.MakeMove(board.moveList[dist(rng)]);
 
         if (!isLegal) count--;
+        ctx.positionHistory[board.positionIndex] = board.hashKey;
     }
 
     MOVEGEN::GenerateMoves<All>(board);
@@ -72,8 +70,7 @@ static bool IsGameOver(Board &board, SEARCH::SearchContext& ctx) {
         bool isLegal = copy.MakeMove(board.moveList[i]);
 
         if (!isLegal) continue;
-        moveSeen++;
-    }
+        moveSeen++; }
 
     if (moveSeen == 0) return true;
     return false;
@@ -89,69 +86,60 @@ static void WriteToFile(std::vector<Game> &gamesBuffer, std::ofstream &file) {
     file.flush();
 }
 
-void PlayGame(std::atomic<int>& positions, U64 targetPositions, std::vector<Game> &gamesBuffer, 
-              std::ofstream &file, std::atomic<bool>& shouldStop) {
-    while (!shouldStop.load(std::memory_order_relaxed) && 
-           positions.load(std::memory_order_relaxed) < targetPositions) {
+static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& stopFlag) {
+    std::vector<Game> gamesBuffer;
+    std::string fileName = "thread" + std::to_string(id) + ".binpack";
+
+    
+    std::ofstream file(fileName, std::ios::app | std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << fileName << std::endl;
+    }
+
+    while (!stopFlag) {
         Game game;
         Board board;
-
-        uint8_t wdl = 1;
-        
         SEARCH::SearchContext ctx;
+        PlayRandMoves(board, ctx);
 
-        try {
-            PlayRandMoves(board);
-            int staticEval = HCE::Evaluate(board);
-            SearchResults safeResults;
+        SearchResults safeResults;
+
+        int staticEval = UTILS::ConvertToWhiteRelative(board, HCE::Evaluate(board));
+        int wdl = 1;
+
+        while (!IsGameOver(board, ctx)) {
+            SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx);
+
+            if (!results.bestMove) break;
+            safeResults = results;
+            board.MakeMove(results.bestMove);
+            ctx.positionHistory[board.positionIndex] = board.hashKey;
+
+            game.moves.push_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(),
+                    UTILS::ConvertToWhiteRelative(board, results.score)));
+
+            positions++;
+
             MOVEGEN::GenerateMoves<All>(board);
-
-            while (!IsGameOver(board, ctx)) {
-                SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx);
-                results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx);
-
-                if (!results.bestMove) break;
-                safeResults = results;
-
-                game.moves.push_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(), UTILS::ConvertToWhiteRelative(board, results.score)));
-                
-                // Error checking for move making
-                if (!board.MakeMove(results.bestMove)) {
-                    // Invalid move - break the loop
-                    break;
-                }
-                
-                MOVEGEN::GenerateMoves<All>(board);
-                positions.fetch_add(1, std::memory_order_relaxed);
-
-                if (std::abs(safeResults.score) >= std::abs(SEARCH::MATE_SCORE) - SEARCH::MAX_PLY) {
-                    wdl = board.sideToMove ? 2 : 0; 
-                }
-            }
-            
-            // Only add the game to buffer if we haven't been told to stop
-            if (!shouldStop.load(std::memory_order_relaxed)) {
-                game.format.packFrom(board, UTILS::ConvertToWhiteRelative(board, staticEval), wdl);
-
-                // Use a proper lock instead of spin-waiting
-                {
-                    std::lock_guard<std::mutex> lock(bufferMutex);
-                    
-                    // Check again after acquiring the lock
-                    if (!shouldStop.load(std::memory_order_relaxed)) {
-                        gamesBuffer.push_back(game);
-
-                        if (gamesBuffer.size() >= GAME_BUFFER) {
-                            WriteToFile(gamesBuffer, file);
-                            gamesBuffer.clear();
-                        }
-                    }
-                }
-            }
-        } catch (const std::exception& e) {
-            // Log exception but allow thread to continue
-            std::cerr << "Thread exception: " << e.what() << std::endl;
         }
+
+        if (std::abs(safeResults.score) >= std::abs(SEARCH::MATE_SCORE) - SEARCH::MAX_PLY) {
+            wdl = board.sideToMove ? 2 : 0; 
+        }
+
+        game.format.packFrom(board, staticEval, wdl);
+        gamesBuffer.push_back(game);
+
+        if (gamesBuffer.size() >= GAME_BUFFER) {
+            WriteToFile(gamesBuffer, file);
+            gamesBuffer.clear();
+        }
+    }
+
+    // Write remaining games to file
+    if (gamesBuffer.size() > 0) {
+        WriteToFile(gamesBuffer, file);
+        gamesBuffer.clear();
     }
 }
 
@@ -164,64 +152,30 @@ void Run(int targetPositions, int threads) {
         HideCursorLinux();
     #endif
 
-    Stopwatch stopwatch;
-
     std::atomic<int> positions = 0;
-    std::atomic<bool> shouldStop(false);
-    std::vector<Game> gamesBuffer;
-    std::vector<std::thread> workers;
+    std::atomic<bool> stopFlag = false;
 
-    try {
-        std::ofstream file("data.binpack", std::ios::app | std::ios::binary);
-        if (!file.is_open()) {
-            throw std::runtime_error("Failed to open output file");
-        }
+    std::vector<std::thread> workerThreads;
 
-        // Create and start worker threads
-        for (int i = 0; i < threads; i++) {
-            workers.push_back(std::thread(PlayGame, std::ref(positions), 
-                             targetPositions * 1000, std::ref(gamesBuffer), 
-                             std::ref(file), std::ref(shouldStop)));
-        }
-
-        // Monitor progress
-        while (positions.load(std::memory_order_relaxed) < targetPositions * 1000) {
-            PrintProgress(positions, targetPositions * 1000, stopwatch, threads);
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        }
-
-        // Signal threads to stop
-        shouldStop.store(true, std::memory_order_relaxed);
-        
-        // Wait for all threads to finish
-        for (auto& worker : workers) {
-            if (worker.joinable()) {
-                worker.join();
-            }
-        }
-
-        // Final progress update and buffer flush
-        PrintProgress(positions, targetPositions * 1000, stopwatch, threads);
-        
-        // Final buffer flush with proper synchronization
-        {
-            std::lock_guard<std::mutex> lock(bufferMutex);
-            WriteToFile(gamesBuffer, file);
-        }
-
-    } catch (const std::exception& e) {
-        std::cerr << "Error in data generation: " << e.what() << std::endl;
-        
-        // Signal threads to stop in case of error
-        shouldStop.store(true, std::memory_order_relaxed);
-        
-        // Make sure to join any running threads
-        for (auto& worker : workers) {
-            if (worker.joinable()) {
-                worker.join();
-            }
-        }
+    for (int i = 0; i < threads; i++) {
+        workerThreads.push_back(std::thread(PlayGames, i, std::ref(positions), std::ref(stopFlag)));
     }
+
+    Stopwatch sw;
+    while (positions < targetPositions) {
+        PrintProgress(positions, targetPositions, sw, threads);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+
+    PrintProgress(positions, targetPositions, sw, threads);
+
+    stopFlag = true;
+
+    for (auto& thread : workerThreads) {
+        thread.join();
+    }
+
 
     #ifdef _WIN32
         ShowCursor();

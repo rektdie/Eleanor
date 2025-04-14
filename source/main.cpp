@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
             int positions = 1;
             int threads = 1;
             if (argc > 2) {
-                positions = std::stoi(argv[2]);
+                positions = std::stoi(argv[2]) * 1000;
 
                 if (argc > 3) {
                     threads = std::stoi(argv[3]);
