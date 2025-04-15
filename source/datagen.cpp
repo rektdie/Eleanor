@@ -4,7 +4,6 @@
 #include <iomanip>
 #include <thread>
 #include <atomic>
-#include <mutex>
 #include "datagen.h"
 #include "movegen.h"
 #include "evaluate.h"
@@ -53,6 +52,7 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext& ctx) {
 
         bool isLegal = board.MakeMove(board.moveList[dist(rng)]);
 
+
         if (!isLegal) count--;
         ctx.positionHistory[board.positionIndex] = board.hashKey;
     }
@@ -88,12 +88,15 @@ static void WriteToFile(std::vector<Game> &gamesBuffer, std::ofstream &file) {
 
 static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& stopFlag) {
     std::vector<Game> gamesBuffer;
+    gamesBuffer.reserve(GAME_BUFFER);
+
     std::string fileName = "thread" + std::to_string(id) + ".binpack";
 
     
     std::ofstream file(fileName, std::ios::app | std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Failed to open file: " << fileName << std::endl;
+        exit(-1);
     }
 
     while (!stopFlag) {
@@ -115,7 +118,7 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
             board.MakeMove(results.bestMove);
             ctx.positionHistory[board.positionIndex] = board.hashKey;
 
-            game.moves.push_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(),
+            game.moves.emplace_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(),
                     UTILS::ConvertToWhiteRelative(board, results.score)));
 
             positions++;
@@ -128,7 +131,7 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
         }
 
         game.format.packFrom(board, staticEval, wdl);
-        gamesBuffer.push_back(game);
+        gamesBuffer.emplace_back(game);
 
         if (gamesBuffer.size() >= GAME_BUFFER) {
             WriteToFile(gamesBuffer, file);
@@ -157,8 +160,9 @@ void Run(int targetPositions, int threads) {
 
     std::vector<std::thread> workerThreads;
 
-    for (int i = 0; i < threads; i++) {
-        workerThreads.push_back(std::thread(PlayGames, i, std::ref(positions), std::ref(stopFlag)));
+    // Start N-1 threads
+    for (int i = 0; i < threads-1; i++) {
+        workerThreads.emplace_back(std::thread(PlayGames, i, std::ref(positions), std::ref(stopFlag)));
     }
 
     Stopwatch sw;
@@ -173,11 +177,13 @@ void Run(int targetPositions, int threads) {
     stopFlag = true;
 
     for (auto& thread : workerThreads) {
-        thread.join();
+        if (thread.joinable()) {
+            thread.join();
+        }
     }
 
 
-    #ifdef _WIN32
+    #ifdef _WIN32 
         ShowCursor();
     #else
         ShowCursorLinux();
