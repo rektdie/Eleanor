@@ -10,6 +10,7 @@
 #include "benchmark.h"
 #include "perft.h"
 #include "utils.h"
+#include "datagen.h"
 
 static void ParsePosition(Board &board, std::string_view command, SEARCH::SearchContext& ctx) {
     if (command.find("startpos") != std::string::npos) {
@@ -197,6 +198,12 @@ void UCILoop(Board &board) {
 
         if (input.find("nnue") != std::string::npos) {
             board.PrintNNUE();
+            continue;
+        }
+
+        if (input.find("datagen") != std::string::npos) {
+            DATAGEN::Run(500000*2, 22);
+            continue;
         }
     }
 }

@@ -138,8 +138,13 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
                 }
             }
         }
-    } else {
+    } else if constexpr (mode == nodesMode) {
         if (ctx.nodes > ctx.nodesToGo) {
+            ctx.searchStopped = true;
+            return 0;
+        }
+    } else if constexpr (mode == datagen) {
+        if (ctx.nodes > DATAGEN::HARD_NODES) {
             ctx.searchStopped = true;
             return 0;
         }
@@ -194,15 +199,10 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
 template <bool isPV, searchMode mode>
 SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchContext& ctx) {
-    if constexpr (mode != bench || mode != nodesMode) {
+    if constexpr (mode != bench && mode != nodesMode) {
         if (ctx.nodes % 1024 == 0) {
             if constexpr (mode == normal) {
                 if (ctx.sw.GetElapsedMS() >= ctx.timeToSearch) {
-                    ctx.searchStopped = true;
-                    return 0;
-                }
-            } else if constexpr (mode == datagen) {
-                if (ctx.nodes >= DATAGEN::HARD_NODES) {
                     ctx.searchStopped = true;
                     return 0;
                 }
@@ -210,6 +210,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
     } else if constexpr (mode == nodesMode) {
         if (ctx.nodes > ctx.nodesToGo) {
+            ctx.searchStopped = true;
+            return 0;
+        }
+    } else if constexpr (mode == datagen) {
+        if (ctx.nodes > DATAGEN::HARD_NODES) {
             ctx.searchStopped = true;
             return 0;
         }

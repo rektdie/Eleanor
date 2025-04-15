@@ -42,24 +42,6 @@ static void ShowCursorLinux() {
 
 namespace DATAGEN {
 
-static void PlayRandMoves(Board &board, SEARCH::SearchContext& ctx) {
-    std::random_device dev;
-    std::mt19937 rng(dev());
-    
-    for (int count = 0; count < RAND_MOVES; count++) {
-        MOVEGEN::GenerateMoves<All>(board);
-        std::uniform_int_distribution<std::mt19937::result_type> dist(0, board.currentMoveIndex - 1);
-
-        bool isLegal = board.MakeMove(board.moveList[dist(rng)]);
-
-
-        if (!isLegal) count--;
-        ctx.positionHistory[board.positionIndex] = board.hashKey;
-    }
-
-    MOVEGEN::GenerateMoves<All>(board);
-}
-
 static bool IsGameOver(Board &board, SEARCH::SearchContext& ctx) {
     if (SEARCH::IsDraw(board, ctx)) return true;
 
@@ -70,10 +52,30 @@ static bool IsGameOver(Board &board, SEARCH::SearchContext& ctx) {
         bool isLegal = copy.MakeMove(board.moveList[i]);
 
         if (!isLegal) continue;
-        moveSeen++; }
+        moveSeen++; 
+    }
 
-    if (moveSeen == 0) return true;
-    return false;
+    return moveSeen == 0;
+}
+
+static void PlayRandMoves(Board &board, SEARCH::SearchContext& ctx) {
+    std::random_device dev;
+    std::mt19937_64 rng(dev());
+    
+    for (int count = 0; count < RAND_MOVES; count++) {
+        MOVEGEN::GenerateMoves<All>(board);
+        std::uniform_int_distribution<int> dist(0, board.currentMoveIndex - 1);
+
+        bool isLegal = board.MakeMove(board.moveList[dist(rng)]);
+
+        if (!isLegal) {
+            count--;
+            continue;
+        }
+        ctx.positionHistory[board.positionIndex] = board.hashKey;
+        MOVEGEN::GenerateMoves<All>(board);
+        if (IsGameOver(board, ctx)) break;
+    }
 }
 
 static void WriteToFile(std::vector<Game> &gamesBuffer, std::ofstream &file) {
@@ -104,6 +106,7 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
         Board board;
         SEARCH::SearchContext ctx;
         PlayRandMoves(board, ctx);
+        if (IsGameOver(board, ctx)) continue;
 
         SearchResults safeResults;
 
