@@ -108,6 +108,8 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
         PlayRandMoves(board, ctx);
         if (IsGameOver(board, ctx)) continue;
 
+        Board startpos = board;
+
         SearchResults safeResults;
 
         int staticEval = UTILS::ConvertToWhiteRelative(board, HCE::Evaluate(board));
@@ -133,7 +135,7 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
             wdl = board.sideToMove ? 2 : 0; 
         }
 
-        game.format.packFrom(board, staticEval, wdl);
+        game.format.packFrom(startpos, staticEval, wdl);
         gamesBuffer.emplace_back(game);
 
         if (gamesBuffer.size() >= GAME_BUFFER) {
