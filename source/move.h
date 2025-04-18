@@ -107,13 +107,13 @@ public:
                 promoPiece = 0;
             } 
             else if (flags == bishopPromotion || flags == bishopPromoCapture) {
-                promoPiece = 0;
+                promoPiece = 1;
             } 
             else if (flags == rookPromotion || flags == rookPromoCapture) {
-                promoPiece = 0;
+                promoPiece = 3;
             } 
             else if (flags == queenPromotion || flags == queenPromoCapture) {
-                promoPiece = 0;
+                promoPiece = 4;
             }
         }
     
