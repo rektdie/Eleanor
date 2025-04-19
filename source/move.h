@@ -85,12 +85,28 @@ public:
         int flags = GetFlags();
     
         viriMove = MoveFrom();
+
+        if (flags == kingCastle || flags == queenCastle) {
+            uint16_t moveTo = 0;
+            bool side = (MoveFrom() / 8 == 0) ? White : Black;
+
+            if (flags == kingCastle) {
+                moveTo = (side == White) ? h1 : h8;
+            } else {
+                moveTo = (side == White) ? a1 : a8;
+            }
+
+            viriMove |= (moveTo << 6);
+
+            viriMove |= 0x8000;
+
+            return viriMove;
+        }
+
         viriMove |= (MoveTo() << 6);
 
         if (flags == epCapture) {
             viriMove |= 0x4000;
-        } else if (flags == kingCastle || flags == queenCastle) {
-            viriMove |= 0x8000;
         } else if (flags >= knightPromotion && flags <= queenPromoCapture) {
             uint16_t promoPiece = 0;
 
