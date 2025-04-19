@@ -84,43 +84,30 @@ public:
         uint16_t viriMove = 0;
         int flags = GetFlags();
     
-        const uint16_t TO_MASK = 0xFC0;
-        const uint16_t MOVE_TYPE_MASK = 0x3000;
-        const uint16_t PROMO_PIECE_MASK = 0xC000; 
-    
-        viriMove |= MoveFrom();
-        viriMove |= (MoveTo() << 6) & TO_MASK;
-    
-        uint16_t moveType = 0;
-        uint16_t promoPiece = 0;
-    
-        if (flags == kingCastle || flags == queenCastle) {
-            moveType = 2;
-        } 
-        else if (flags == epCapture) {
-            moveType = 1;
-        } 
-        else if (flags >= knightPromotion && flags <= queenPromoCapture) {
-            moveType = 3;
-            
+        viriMove = MoveFrom();
+        viriMove |= (MoveTo() << 6);
+
+        if (flags == epCapture) {
+            viriMove |= 0x4000;
+        } else if (flags == kingCastle || flags == queenCastle) {
+            viriMove |= 0x8000;
+        } else if (flags >= knightPromotion && flags <= queenPromoCapture) {
+            uint16_t promoPiece = 0;
+
             if (flags == knightPromotion || flags == knightPromoCapture) {
                 promoPiece = 0;
-            } 
-            else if (flags == bishopPromotion || flags == bishopPromoCapture) {
+            } else if (flags == bishopPromotion || flags == bishopPromoCapture) {
                 promoPiece = 1;
-            } 
-            else if (flags == rookPromotion || flags == rookPromoCapture) {
+            } else if (flags == rookPromotion || flags == rookPromoCapture) {
+                promoPiece = 2;
+            } else if (flags == queenPromotion || flags == queenPromoCapture) {
                 promoPiece = 3;
-            } 
-            else if (flags == queenPromotion || flags == queenPromoCapture) {
-                promoPiece = 4;
             }
+
+            viriMove |= 0xC000;
+            viriMove |= (promoPiece << 12);
         }
-    
-        viriMove |= (moveType << 12) & MOVE_TYPE_MASK;
-    
-        viriMove |= (promoPiece << 14) & PROMO_PIECE_MASK;
-    
+
         return viriMove;
     }
 
