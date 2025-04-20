@@ -134,8 +134,8 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
             MOVEGEN::GenerateMoves<All>(board);
         }
 
-        if (std::abs(safeResults.score) >= std::abs(SEARCH::MATE_SCORE) - SEARCH::MAX_PLY) {
-            wdl = board.sideToMove ? 2 : 0; 
+        if (!SEARCH::IsDraw(board, ctx)) {
+            wdl = board.sideToMove ? 2 : 0;
         }
 
         game.format.packFrom(startpos, staticEval, wdl);
