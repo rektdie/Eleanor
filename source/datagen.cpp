@@ -61,8 +61,11 @@ static bool IsGameOver(Board &board, SEARCH::SearchContext& ctx) {
 static void PlayRandMoves(Board &board, SEARCH::SearchContext& ctx) {
     std::random_device dev;
     std::mt19937_64 rng(dev());
+
+    std::uniform_int_distribution<int> moveDist(0, 1);
+    bool plusOne = moveDist(rng);
     
-    for (int count = 0; count < RAND_MOVES; count++) {
+    for (int count = 0; count < RAND_MOVES + plusOne; count++) {
         MOVEGEN::GenerateMoves<All>(board);
         std::uniform_int_distribution<int> dist(0, board.currentMoveIndex - 1);
 
