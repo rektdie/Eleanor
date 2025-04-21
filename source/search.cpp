@@ -150,7 +150,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         }
     }
     
-    int bestScore = HCE::Evaluate(board);
+    int bestScore = NNUE::net.Evaluate(board);
 
     TTEntry *entry = ctx.TT.GetRawEntry(board.hashKey);
     if (entry->hashKey == board.hashKey) {
@@ -234,7 +234,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
 
-    const int staticEval = HCE::Evaluate(board);
+    const int staticEval = NNUE::net.Evaluate(board);
 
     if (!board.InCheck()) {
         if (ply) {

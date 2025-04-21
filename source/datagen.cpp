@@ -115,7 +115,7 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
 
         SearchResults safeResults;
 
-        int staticEval = UTILS::ConvertToWhiteRelative(board, HCE::Evaluate(board));
+        int staticEval = UTILS::ConvertToWhiteRelative(board, NNUE::net.Evaluate(board));
         int wdl = 1;
 
         while (!IsGameOver(board, ctx)) {
