@@ -21,11 +21,11 @@ public:
 
 class TTEntry {
 public:
-    U64 hashKey;
-    int depth;
-    int score;
-    int nodeType;
-    Move bestMove;
+    U64 hashKey = 0;
+    int depth = 0;
+    int score = 0;
+    int nodeType = 0;
+    Move bestMove = Move();
 
     operator U64() {
         return hashKey;
