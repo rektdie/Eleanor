@@ -10,7 +10,7 @@ class Board;
 namespace NNUE {
 
 constexpr int INPUT_SIZE = 768;
-constexpr int HL_SIZE = 64;
+constexpr int HL_SIZE = 128;
 
 constexpr int SCALE = 400;
 constexpr int QA = 255;
