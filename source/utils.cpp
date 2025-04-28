@@ -8,11 +8,27 @@ namespace UTILS {
 U64 initialSeed = 0x60919C48E57863B9;
 
 // PRNG using xorshift
-static U64 RandomNum() {
+static U64 RandomU64() {
     initialSeed ^= initialSeed << 13;
     initialSeed ^= initialSeed >> 7;
     initialSeed ^= initialSeed << 17;
     return initialSeed;
+}
+
+bool RandomBool() {
+    return (RandomU64() & 1) == 1;
+}
+
+int RandomInt(int min, int max) {
+    if (max < min) {
+        int temp = min;
+        min = max;
+        max = temp;
+    }
+
+    int range = max - min + 1;
+
+    return min + (RandomU64() % range);
 }
 
 void InitZobrist() {
@@ -20,23 +36,23 @@ void InitZobrist() {
     for (int i = White; i <= Black; i++) {
         for (int j = Pawn; j <= King; j++) {
             for (int k = a1; k <= h8; k++) {
-                zKeys[i][j][k] = RandomNum();
+                zKeys[i][j][k] = RandomU64();
             }
         } 
     }
 
     // init en passant file keys
     for (int i = 0; i < 8; i++) {
-        zEnPassant[i] = RandomNum();
+        zEnPassant[i] = RandomU64();
     }
 
     // init castling rights keys
     for (int i = 0; i < 16; i++) {
-        zCastle[i] = RandomNum();
+        zCastle[i] = RandomU64();
     }
 
     // init side key
-    zSide = RandomNum();
+    zSide = RandomU64();
 }
 
 U64 GetHashKey(Board &board) {

@@ -21,6 +21,9 @@ inline U64 zCastle[16];
 
 inline U64 zSide;
 
+bool RandomBool();
+int RandomInt(int min, int max);
+
 void InitZobrist();
 U64 GetHashKey(Board &board);
 
