@@ -43,6 +43,7 @@ public:
 
 	void Reset();
 	void SetByFen(std::string_view fen);
+	std::string GetFen();
 	void PrintBoard();
 
 	void PrintNNUE();

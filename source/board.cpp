@@ -86,6 +86,84 @@ void Board::SetByFen(std::string_view fen) {
 	ResetAccPair();
 }
 
+std::string Board::GetFen() {
+    std::ostringstream fen;
+    
+    for (int rank = 7; rank >= 0; --rank) {
+        int emptyCount = 0;
+        
+        for (int file = 0; file < 8; ++file) {
+            int square = rank * 8 + file;
+            const uint64_t squareBit = 1ULL << square;
+            
+            if (!(occupied & squareBit)) {
+                ++emptyCount;
+                continue;
+            }
+            
+            if (emptyCount > 0) {
+                fen << emptyCount;
+                emptyCount = 0;
+            }
+            
+            static constexpr std::array<char, 6> pieceChars = {'p', 'n', 'b', 'r', 'q', 'k'};
+            char pieceChar = '?';
+            
+            for (size_t pieceType = 0; pieceType < pieceChars.size(); ++pieceType) {
+                if (pieces[pieceType] & squareBit) {
+                    pieceChar = pieceChars[pieceType];
+                    break;
+                }
+            }
+            
+            fen << (colors[White] & squareBit ? static_cast<char>(std::toupper(pieceChar)) : pieceChar);
+        }
+        
+        if (emptyCount > 0) {
+            fen << emptyCount;
+        }
+        
+        if (rank > 0) {
+            fen << '/';
+        }
+    }
+    
+    fen << ' ' << (sideToMove ? 'b' : 'w');
+    
+    fen << ' ';
+    bool hasCastlingRights = false;
+    
+    const std::array<std::pair<uint8_t, char>, 4> castlingOptions = {
+        {{whiteKingRight, 'K'}, {whiteQueenRight, 'Q'}, {blackKingRight, 'k'}, {blackQueenRight, 'q'}}
+    };
+    
+    for (const auto& [right, symbol] : castlingOptions) {
+        if (castlingRights & right) {
+            fen << symbol;
+            hasCastlingRights = true;
+        }
+    }
+    
+    if (!hasCastlingRights) {
+        fen << '-';
+    }
+    
+    fen << ' ';
+    if (enPassantTarget == noEPTarget) {
+        fen << '-';
+    } else {
+        const int file = enPassantTarget % 8;
+        const int rank = enPassantTarget / 8;
+        fen << static_cast<char>('a' + file) << (rank + 1);
+    }
+    
+    fen << ' ' << halfMoves;
+    
+    fen << ' ' << fullMoves;
+    
+    return fen.str();
+}
+
 void Board::PrintBoard() {
 
 	for (int rank = 7; rank >= 0; rank--) {
@@ -136,6 +214,7 @@ void Board::PrintBoard() {
 	std::cout << std::endl << std::endl;
 
     std::cout << "      Hashkey: 0x" << std::hex << hashKey << std::dec << std::endl;
+	std::cout << "      Fen: " << GetFen() << std::endl;
 }
 
 void Board::PrintNNUE() {
