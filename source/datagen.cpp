@@ -75,8 +75,6 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext& ctx) {
         MOVEGEN::GenerateMoves<All>(board);
         if (IsGameOver(board, ctx)) break;
     }
-
-    board.PrintBoard();
 }
 
 static void WriteToFile(std::vector<Game> &gamesBuffer, std::ofstream &file) {
