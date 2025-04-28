@@ -199,14 +199,20 @@ void Run(int targetPositions, int threads) {
 }
 
 void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int threads) {
-    static double lastPositions = 0; // To track how many positions were processed last time
-    static double lastElapsed = 0; // To track the last elapsed time for more frequent updates
-    static double refreshInterval = 1.0; // Update every second
+    // Define ANSI escape codes for colors as std::string
+    const std::string COLOR_RESET = "\033[0m";
+    const std::string COLOR_TITLE = "\033[1;36m";    // Bright cyan
+    const std::string COLOR_SECTION = "\033[1;33m";  // Bright yellow
+    const std::string COLOR_VALUE = "\033[1;32m";    // Bright green
+    const std::string COLOR_BAR = "\033[1;34m";      // Bright blue
+
+    static double lastPositions = 0;
+    static double lastElapsed = 0;
+    static double refreshInterval = 1.0;
 
     double elapsed = stopwatch.GetElapsedSec();
     double positionsPerSec = 0;
 
-    // Update positionsPerSec if the time difference is above the threshold
     if (elapsed - lastElapsed >= refreshInterval) {
         positionsPerSec = (positions - lastPositions) / (elapsed - lastElapsed);
         lastPositions = positions;
@@ -222,7 +228,7 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
 
     std::string title = "Eleanor - Datagen";
     int titlePadding = (width - title.length()) / 2;
-    std::cout << std::setw(titlePadding + title.length()) << title << std::endl;
+    std::cout << COLOR_TITLE << std::setw(titlePadding + title.length()) << title << COLOR_RESET << std::endl;
 
     std::cout << std::string(width, '=') << std::endl;
 
@@ -235,23 +241,23 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
                     << "Positions processed: " << positions / 1000.0 << "K | Target: " << targetPositions / 1000.0 << "K";
     std::string datagenText = datagenTextStream.str();
     int datagenPadding = (width - datagenText.length()) / 2;
-    std::cout << std::setw(datagenPadding + datagenText.length()) << datagenText << std::endl;
+    std::cout << COLOR_SECTION << std::setw(datagenPadding + datagenText.length()) << datagenText << COLOR_RESET << std::endl;
 
     std::cout << std::endl;
 
     std::string elapsedText = "Elapsed Time: " + std::to_string(static_cast<int>(round(elapsed))) + " sec";
     int elapsedPadding = (width - elapsedText.length()) / 2;
-    std::cout << std::setw(elapsedPadding + elapsedText.length()) << elapsedText << std::endl;
+    std::cout << COLOR_SECTION << std::setw(elapsedPadding + elapsedText.length()) << elapsedText << COLOR_RESET << std::endl;
 
     std::string positionsPerSecText = "Positions/sec: " + std::to_string(static_cast<int>(round(positionsPerSec)));
     int positionsPerSecPadding = (width - positionsPerSecText.length()) / 2;
-    std::cout << std::setw(positionsPerSecPadding + positionsPerSecText.length()) << positionsPerSecText << std::endl;
+    std::cout << COLOR_VALUE << std::setw(positionsPerSecPadding + positionsPerSecText.length()) << positionsPerSecText << COLOR_RESET << std::endl;
 
     std::cout << std::endl;
 
     std::string threadsText = "Threads: " + std::to_string(static_cast<int>(threads));
     int threadsTextPadding = (width - threadsText.length()) / 2;
-    std::cout << std::setw(threadsTextPadding + threadsText.length()) << threadsText << std::endl;
+    std::cout << COLOR_SECTION << std::setw(threadsTextPadding + threadsText.length()) << threadsText << COLOR_RESET << std::endl;
 
     std::cout << std::endl;
 
@@ -274,9 +280,10 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
     progressBar += "] " + std::to_string(static_cast<int>(round(progress * 100.0))) + " %";
 
     int progressPadding = (width - progressBar.length()) / 2;
-    std::cout << std::setw(progressPadding + progressBar.length()) << progressBar << std::endl;
+    std::cout << COLOR_BAR << std::setw(progressPadding + progressBar.length()) << progressBar << COLOR_RESET << std::endl;
 
     std::cout << std::endl;
 }
+
 
 }
