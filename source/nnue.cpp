@@ -1,4 +1,3 @@
-#include <immintrin.h>
 #include <fstream>
 #include <algorithm>
 
@@ -35,48 +34,117 @@ void Network::Load(const std::string& path) {
     file.read(reinterpret_cast<char*>(&output_bias), sizeof(int16_t));
 }
 
-static int32_t Forward(const Board& board,
-                       const Network* net) {
+#if defined(__x86_64__) || defined(__amd64__) || (defined(_WIN64) && (defined(_M_X64) || defined(_M_AMD64)))
+#include <immintrin.h>
+#if defined(__AVX512F__)
+#pragma message("Using AVX512 NNUE inference")
+using nativeVector = __m512i;
+#define set1_epi16 _mm512_set1_epi16
+#define load_epi16 _mm512_load_si512
+#define min_epi16 _mm512_min_epi16
+#define max_epi16 _mm512_max_epi16
+#define madd_epi16 _mm512_madd_epi16
+#define mullo_epi16 _mm512_mullo_epi16
+#define add_epi32 _mm512_add_epi32
+#define reduce_epi32 _mm512_reduce_add_epi32
+#elif defined(__AVX2__)
+#pragma message("Using AVX2 NNUE inference")
+using nativeVector = __m256i;
+#define set1_epi16 _mm256_set1_epi16
+#define load_epi16 _mm256_load_si256
+#define min_epi16 _mm256_min_epi16
+#define max_epi16 _mm256_max_epi16
+#define madd_epi16 _mm256_madd_epi16
+#define mullo_epi16 _mm256_mullo_epi16
+#define add_epi32 _mm256_add_epi32
+#define reduce_epi32 \
+    [](nativeVector vec) { \
+        __m128i xmm1 = _mm256_extracti128_si256(vec, 1); \
+        __m128i xmm0 = _mm256_castsi256_si128(vec); \
+        xmm0         = _mm_add_epi32(xmm0, xmm1); \
+        xmm1         = _mm_shuffle_epi32(xmm0, 238); \
+        xmm0         = _mm_add_epi32(xmm0, xmm1); \
+        xmm1         = _mm_shuffle_epi32(xmm0, 85); \
+        xmm0         = _mm_add_epi32(xmm0, xmm1); \
+        return _mm_cvtsi128_si32(xmm0); \
+    }
+#else
+#pragma message("Using SSE NNUE inference")
+// Assumes SSE support here
+using nativeVector = __m128i;
+#define set1_epi16 _mm_set1_epi16
+#define load_epi16 _mm_load_si128
+#define min_epi16 _mm_min_epi16
+#define max_epi16 _mm_max_epi16
+#define madd_epi16 _mm_madd_epi16
+#define mullo_epi16 _mm_mullo_epi16
+#define add_epi32 _mm_add_epi32
+#define reduce_epi32 \
+    [](nativeVector vec) { \
+        __m128i xmm1 = _mm_shuffle_epi32(vec, 238); \
+        vec          = _mm_add_epi32(vec, xmm1); \
+        xmm1         = _mm_shuffle_epi32(vec, 85); \
+        vec          = _mm_add_epi32(vec, xmm1); \
+        return _mm_cvtsi128_si32(vec); \
+    }
+#endif
+
+static int32_t VectorizedSCReLU(const Board& board, const Network& net) {
+    const size_t VECTOR_SIZE = sizeof(nativeVector) / sizeof(int16_t);
+    static_assert(HL_SIZE % VECTOR_SIZE == 0, "HL size must be divisible by the native register size of your CPU for vectorization to work");
+
     const ACC::Accumulator& stmAcc = board.sideToMove == White ? board.accPair.white : board.accPair.black;
     const ACC::Accumulator& nstmAcc = !board.sideToMove == White ? board.accPair.white : board.accPair.black;
 
-    int32_t eval = 0;
+    const nativeVector VEC_QA   = set1_epi16(QA);
+    const nativeVector VEC_ZERO = set1_epi16(0);
 
-    const __m256i vec_zero = _mm256_setzero_si256();
-    const __m256i vec_qa   = _mm256_set1_epi16(QA);
-    __m256i       sum      = vec_zero;
+    nativeVector accumulator{};
 
-    for (int i = 0; i < HL_SIZE / 16; i++) {
-        const __m256i us   = _mm256_load_si256(reinterpret_cast<const __m256i*>(&stmAcc.values[16 * i]));  // Load from accumulator
-        const __m256i them = _mm256_load_si256(reinterpret_cast<const __m256i*>(&nstmAcc.values[16 * i]));
+    for (int i = 0; i < HL_SIZE; i += VECTOR_SIZE) {
+        // Load accumulators
+        const nativeVector stmAccumValues   = load_epi16(reinterpret_cast<const nativeVector*>(&stmAcc.values[i]));
+        const nativeVector nstmAccumValues  = load_epi16(reinterpret_cast<const nativeVector*>(&nstmAcc.values[i]));
 
-        const __m256i us_weights   = _mm256_load_si256(reinterpret_cast<const __m256i*>(&net->output_weights[16 * i]));  // Load from net
-        const __m256i them_weights = _mm256_load_si256(reinterpret_cast<const __m256i*>(&net->output_weights[HL_SIZE + 16 * i]));
+        // Clamp values
+        const nativeVector stmClamped   = min_epi16(VEC_QA, max_epi16(stmAccumValues, VEC_ZERO));
+        const nativeVector nstmClamped  = min_epi16(VEC_QA, max_epi16(nstmAccumValues, VEC_ZERO));
 
-        const __m256i us_clamped   = _mm256_min_epi16(_mm256_max_epi16(us, vec_zero), vec_qa);
-        const __m256i them_clamped = _mm256_min_epi16(_mm256_max_epi16(them, vec_zero), vec_qa);
+        // Load weights
+        const nativeVector stmWeights   = load_epi16(reinterpret_cast<const nativeVector*>(&net.output_weights[i]));
+        const nativeVector nstmWeights  = load_epi16(reinterpret_cast<const nativeVector*>(&net.output_weights[i + HL_SIZE]));
 
-        const __m256i us_results   = _mm256_madd_epi16(_mm256_mullo_epi16(us_weights, us_clamped), us_clamped);
-        const __m256i them_results = _mm256_madd_epi16(_mm256_mullo_epi16(them_weights, them_clamped), them_clamped);
+        // SCReLU activation
+        const nativeVector stmActivated  = madd_epi16(stmClamped, mullo_epi16(stmClamped, stmWeights));
+        const nativeVector nstmActivated  = madd_epi16(nstmClamped, mullo_epi16(nstmClamped, nstmWeights));
 
-        sum = _mm256_add_epi32(sum, us_results);
-        sum = _mm256_add_epi32(sum, them_results);
+        accumulator = add_epi32(accumulator, stmActivated);
+        accumulator = add_epi32(accumulator, nstmActivated);
     }
 
-    __m256i v1 = _mm256_hadd_epi32(sum, sum);
-    __m256i v2 = _mm256_hadd_epi32(v1, v1);
+    return reduce_epi32(accumulator);
+}
+#endif
 
-    eval = _mm256_extract_epi32(v2, 0) + _mm256_extract_epi32(v2, 4);
+int Forward(const Board& board, const Network& net) {
+    bool stm = board.sideToMove;
+
+    const ACC::Accumulator& stmACC = stm ? board.accPair.white : board.accPair.black;
+    const ACC::Accumulator& nstmACC = !stm ? board.accPair.white : board.accPair.black;
+
+    int64_t eval = 0;
+
+    eval = VectorizedSCReLU(board, net);
 
     eval /= QA;
 
-    eval += net->output_bias;
+    eval += net.output_bias;
 
     return (eval * SCALE) / (QA * QB);
 }
 
 int16_t Network::Evaluate(const Board& board) {
-    return std::clamp(Forward(board, this), (-SEARCH::MATE_SCORE + SEARCH::MAX_PLY),
+    return std::clamp(Forward(board, *this), (-SEARCH::MATE_SCORE + SEARCH::MAX_PLY),
         (SEARCH::MATE_SCORE - SEARCH::MAX_PLY));
 }
 
