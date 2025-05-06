@@ -3,9 +3,7 @@
 
 namespace ACC {
 
-struct Accumulator {
-    alignas(32) std::array<int16_t, NNUE::HL_SIZE> values;
-};
+using Accumulator = std::array<int16_t, NNUE::HL_SIZE>;
 
 struct AccumulatorPair {
     alignas(32) Accumulator white;

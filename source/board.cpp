@@ -231,8 +231,8 @@ void Board::PrintNNUE() {
     std::cout << "First 16 accumulator values (pre-activation)[white] ";
 
     for (int i = 0; i < 16; i++) {
-        if (accPair.white.values[i] != 0) {
-            std::cout << accPair.white.values[i] << ' ';
+        if (accPair.white[i] != 0) {
+            std::cout << accPair.white[i] << ' ';
         }
     }
 
@@ -491,8 +491,8 @@ void Board::ResetAccPair() {
 	Bitboard whitePieces = colors[White];
 	Bitboard blackPieces = colors[Black];
 
-	accPair.white.values = NNUE::net.accumulator_biases;
-	accPair.black.values = NNUE::net.accumulator_biases;
+	accPair.white = NNUE::net.accumulator_biases;
+	accPair.black = NNUE::net.accumulator_biases;
 
 	while (whitePieces) {
 		int square = whitePieces.getLS1BIndex();
@@ -501,8 +501,8 @@ void Board::ResetAccPair() {
 		int bInput = ACC::CalculateIndex(Black, White, GetPieceType(square), square);
 
 		for (int i = 0; i < NNUE::HL_SIZE; i++) {
-			accPair.white.values[i] += NNUE::net.accumulator_weights[wInput * NNUE::HL_SIZE + i];
-			accPair.black.values[i] += NNUE::net.accumulator_weights[bInput * NNUE::HL_SIZE + i];
+			accPair.white[i] += NNUE::net.accumulator_weights[wInput * NNUE::HL_SIZE + i];
+			accPair.black[i] += NNUE::net.accumulator_weights[bInput * NNUE::HL_SIZE + i];
 		}
 
 		whitePieces.PopBit(square);
@@ -515,8 +515,8 @@ void Board::ResetAccPair() {
 		int bInput = ACC::CalculateIndex(Black, Black, GetPieceType(square), square);
 
 		for (int i = 0; i < NNUE::HL_SIZE; i++) {
-			accPair.white.values[i] += NNUE::net.accumulator_weights[wInput * NNUE::HL_SIZE + i];
-			accPair.black.values[i] += NNUE::net.accumulator_weights[bInput * NNUE::HL_SIZE + i];
+			accPair.white[i] += NNUE::net.accumulator_weights[wInput * NNUE::HL_SIZE + i];
+			accPair.black[i] += NNUE::net.accumulator_weights[bInput * NNUE::HL_SIZE + i];
 		}
 
 		blackPieces.PopBit(square);

@@ -16,17 +16,17 @@ void Network::Load(const std::string& path) {
     }
 
     // HL weights
-    for (int i = 0; i < accumulator_weights.size(); i++) {
+    for (size_t i = 0; i < accumulator_weights.size(); i++) {
         file.read(reinterpret_cast<char*>(&accumulator_weights[i]), sizeof(int16_t));
     }
 
     // HL biases
-    for (int i = 0; i < accumulator_biases.size(); i++) {
+    for (size_t i = 0; i < accumulator_biases.size(); i++) {
         file.read(reinterpret_cast<char*>(&accumulator_biases[i]), sizeof(int16_t));
     }
 
     // Output weights
-    for (int i = 0; i < output_weights.size(); i++) {
+    for (size_t i = 0; i < output_weights.size(); i++) {
         file.read(reinterpret_cast<char*>(&output_weights[i]), sizeof(int16_t));
     }
 
@@ -103,8 +103,8 @@ static int32_t VectorizedSCReLU(const Board& board, const Network& net) {
 
     for (int i = 0; i < HL_SIZE; i += VECTOR_SIZE) {
         // Load accumulators
-        const nativeVector stmAccumValues   = load_epi16(reinterpret_cast<const nativeVector*>(&stmAcc.values[i]));
-        const nativeVector nstmAccumValues  = load_epi16(reinterpret_cast<const nativeVector*>(&nstmAcc.values[i]));
+        const nativeVector stmAccumValues   = load_epi16(reinterpret_cast<const nativeVector*>(&stmAcc[i]));
+        const nativeVector nstmAccumValues  = load_epi16(reinterpret_cast<const nativeVector*>(&nstmAcc[i]));
 
         // Clamp values
         const nativeVector stmClamped   = min_epi16(VEC_QA, max_epi16(stmAccumValues, VEC_ZERO));
