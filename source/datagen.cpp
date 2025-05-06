@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <thread>
 #include <atomic>
+#include <mutex>
 #include "datagen.h"
 #include "movegen.h"
 #include "evaluate.h"
@@ -43,6 +44,8 @@ static void ShowCursorLinux() {
 
 namespace DATAGEN {
 
+static std::mutex fileOpenMutex;
+
 static bool IsGameOver(Board &board, SEARCH::SearchContext& ctx) {
     if (SEARCH::IsDraw(board, ctx)) return true;
 
@@ -60,12 +63,17 @@ static bool IsGameOver(Board &board, SEARCH::SearchContext& ctx) {
 }
 
 static void PlayRandMoves(Board &board, SEARCH::SearchContext& ctx) {
-    bool plusOne = UTILS::RandomBool();
+    std::random_device dev;
+    std::mt19937_64 rng(dev());
+
+    std::uniform_int_distribution<int> moveDist(0, 1);
+    bool plusOne = moveDist(rng);
     
     for (int count = 0; count < RAND_MOVES + plusOne; count++) {
         MOVEGEN::GenerateMoves<All>(board);
 
-        bool isLegal = board.MakeMove(board.moveList[UTILS::RandomInt(0, board.currentMoveIndex - 1)]);
+        std::uniform_int_distribution<int> dist(0, board.currentMoveIndex - 1);
+        bool isLegal = board.MakeMove(board.moveList[dist(rng)]);
 
         if (!isLegal) {
             count--;
@@ -93,8 +101,12 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
 
     std::string fileName = "thread" + std::to_string(id) + ".binpack";
 
-    
-    std::ofstream file(fileName, std::ios::app | std::ios::binary);
+    std::ofstream file;
+    {
+        std::lock_guard<std::mutex> lock(fileOpenMutex);
+        file.open(fileName, std::ios::app | std::ios::binary);
+    }
+
     if (!file.is_open()) {
         std::cerr << "Failed to open file: " << fileName << std::endl;
         exit(-1);
