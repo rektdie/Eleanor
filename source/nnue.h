@@ -8,7 +8,7 @@
 class Board;
 
 #ifdef __AVX512F__
-constexpr usize ALIGNMENT = 64;
+constexpr size_t ALIGNMENT = 64;
 #else
 constexpr size_t ALIGNMENT = 32;
 #endif

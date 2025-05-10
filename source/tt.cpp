@@ -3,7 +3,7 @@
 SearchResults TTable::ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
     TTEntry *current = &table[hashKey % table.size()];
 
-    if (current->hashKey == hashKey) {
+    if (current->hashKey == static_cast<uint16_t>(hashKey)) {
         if (current->depth >= depth) {
             if (current->nodeType == PV){
                 return {current->score, current->bestMove};
@@ -22,7 +22,7 @@ SearchResults TTable::ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
 void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove) {
     TTEntry *current = &table[hashKey % table.size()];
 
-    current->hashKey = hashKey;
+    current->hashKey = static_cast<uint16_t>(hashKey);
     current->nodeType = nodeType;
     current->score = score;
     current->depth = depth;
