@@ -98,7 +98,7 @@ public:
 
     std::array<std::array<int, MAX_PLY>, 2> killerMoves{};
 
-    std::array<U64, 1000> positionHistory{};
+    std::vector<U64> positionHistory;
 
     TTable TT;
 
@@ -110,7 +110,7 @@ public:
         TT.Clear();
         sw.Restart();
         killerMoves = {};
-        positionHistory = {};
+        positionHistory.reserve(1000);
     }
 };
 
