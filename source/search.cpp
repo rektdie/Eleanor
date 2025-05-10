@@ -176,6 +176,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         Board copy = board;
         int isLegal = copy.MakeMove(board.moveList[i]);
         if (!isLegal) continue;
+        if (copy.positionIndex >= ctx.positionHistory.size()) {
+            ctx.positionHistory.resize(copy.positionIndex + 100);
+        }
         ctx.positionHistory[copy.positionIndex] = copy.hashKey;
         ctx.nodes++;
         int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1, ctx).score;
@@ -304,6 +307,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         bool isLegal = copy.MakeMove(currMove);
 
         if (!isLegal) continue;
+        if (copy.positionIndex >= ctx.positionHistory.size()) {
+            ctx.positionHistory.resize(copy.positionIndex + 100);
+        }
         ctx.positionHistory[copy.positionIndex] = copy.hashKey;
         ctx.nodes++;
 
