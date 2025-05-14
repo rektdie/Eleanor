@@ -25,7 +25,7 @@ void InitLMRTable() {
 
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext& ctx) {
     TTEntry *current = ctx.TT.GetRawEntry(board.hashKey);
-    if (current->bestMove == move) {
+    if (current->hashKey == board.hashKey && current->bestMove == move) {
         return 50000;
     }
 
