@@ -343,7 +343,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         if (ctx.searchStopped) return 0;
 
-        if (currMove.IsQuiet()) {
+        if (currMove != 0 && currMove.IsQuiet()) {
             seenQuiets[seenQuietsCount] = currMove;
             seenQuietsCount++;
         }
