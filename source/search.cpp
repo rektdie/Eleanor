@@ -240,7 +240,17 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     const int staticEval = NNUE::net.Evaluate(board);
     ctx.ss[ply].eval = staticEval;
 
-    const bool improving = ply >= 2 ? ctx.ss[ply].eval > ctx.ss[ply-2].eval : false;
+    const bool improving = [&]
+    {
+        if (board.InCheck())
+            return false;
+        if (ply > 1 && ctx.ss[ply - 2].eval != ScoreNone)
+            return staticEval > ctx.ss[ply - 2].eval;
+        if (ply > 3 && ctx.ss[ply - 4].eval != ScoreNone)
+            return staticEval > ctx.ss[ply - 4].eval;
+
+        return true;
+    }();
 
     if (!board.InCheck()) {
         if (ply) {
