@@ -7,7 +7,7 @@
 namespace DATAGEN {
 
 constexpr int GAME_BUFFER = 100;
-constexpr int SOFT_NODES = 20000;
+constexpr int SOFT_NODES = 5000;
 constexpr int HARD_NODES = 100000;
 constexpr int RAND_MOVES = 8;
 
