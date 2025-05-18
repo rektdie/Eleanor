@@ -1,6 +1,5 @@
 #include "search.h"
 #include "movegen.h"
-#include "evaluate.h"
 #include <algorithm>
 #include <cmath>
 #include "datagen.h"
@@ -151,6 +150,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     }
     
     int bestScore = NNUE::net.Evaluate(board);
+    ctx.ss[ply].eval = bestScore;
 
     TTEntry *entry = ctx.TT.GetRawEntry(board.hashKey);
     if (entry->hashKey == board.hashKey) {
@@ -238,11 +238,24 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
 
     const int staticEval = NNUE::net.Evaluate(board);
+    ctx.ss[ply].eval = staticEval;
+
+    const bool improving = [&]
+    {
+        if (board.InCheck())
+            return false;
+        if (ply > 1 && ctx.ss[ply - 2].eval != ScoreNone)
+            return staticEval > ctx.ss[ply - 2].eval;
+        if (ply > 3 && ctx.ss[ply - 4].eval != ScoreNone)
+            return staticEval > ctx.ss[ply - 4].eval;
+
+        return true;
+    }();
 
     if (!board.InCheck()) {
         if (ply) {
             // Reverse Futility Pruning
-            int margin = 100 * depth;
+            int margin = 100 * (depth - improving);
             if (staticEval - margin >= beta && depth < 7) {
                 return (beta + (staticEval - beta) / 3);
             }

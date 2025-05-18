@@ -21,6 +21,7 @@ constexpr int MAX_DEPTH = 64;
 constexpr int MAX_PLY = 128;
 constexpr int MAX_HISTORY = 16384;
 
+constexpr int32_t ScoreNone = -255000;
 constexpr int inf = 100000;
 
 inline int lmrTable[MAX_DEPTH+1][MAX_MOVES];
@@ -84,6 +85,11 @@ public:
     }
 };
 
+class Stack {
+public:
+    int32_t eval = ScoreNone;
+};
+
 class SearchContext {
 public:
     U64 nodes = 0;
@@ -101,6 +107,8 @@ public:
     std::vector<U64> positionHistory;
 
     TTable TT;
+
+    std::array<Stack, MAX_PLY> ss{};
 
     Stopwatch sw;
 
