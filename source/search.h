@@ -84,6 +84,11 @@ public:
     }
 };
 
+class Stack {
+public:
+    int32_t eval = 0;
+};
+
 class SearchContext {
 public:
     U64 nodes = 0;
@@ -101,6 +106,8 @@ public:
     std::vector<U64> positionHistory;
 
     TTable TT;
+
+    std::array<Stack, MAX_PLY> ss{};
 
     Stopwatch sw;
 
