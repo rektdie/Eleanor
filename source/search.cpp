@@ -52,30 +52,29 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext& ctx) {
 }
 
 static void SortMoves(Board &board, int ply, SearchContext& ctx) {
-    std::array<int, MAX_MOVES> scores;
-    std::array<int, MAX_MOVES> indices;
-
-    // Initialize scores and indices
+    if (board.currentMoveIndex <= 1) {
+        return;
+    }
+    
+    int scores[MAX_MOVES];
+    
     for (int i = 0; i < board.currentMoveIndex; i++) {
         scores[i] = ScoreMove(board, board.moveList[i], ply, ctx);
-        indices[i] = i;
     }
-
-    // Sort indices based on scores
-    std::stable_sort(indices.begin(), indices.begin() + board.currentMoveIndex,
-              [&scores](int a, int b) {
-                  return scores[a] > scores[b];
-              });
-
-    // Create a temporary move list and reorder the moveList based on the sorted indices
-    std::array<Move, MAX_MOVES> sortedMoves;
-    for (int i = 0; i < board.currentMoveIndex; i++) {
-        sortedMoves[i] = board.moveList[indices[i]];
-    }
-
-    // Assign the sorted moves back to the board's move list
-    for (int i = 0; i < board.currentMoveIndex; i++) {
-        board.moveList[i] = sortedMoves[i];
+    
+    for (int i = 1; i < board.currentMoveIndex; i++) {
+        Move tempMove = board.moveList[i];
+        int tempScore = scores[i];
+        int j = i - 1;
+        
+        while (j >= 0 && scores[j] < tempScore) {
+            board.moveList[j + 1] = board.moveList[j];
+            scores[j + 1] = scores[j];
+            j--;
+        }
+        
+        board.moveList[j + 1] = tempMove;
+        scores[j + 1] = tempScore;
     }
 }
 
