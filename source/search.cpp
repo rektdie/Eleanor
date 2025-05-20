@@ -148,6 +148,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
             return 0;
         }
     }
+
+    if (ply > ctx.seldepth)
+        ctx.seldepth = ply;
     
     int bestScore = NNUE::net.Evaluate(board);
     ctx.ss[ply].eval = bestScore;
@@ -222,6 +225,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             return 0;
         }
     }
+
+    if (ply > ctx.seldepth)
+        ctx.seldepth = ply;
+
 
     ctx.pvLine.SetLength(ply);
     if (ply && (IsDraw(board, ctx))) return 0;
@@ -464,6 +471,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
             if constexpr (mode == normal || mode == nodesMode) {
                 std::cout << "info ";
                 std::cout << "depth " << depth;
+                std::cout << " seldepth " << ctx.seldepth;
                 std::cout << " time " << elapsed;
                 std::cout << " score cp " << UTILS::ConvertToWhiteRelative(board, safeResults.score);
                 std::cout << " nodes " << ctx.nodes << " nps " << int(ctx.nodes/ctx.sw.GetElapsedSec());
@@ -493,6 +501,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
 template <searchMode mode>
 SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& ctx) {
     ctx.searchStopped = false;
+    ctx.seldepth = 0;
     if constexpr (mode != bench) {
         ctx.nodes = 0;
 

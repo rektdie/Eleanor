@@ -95,6 +95,8 @@ public:
     U64 nodes = 0;
     U64 nodesToGo = 0;
     int timeToSearch = 0;
+
+    int seldepth = 0;
     
     bool doingNullMove = false;
     bool searchStopped = false;
