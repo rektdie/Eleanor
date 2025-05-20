@@ -373,10 +373,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 ctx.killerMoves[1][ply] = ctx.killerMoves[0][ply];
                 ctx.killerMoves[0][ply] = currMove;
 
-                int bonus = depth * depth;
+                int bonus = 300 * depth - 250;
 
                 ctx.history.Update(board.sideToMove, currMove, bonus);
 
+                // Malus
                 for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
                     ctx.history.Update(board.sideToMove, seenQuiets[moveIndex], -bonus);
                 }
