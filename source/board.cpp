@@ -523,7 +523,7 @@ void Board::ResetAccPair() {
 	}
 }
 
-Bitboard Board::AttacksTo(int square) {
+Bitboard Board::AttacksTo(int square, Bitboard occupancy) {
     Bitboard attacks;
     
     // Pawn attacks
@@ -540,8 +540,8 @@ Bitboard Board::AttacksTo(int square) {
     // King
     attacks |= (MOVEGEN::kingAttacks[square] & pieces[King]);
 
-    Bitboard bishopAttacks = MOVEGEN::getBishopAttack(square, occupied);
-    Bitboard rookAttacks = MOVEGEN::getRookAttack(square, occupied);
+    Bitboard bishopAttacks = MOVEGEN::getBishopAttack(square, occupancy);
+    Bitboard rookAttacks = MOVEGEN::getRookAttack(square, occupancy);
 
     // Rook or queen
     attacks |= (rookAttacks & (pieces[Rook] | pieces[Queen]));

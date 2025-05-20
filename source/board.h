@@ -67,5 +67,5 @@ public:
 
     bool InPossibleZug();
 
-    Bitboard AttacksTo(int square);
+    Bitboard AttacksTo(int square, Bitboard occupancy);
 };

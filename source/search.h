@@ -26,6 +26,11 @@ constexpr int inf = 100000;
 
 inline int lmrTable[MAX_DEPTH+1][MAX_MOVES];
 
+static const int SEEPieceValues[] = {
+     103,  422,  437,  694,
+    1313,    0,    0,    0,
+};
+
 void InitLMRTable();
 
 class History {
@@ -142,4 +147,6 @@ constexpr int moveScoreTable[6][6] = {
 };
 
 void ListScores(Board &board, SearchContext& ctx);
+
+int MoveEstimatedValue(Board& board, Move& move);
 }
