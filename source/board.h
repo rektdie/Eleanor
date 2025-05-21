@@ -66,6 +66,4 @@ public:
 	bool MakeMove(Move move);
 
     bool InPossibleZug();
-
-    Bitboard AttacksTo(int square, Bitboard occupancy);
 };
