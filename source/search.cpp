@@ -277,7 +277,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     // Always legal so we dont check it
     
                     ctx.doingNullMove = true;
-                    int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1, ctx, true).score;
+                    int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1, ctx, false).score;
                     ctx.doingNullMove = false;
     
                     if (ctx.searchStopped) return 0;
