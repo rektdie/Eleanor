@@ -131,11 +131,12 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
 
             if (!results.bestMove) break;
             safeResults = results;
-            board.MakeMove(results.bestMove);
-            ctx.positionHistory[board.positionIndex] = board.hashKey;
-
+            
             game.moves.emplace_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(),
                     UTILS::ConvertToWhiteRelative(board, results.score)));
+
+            board.MakeMove(results.bestMove);
+            ctx.positionHistory[board.positionIndex] = board.hashKey;
 
             positions++;
 
