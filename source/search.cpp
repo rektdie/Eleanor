@@ -114,15 +114,18 @@ bool IsDraw(Board &board, SearchContext& ctx) {
     return IsFifty(board) || IsInsuffMat(board) || IsThreefold(board, ctx);
 }
 
-static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply) {
+static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode) {
     int reduction = 0;
     
     // Late Move Reduction
     if (depth >= 3 && moveSeen >= 3 && !move.IsCapture()) {
         reduction = lmrTable[depth][moveSeen];
+
+        if (cutnode)
+            reduction += 2;
     }
 
-    return reduction;
+    return std::clamp(reduction, -1, depth - 1);
 }
 
 template <searchMode mode>
@@ -203,7 +206,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 }
 
 template <bool isPV, searchMode mode>
-SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchContext& ctx) {
+SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchContext& ctx, bool cutnode) {
     if constexpr (mode != bench && mode != nodesMode) {
         if (ctx.nodes % 1024 == 0) {
             if constexpr (mode == normal) {
@@ -274,7 +277,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     // Always legal so we dont check it
     
                     ctx.doingNullMove = true;
-                    int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1, ctx).score;
+                    int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1, ctx, true).score;
                     ctx.doingNullMove = false;
     
                     if (ctx.searchStopped) return 0;
@@ -332,30 +335,30 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         ctx.positionHistory[copy.positionIndex] = copy.hashKey;
         ctx.nodes++;
 
-        int reductions = GetReductions(board, currMove, depth, moveSeen, ply);
+        int reductions = GetReductions(board, currMove, depth, moveSeen, ply, cutnode);
 
         int newDepth = depth + copy.InCheck() - 1;
 
         // First move (suspected PV node)
         if (!moveSeen) {
             // Full search
-            score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx).score;
+            score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, false).score;
         } else if (reductions) {
             // Null-window search with reductions
-            score = -PVS<false, mode>(copy, newDepth - reductions, -alpha-1, -alpha, ply + 1, ctx).score;
+            score = -PVS<false, mode>(copy, newDepth - reductions, -alpha-1, -alpha, ply + 1, ctx, true).score;
 
             if (score > alpha) {
                 // Null-window search now without the reduction
-                score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx).score;
+                score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx, true).score;
             }
         } else {
             // Null-window search
-            score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx).score;
+            score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx, true).score;
         }
 
         // Check if we need to do full window re-search
         if (moveSeen && score > alpha && score < beta) {
-            score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx).score;
+            score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, false).score;
         }
 
         moveSeen++;
@@ -440,7 +443,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
         ctx.timeToSearch = std::max((fullTime / 20) + (inc / 2), 4);
         int softTime = ctx.timeToSearch * 0.65;
 
-        SearchResults currentResults = PVS<true, mode>(board, depth, alpha, beta, ply, ctx);
+        SearchResults currentResults = PVS<true, mode>(board, depth, alpha, beta, ply, ctx, false);
         elapsed = ctx.sw.GetElapsedMS();
 
         // If we fell outside the window, try again with full width
@@ -522,12 +525,12 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& c
     return results;
 }
 
-template SearchResults PVS<true, searchMode::bench>(Board&, int, int, int, int, SearchContext& ctx);
-template SearchResults PVS<false, searchMode::bench>(Board&, int, int, int, int, SearchContext& ctx);
-template SearchResults PVS<true, searchMode::normal>(Board&, int, int, int, int, SearchContext& ctx);
-template SearchResults PVS<false, searchMode::normal>(Board&, int, int, int, int, SearchContext& ctx);
-template SearchResults PVS<true, searchMode::datagen>(Board&, int, int, int, int, SearchContext& ctx);
-template SearchResults PVS<false, searchMode::datagen>(Board&, int, int, int, int, SearchContext& ctx);
+template SearchResults PVS<true, searchMode::bench>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
+template SearchResults PVS<false, searchMode::bench>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
+template SearchResults PVS<true, searchMode::normal>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
+template SearchResults PVS<false, searchMode::normal>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
+template SearchResults PVS<true, searchMode::datagen>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
+template SearchResults PVS<false, searchMode::datagen>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
 
 template SearchResults SearchPosition<normal>(Board &board, SearchParams params, SearchContext& ctx);
 template SearchResults SearchPosition<bench>(Board &board, SearchParams params, SearchContext& ctx);
