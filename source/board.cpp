@@ -251,11 +251,19 @@ void Board::ResetMoves() {
 }
 
 void Board::ListMoves() {
+	int moveCount = 1;
 	for (int i = 0; i < currentMoveIndex; i++) {
-		std::cout << i+1 << ". ";
+		Board copy = *this;
+		bool isLegal = copy.MakeMove(moveList[i]);
+
+		if (!isLegal)
+			continue;
+
+		std::cout << moveCount << ". ";
 		moveList[i].PrintMove();
 		std::cout << "( " << moveTypes[moveList[i].GetFlags()] << " )";
 		std::cout << std::endl;
+		moveCount++;
 	}
 }
 
