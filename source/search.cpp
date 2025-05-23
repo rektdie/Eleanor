@@ -342,7 +342,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // First move (suspected PV node)
         if (!moveSeen) {
             // Full search
-            score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, false).score;
+            if constexpr (isPV) {
+                score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, false).score;
+            } else {
+                score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, !cutnode).score;
+            }
         } else if (reductions) {
             // Null-window search with reductions
             score = -PVS<false, mode>(copy, newDepth - reductions, -alpha-1, -alpha, ply + 1, ctx, true).score;
