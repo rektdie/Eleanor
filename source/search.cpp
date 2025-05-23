@@ -277,7 +277,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     // Always legal so we dont check it
     
                     ctx.doingNullMove = true;
-                    int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1, ctx, false).score;
+                    int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1, ctx, !cutnode).score;
                     ctx.doingNullMove = false;
     
                     if (ctx.searchStopped) return 0;
@@ -349,11 +349,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
             if (score > alpha) {
                 // Null-window search now without the reduction
-                score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx, true).score;
+                score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx, !cutnode).score;
             }
         } else {
             // Null-window search
-            score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx, true).score;
+            score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx, !cutnode).score;
         }
 
         // Check if we need to do full window re-search
