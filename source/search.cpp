@@ -271,13 +271,14 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
             // Null Move Pruning
             if (!ctx.doingNullMove && staticEval >= beta) {
-                if (depth >= 3 && !board.InPossibleZug()) {
+                int R = 3 - improving;
+
+                if (depth >= R && !board.InPossibleZug()) {
                     Board copy = board;
-                    bool isLegal = copy.MakeMove(Move());
-                    // Always legal so we dont check it
+                    copy.MakeMove(Move());
     
                     ctx.doingNullMove = true;
-                    int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1, ctx, !cutnode).score;
+                    int score = -PVS<false, mode>(copy, depth - R, -beta, -beta + 1, ply + 1, ctx, !cutnode).score;
                     ctx.doingNullMove = false;
     
                     if (ctx.searchStopped) return 0;
