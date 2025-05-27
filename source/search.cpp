@@ -132,12 +132,12 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     return std::clamp(reduction, -1, depth - 1);
 }
 
-static int SEE(Board& board, Move& move, int threshold) {
+static bool SEE(Board& board, Move& move, int threshold) {
     int from = move.MoveFrom();
     int to = move.MoveTo();
     int flags = move.GetFlags();
 
-    int nextVictim = -1;
+    int nextVictim = board.GetPieceType(from);
 
     // Next victim is moved piece or promo piece
     if (move.IsPromo()) {
@@ -146,8 +146,6 @@ static int SEE(Board& board, Move& move, int threshold) {
         } else {
             nextVictim = move.GetFlags() - 5;
         }
-    } else {
-        nextVictim = board.GetPieceType(from);
     }
 
     int balance = MoveEstimatedValue(board, move) - threshold;
@@ -162,10 +160,11 @@ static int SEE(Board& board, Move& move, int threshold) {
     Bitboard rooks = board.pieces[Rook] | board.pieces[Queen];
 
     Bitboard occupied = board.occupied;
-    occupied = (occupied ^ Bitboard((1ULL << from))) | Bitboard((1ULL << to));
+    occupied.PopBit(from);
+    occupied.SetBit(to);
 
     if (flags == epCapture)
-        occupied ^= Bitboard(1ULL << board.enPassantTarget);
+        occupied.SetBit(board.enPassantTarget);
     
     Bitboard attackers = board.AttacksTo(to, occupied) & occupied;
 
@@ -180,7 +179,7 @@ static int SEE(Board& board, Move& move, int threshold) {
                 break;
         }
 
-        occupied ^= Bitboard(1ULL << Bitboard(myAttackers & board.pieces[nextVictim]).getLS1BIndex());
+        occupied.PopBit(Bitboard(myAttackers & board.pieces[nextVictim]).getLS1BIndex());
 
         if (nextVictim == Pawn || nextVictim == Bishop || nextVictim == Queen)
             attackers |= MOVEGEN::getBishopAttack(to, occupied) & bishops;
