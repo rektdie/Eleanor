@@ -22,7 +22,7 @@ public:
 class TTEntry {
 public:
     U64 hashKey = 0;
-    uint16_t score = 0;
+    int16_t score = 0;
     Move bestMove = Move();
     uint8_t depth = 0;
     uint8_t nodeType = 0;
