@@ -530,3 +530,32 @@ void Board::ResetAccPair() {
 		blackPieces.PopBit(square);
 	}
 }
+
+Bitboard Board::AttacksTo(int square, Bitboard occupancy) {
+    Bitboard attacks;
+    
+    // Pawn attacks
+    
+    // Opponent attacks
+    attacks |= (MOVEGEN::pawnAttacks[sideToMove][square] & colors[!sideToMove] & pieces[Pawn]);
+    
+    // Own piece attacks
+    attacks |= (MOVEGEN::pawnAttacks[!sideToMove][square] & colors[sideToMove] & pieces[Pawn]);
+
+    // Knight 
+    attacks |= (MOVEGEN::knightAttacks[square] & pieces[Knight]);
+
+    // King
+    attacks |= (MOVEGEN::kingAttacks[square] & pieces[King]);
+
+    Bitboard bishopAttacks = MOVEGEN::getBishopAttack(square, occupancy);
+    Bitboard rookAttacks = MOVEGEN::getRookAttack(square, occupancy);
+
+    // Rook or queen
+    attacks |= (rookAttacks & (pieces[Rook] | pieces[Queen]));
+
+    // Bishop or queen
+    attacks |= (bishopAttacks & (pieces[Bishop] | pieces[Queen]));
+
+    return attacks;
+}

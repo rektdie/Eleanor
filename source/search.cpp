@@ -132,6 +132,79 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     return std::clamp(reduction, -1, depth - 1);
 }
 
+static int SEE(Board& board, Move& move, int threshold) {
+    int from = move.MoveFrom();
+    int to = move.MoveTo();
+    int flags = move.GetFlags();
+
+    int nextVictim = -1;
+
+    // Next victim is moved piece or promo piece
+    if (move.IsPromo()) {
+        if (move.IsCapture()) {
+            nextVictim = move.GetFlags() - 9;
+        } else {
+            nextVictim = move.GetFlags() - 5;
+        }
+    } else {
+        nextVictim = board.GetPieceType(from);
+    }
+
+    int balance = MoveEstimatedValue(board, move) - threshold;
+
+    if (balance < 0) return 0;
+
+    balance -= SEEPieceValues[nextVictim];
+
+    if (balance >= 0) return 1;
+
+    Bitboard bishops = board.pieces[Bishop] | board.pieces[Queen];
+    Bitboard rooks = board.pieces[Rook] | board.pieces[Queen];
+
+    Bitboard occupied = board.occupied;
+    occupied = (occupied ^ Bitboard((1ULL << from))) | Bitboard((1ULL << to));
+
+    if (flags == epCapture)
+        occupied ^= Bitboard(1ULL << board.enPassantTarget);
+    
+    Bitboard attackers = board.AttacksTo(to, occupied) & occupied;
+
+    bool color = !board.sideToMove;
+
+    while (true) {
+        Bitboard myAttackers = attackers & board.colors[color];
+        if (!myAttackers) break;
+
+        for (nextVictim = Pawn; nextVictim <= Queen; nextVictim++) {
+            if (myAttackers & board.pieces[nextVictim])
+                break;
+        }
+
+        occupied ^= Bitboard(1ULL << Bitboard(myAttackers & board.pieces[nextVictim]).getLS1BIndex());
+
+        if (nextVictim == Pawn || nextVictim == Bishop || nextVictim == Queen)
+            attackers |= MOVEGEN::getBishopAttack(to, occupied) & bishops;
+
+        if (nextVictim == Rook || nextVictim == Queen)
+            attackers |= MOVEGEN::getRookAttack(to, occupied) & rooks;
+
+        attackers &= occupied;
+        
+        color = !color;
+
+        balance = -balance - 1 - SEEPieceValues[nextVictim];
+
+        if (balance >= 0) {
+            if (nextVictim == King && (attackers & board.colors[color]))
+                color = !color;
+
+            break;
+        }
+    }
+
+    return board.sideToMove != color;
+}
+
 template <searchMode mode>
 static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext& ctx) {
     if constexpr (mode != nodesMode)  {
@@ -185,6 +258,10 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         Board copy = board;
         int isLegal = copy.MakeMove(board.moveList[i]);
         if (!isLegal) continue;
+
+        if (!SEE(board, board.moveList[i], 0))
+            continue;
+
         if (copy.positionIndex >= ctx.positionHistory.size()) {
             ctx.positionHistory.resize(copy.positionIndex + 100);
         }
