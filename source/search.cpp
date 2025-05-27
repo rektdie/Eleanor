@@ -533,6 +533,28 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& c
     return results;
 }
 
+int MoveEstimatedValue(Board& board, Move& move) {
+    int pieceType = board.GetPieceType(move.MoveTo());
+    int value = pieceType != nullPieceType ? SEEPieceValues[pieceType] : 0;
+
+    if (move.IsPromo()) {
+        int promoPiece = -1;
+        if (move.IsCapture()) {
+            promoPiece = move.GetFlags() - 9;
+        } else {
+            promoPiece = move.GetFlags() - 5;
+        }
+
+        value += SEEPieceValues[promoPiece] - SEEPieceValues[Pawn];
+    } else if (move.GetFlags() == epCapture) {
+        value = SEEPieceValues[Pawn];
+    } else if (move.GetFlags() == queenCastle || move.GetFlags() == kingCastle) {
+        value = 0;
+    }
+
+    return value;
+}
+
 template SearchResults PVS<true, searchMode::bench>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
 template SearchResults PVS<false, searchMode::bench>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
 template SearchResults PVS<true, searchMode::normal>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
