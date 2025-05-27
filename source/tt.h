@@ -22,10 +22,10 @@ public:
 class TTEntry {
 public:
     U64 hashKey = 0;
-    int depth = 0;
-    int score = 0;
-    int nodeType = 0;
+    int16_t score = 0;
     Move bestMove = Move();
+    uint8_t depth = 0;
+    uint8_t nodeType = 0;
 
     operator U64() {
         return hashKey;
