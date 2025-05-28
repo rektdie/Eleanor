@@ -1,5 +1,4 @@
 #include <random>
-#include <cstring>
 #include <fstream>
 #include <iomanip>
 #include <thread>
@@ -7,7 +6,6 @@
 #include <mutex>
 #include "datagen.h"
 #include "movegen.h"
-#include "evaluate.h"
 #include "search.h"
 #include "movegen.h"
 #include "utils.h"
@@ -87,11 +85,28 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext& ctx) {
 
 static void WriteToFile(std::vector<Game> &gamesBuffer, std::ofstream &file) {
     int32_t zeroes = 0;
+    std::vector<char> buffer;
+
+    size_t totalSize = 0;
     for (const Game& game : gamesBuffer) {
-        file.write(reinterpret_cast<const char*>(&game.format), sizeof(game.format));
-        file.write(reinterpret_cast<const char*>(game.moves.data()), sizeof(ScoredMove) * game.moves.size());
-        file.write(reinterpret_cast<const char*>(&zeroes), 4);
+        totalSize += sizeof(game.format);
+        totalSize += sizeof(ScoredMove) * game.moves.size();
+        totalSize += sizeof(zeroes);
     }
+    buffer.reserve(totalSize);
+
+    for (const Game& game : gamesBuffer) {
+        const char* formatPtr = reinterpret_cast<const char*>(&game.format);
+        buffer.insert(buffer.end(), formatPtr, formatPtr + sizeof(game.format));
+
+        const char* movesPtr = reinterpret_cast<const char*>(game.moves.data());
+        buffer.insert(buffer.end(), movesPtr, movesPtr + sizeof(ScoredMove) * game.moves.size());
+
+        const char* zeroesPtr = reinterpret_cast<const char*>(&zeroes);
+        buffer.insert(buffer.end(), zeroesPtr, zeroesPtr + sizeof(zeroes));
+    }
+
+    file.write(buffer.data(), buffer.size());
     file.flush();
 }
 
