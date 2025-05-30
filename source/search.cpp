@@ -125,8 +125,8 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
             reduction += 2;
 
         // History LMR
-        int historyReduction = ctx.history[board.sideToMove][move.MoveFrom()][move.MoveTo()] / 4096;
-        reduction -= std::clamp(historyReduction, -3, 3);
+        int historyReduction = ctx.history[board.sideToMove][move.MoveFrom()][move.MoveTo()] / 8192;
+        reduction -= historyReduction;
     }
 
     return std::clamp(reduction, -1, depth - 1);
