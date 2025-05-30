@@ -27,7 +27,7 @@ constexpr int inf = 100000;
 inline int lmrTable[MAX_DEPTH+1][MAX_MOVES];
 
 constexpr std::array<int, 6> SEEPieceValues = {
-    100, 300, 300, 500, 900, 0
+    100, 300, 350, 500, 900, 0
 };
 
 void InitLMRTable();

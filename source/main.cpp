@@ -51,8 +51,6 @@ int main(int argc, char* argv[]) {
 
 	Board board;
 
-    //TEST::SEE();
-
     if (argc > 1) {
         if (std::string(argv[1]) == "bench") {
             RunBenchmark();

@@ -21,6 +21,13 @@ void SEE() {
 		std::string fen = tokens[0];
 		board.SetByFen(fen);
 
+		// Trim whitespaces
+		tokens[1].erase(0, tokens[1].find_first_not_of(" \t\r\n"));
+		tokens[1].erase(tokens[1].find_last_not_of(" \t\r\n") + 1);
+
+		tokens[2].erase(0, tokens[2].find_first_not_of(" \t\r\n"));
+		tokens[2].erase(tokens[2].find_last_not_of(" \t\r\n") + 1);
+
 		Move move = UTILS::parseMove(board, tokens[1]);
 
 		int gain = std::stoi(tokens[2]);
