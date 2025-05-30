@@ -114,7 +114,7 @@ bool IsDraw(Board &board, SearchContext& ctx) {
     return IsFifty(board) || IsInsuffMat(board) || IsThreefold(board, ctx);
 }
 
-static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode) {
+static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, SearchContext& ctx) {
     int reduction = 0;
     
     // Late Move Reduction
@@ -123,6 +123,10 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
 
         if (cutnode)
             reduction += 2;
+
+        // History LMR
+        int historyReduction = ctx.history[board.sideToMove][move.MoveFrom()][move.MoveTo()] / 4096;
+        reduction -= std::clamp(historyReduction, -3, 3);
     }
 
     return std::clamp(reduction, -1, depth - 1);
@@ -335,7 +339,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         ctx.positionHistory[copy.positionIndex] = copy.hashKey;
         ctx.nodes++;
 
-        int reductions = GetReductions(board, currMove, depth, moveSeen, ply, cutnode);
+        int reductions = GetReductions(board, currMove, depth, moveSeen, ply, cutnode, ctx);
 
         int newDepth = depth + copy.InCheck() - 1;
 
