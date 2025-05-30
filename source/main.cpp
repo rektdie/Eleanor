@@ -6,6 +6,7 @@
 #include "search.h"
 #include "datagen.h"
 #include "nnue.h"
+#include "tests.h"
 
 #ifndef EVALFILE
     #define EVALFILE "./nnue.bin"
@@ -49,6 +50,8 @@ int main(int argc, char* argv[]) {
     SEARCH::InitLMRTable();
 
 	Board board;
+
+    //TEST::SEE();
 
     if (argc > 1) {
         if (std::string(argv[1]) == "bench") {

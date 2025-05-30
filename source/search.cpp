@@ -132,7 +132,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     return std::clamp(reduction, -1, depth - 1);
 }
 
-static bool SEE(Board& board, Move& move, int threshold) {
+bool SEE(Board& board, Move& move, int threshold) {
     int from = move.MoveFrom();
     int to = move.MoveTo();
     int flags = move.GetFlags();
