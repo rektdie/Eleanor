@@ -383,10 +383,12 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Move currMove = board.moveList[i];
 
+        bool notMated = results.score > (-MATE_SCORE + MAX_PLY);
+
         // Late move pruning
         // If we are near a leaf node we prune moves
         // that are late in the list
-        if (!isPV && !board.InCheck() && currMove.IsQuiet() && results.score > (-MATE_SCORE + MAX_PLY)) {
+        if (!isPV && !board.InCheck() && currMove.IsQuiet() && notMated) {
             int lmpBase = 7;
 
             int lmpThreshold = lmpBase + 4 * depth;
@@ -401,7 +403,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // that a quiet move will help us so we skip them
         int fpMargin = 100 * depth;
         if (!isPV && ply && currMove.IsQuiet()
-            && depth <= 5 && staticEval + fpMargin < alpha && results.score > -MATE_SCORE) {
+            && depth <= 5 && staticEval + fpMargin < alpha && notMated) {
             continue;
         }
 
