@@ -27,11 +27,15 @@ void Network::Load(const std::string& path) {
 
     // Output weights
     for (size_t i = 0; i < output_weights.size(); i++) {
-        file.read(reinterpret_cast<char*>(&output_weights[i]), sizeof(int16_t));
+        for (size_t j = 0; j < output_weights[i].size(); j++) {
+            file.read(reinterpret_cast<char*>(&output_weights[i][j]), sizeof(int16_t));
+        }
     }
 
-    // Output bias
-    file.read(reinterpret_cast<char*>(&output_bias), sizeof(int16_t));
+    // Output biases
+    for (size_t i = 0; i < output_bias.size(); i++) {
+        file.read(reinterpret_cast<char*>(&output_bias[i]), sizeof(int16_t));
+    }   
 }
 
 #if defined(__x86_64__) || defined(__amd64__) || (defined(_WIN64) && (defined(_M_X64) || defined(_M_AMD64)))
@@ -89,7 +93,7 @@ using nativeVector = __m128i;
     }
 #endif
 
-static int32_t VectorizedSCReLU(const Board& board, const Network& net) {
+static int32_t VectorizedSCReLU(const Board& board, const Network& net, size_t outputBucket) {
     const size_t VECTOR_SIZE = sizeof(nativeVector) / sizeof(int16_t);
     static_assert(HL_SIZE % VECTOR_SIZE == 0, "HL size must be divisible by the native register size of your CPU for vectorization to work");
 
@@ -111,8 +115,8 @@ static int32_t VectorizedSCReLU(const Board& board, const Network& net) {
         const nativeVector nstmClamped  = min_epi16(VEC_QA, max_epi16(nstmAccumValues, VEC_ZERO));
 
         // Load weights
-        const nativeVector stmWeights   = load_epi16(reinterpret_cast<const nativeVector*>(&net.output_weights[i]));
-        const nativeVector nstmWeights  = load_epi16(reinterpret_cast<const nativeVector*>(&net.output_weights[i + HL_SIZE]));
+        const nativeVector stmWeights   = load_epi16(reinterpret_cast<const nativeVector*>(&net.output_weights[outputBucket][i]));
+        const nativeVector nstmWeights  = load_epi16(reinterpret_cast<const nativeVector*>(&net.output_weights[outputBucket][i + HL_SIZE]));
 
         // SCReLU activation
         const nativeVector stmActivated  = madd_epi16(stmClamped, mullo_epi16(stmClamped, stmWeights));
@@ -129,16 +133,19 @@ static int32_t VectorizedSCReLU(const Board& board, const Network& net) {
 int Forward(const Board& board, const Network& net) {
     bool stm = board.sideToMove;
 
+    const size_t divisor      = 32 / OUTPUT_BUCKETS;
+    const size_t outputBucket = (board.occupied.PopCount() - 2) / divisor;
+
     const ACC::Accumulator& stmACC = stm ? board.accPair.white : board.accPair.black;
     const ACC::Accumulator& nstmACC = !stm ? board.accPair.white : board.accPair.black;
 
     int64_t eval = 0;
 
-    eval = VectorizedSCReLU(board, net);
+    eval = VectorizedSCReLU(board, net, outputBucket);
 
     eval /= QA;
 
-    eval += net.output_bias;
+    eval += net.output_bias[outputBucket];
 
     return (eval * SCALE) / (QA * QB);
 }
