@@ -6,6 +6,7 @@
 #include "search.h"
 #include "datagen.h"
 #include "nnue.h"
+#include "tests.h"
 
 #ifndef EVALFILE
     #define EVALFILE "./nnue.bin"

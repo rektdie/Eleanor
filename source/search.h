@@ -26,6 +26,10 @@ constexpr int inf = 100000;
 
 inline int lmrTable[MAX_DEPTH+1][MAX_MOVES];
 
+constexpr std::array<int, 6> SEEPieceValues = {
+    100, 300, 350, 500, 900, 0
+};
+
 void InitLMRTable();
 
 class History {
@@ -124,6 +128,8 @@ public:
     }
 };
 
+bool SEE(Board& board, Move& move, int threshold);
+
 template <bool isPV, searchMode mode>
 SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchContext& ctx, bool cutnode);
 
@@ -142,4 +148,6 @@ constexpr int moveScoreTable[6][6] = {
 };
 
 void ListScores(Board &board, SearchContext& ctx);
+
+int MoveEstimatedValue(Board& board, Move& move);
 }
