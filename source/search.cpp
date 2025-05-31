@@ -36,7 +36,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext& ctx) {
             targetType = Pawn;
         }
 
-        return moveScoreTable[attackerType][targetType] + 30000;
+        return 30000 + ((SEE(board, move, 0)) * 10000) + moveScoreTable[attackerType][targetType];
     } else {
         if (ctx.killerMoves[0][ply] == move) {
             return 20000;
