@@ -405,6 +405,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             continue;
         }
 
+
         Board copy = board;
         bool isLegal = copy.MakeMove(currMove);
 
@@ -414,6 +415,13 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
         ctx.positionHistory[copy.positionIndex] = copy.hashKey;
         ctx.nodes++;
+
+        // PVS SEE
+        int SEEThreshold = currMove.IsQuiet() ? -80 * depth : -30 * depth * depth;
+
+        if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
+            continue;
+
 
         int reductions = GetReductions(board, currMove, depth, moveSeen, ply, cutnode, ctx);
 
