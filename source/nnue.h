@@ -17,6 +17,7 @@ namespace NNUE {
 
 constexpr size_t INPUT_SIZE = 768;
 constexpr size_t HL_SIZE = 256;
+constexpr size_t OUTPUT_BUCKETS = 8;
 
 constexpr int16_t SCALE = 400;
 constexpr int16_t QA = 255;
@@ -25,8 +26,8 @@ constexpr int16_t QB = 64;
 struct Network {
     alignas(ALIGNMENT) std::array<int16_t, HL_SIZE * INPUT_SIZE> accumulator_weights;
     alignas(ALIGNMENT) std::array<int16_t, HL_SIZE> accumulator_biases;
-    alignas(ALIGNMENT) std::array<int16_t, 2 * HL_SIZE> output_weights;
-    int16_t output_bias;
+    alignas(ALIGNMENT) std::array<std::array<int16_t, 2 * HL_SIZE>, OUTPUT_BUCKETS> output_weights;
+    std::array<int16_t, OUTPUT_BUCKETS> output_bias;
 
     void Load(const std::string& path);
 

@@ -218,26 +218,6 @@ void Board::PrintBoard() {
 }
 
 void Board::PrintNNUE() {
-	std::cout << "First 16 HL biases: ";
-
-    for (int i = 0; i < 16; i++) {
-        std::cout << NNUE::net.accumulator_biases[i] << ' ';
-    }
-
-    std::cout << std::endl;
-
-    std::cout << "Output neuron bias: " << NNUE::net.output_bias << std::endl;
-
-    std::cout << "First 16 accumulator values (pre-activation)[white] ";
-
-    for (int i = 0; i < 16; i++) {
-        if (accPair.white[i] != 0) {
-            std::cout << accPair.white[i] << ' ';
-        }
-    }
-
-    std::cout << std::endl;
-
 	std::cout << "Final eval: " << NNUE::net.Evaluate(*this) << std::endl;
 }
 
