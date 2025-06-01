@@ -507,6 +507,30 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     return results;
 }
 
+class AspirationWindow {
+public:
+    int delta = 50;
+
+    int alpha = -inf;
+    int beta = inf;
+
+    void WidenDown() {
+        alpha -= delta;
+        delta *= 2;
+    }
+
+    void WidenUp() {
+        beta += delta;
+        delta *= 2;
+    }
+
+    void Set(int score) {
+        delta = 50;
+        alpha = score - delta;
+        beta = score + delta;
+    }
+};
+
 // Iterative deepening
 template <searchMode mode>
 static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
@@ -522,12 +546,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
         toDepth = BENCH_DEPTH;
     }
 
-    int alpha = -inf;
-    int beta = inf;
-
-    int delta = 50;
-
-    int ply = 0;
+    AspirationWindow aw;
 
     int elapsed = 0;
 
@@ -537,26 +556,21 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
         ctx.timeToSearch = std::max((fullTime / 20) + (inc / 2), 4);
         int softTime = ctx.timeToSearch * 0.65;
 
-        SearchResults currentResults = PVS<true, mode>(board, depth, alpha, beta, ply, ctx, false);
+        SearchResults currentResults = PVS<true, mode>(board, depth, aw.alpha, aw.beta, 0, ctx, false);
         elapsed = ctx.sw.GetElapsedMS();
 
-        // If we fell outside the window, try again with full width
-        if ((currentResults.score <= alpha)
-            || (currentResults.score >= beta)) {
-            delta *= 2;
-
-            alpha -= delta;
-            beta += delta;
-
+        if (aw.alpha != -inf && currentResults.score <= aw.alpha) {
+            aw.WidenDown();
             depth--;
-
-            if (ctx.searchStopped) break;
+            continue;
+        }
+        if (aw.beta != inf && currentResults.score >= aw.beta) {
+            aw.WidenUp();
+            depth--;
             continue;
         }
 
-        alpha = currentResults.score - delta;
-        beta = currentResults.score + delta;
-        delta = 50;
+        aw.Set(currentResults.score);
 
         if (ctx.searchStopped) {
             break;
