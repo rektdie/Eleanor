@@ -63,7 +63,6 @@ constexpr std::array<std::string_view, 50> fenPositions = {
 void RunBenchmark() {
     Board board;
     int depth = BENCH_DEPTH;
-    int ply = 0;
 
     SearchContext ctx;
 
