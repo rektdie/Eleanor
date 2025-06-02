@@ -536,6 +536,7 @@ template <searchMode mode>
 static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
     int fullTime = board.sideToMove ? params.btime : params.wtime;
     int inc = board.sideToMove ? params.binc : params.winc;
+    int movesToGo = params.movesToGo ? params.movesToGo : 20;
 
     SearchResults safeResults;
     safeResults.score = -inf;
@@ -553,7 +554,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
     ctx.sw.Restart();
 
     for (int depth = 1; depth <= toDepth; depth++) {
-        ctx.timeToSearch = std::max((fullTime / 20) + (inc / 2), 4);
+        ctx.timeToSearch = std::max((fullTime / movesToGo) + (inc / 2), 4);
         int softTime = ctx.timeToSearch * 0.65;
 
         SearchResults currentResults = PVS<true, mode>(board, depth, aw.alpha, aw.beta, 0, ctx, false);
