@@ -1,6 +1,6 @@
 
 <p align="center">
-  <img src="https://i.ibb.co/T1ZV9wN/91dea356-a725-45fd-b7a2-cd92afddcba4-1.jpg" alt="Eleanor Chess Engine">
+  <img src="https://i.postimg.cc/NjR2CdBB/Eleanor.png" alt="Eleanor Chess Engine">
 </p>
 
 <h1 align="center">Eleanor Chess Engine</h1>
