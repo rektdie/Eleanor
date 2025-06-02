@@ -2,7 +2,7 @@
 SRC_DIR := source
 OBJ_DIR := obj
 
-CXX ?= clang++
+CXX := clang++
 EXE ?= Eleanor
 EVALFILE := ./nnue.bin
 
@@ -26,7 +26,7 @@ OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
 # Final binary
 $(EXE)$(EXE_EXT): $(OBJS)
-	$(CXX) $(CXXFLAGS) -DEVALFILE=\"$(EVALFILE)\" $^ ./external/fmt/format.cc -o $@ -O3 -fuse-ld=lld -march=native -flto -static
+	$(CXX) -DEVALFILE=\"$(EVALFILE)\" $^ ./external/fmt/format.cc -o $@ -O3 -fuse-ld=lld -march=native -flto -static
 
 # Compile .cpp -> .o
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
