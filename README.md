@@ -1,78 +1,76 @@
-<br>
+
 <p align="center">
-  <img src="https://i.ibb.co/T1ZV9wN/91dea356-a725-45fd-b7a2-cd92afddcba4-1.jpg"/>
+  <img src="https://i.ibb.co/T1ZV9wN/91dea356-a725-45fd-b7a2-cd92afddcba4-1.jpg" alt="Eleanor Chess Engine">
 </p>
 
-<h1 align="center">
-	Eleanor chess engine
-</h1>
+<h1 align="center">Eleanor Chess Engine</h1>
 
-## Search features
-- Negamax
-- Quiescent Search
-- Transposition Table
-- Move Ordering (TT,  SEE + MVV-LVA, Killers, History)
-- Iterative Deepening
-	- Aspiration Windows
-- Principal Variation Search
-- Reverse Futility Pruning
-	- Improving
-- Null Move Pruning
-- Late Move Reductions
-	- Log formula
-	- Cutnode
-	- History
-- Late Move Pruning
-- Futility Pruning
-- QS SEE pruning
-- PVS SEE pruning
+## Search Features
+
+- Negamax  
+- Quiescent Search  
+- Transposition Table  
+- Move Ordering (TT, SEE + MVV-LVA, Killers, History)  
+- Iterative Deepening  
+  - Aspiration Windows  
+- Principal Variation Search  
+- Reverse Futility Pruning  
+  - Improving  
+- Null Move Pruning  
+- Late Move Reductions  
+  - Log formula  
+  - Cutnode  
+  - History  
+- Late Move Pruning  
+- Futility Pruning  
+- QS SEE Pruning  
+- PVS SEE Pruning  
 
 ## Evaluation
-Eleanor uses a fully neural network based evaluation function.
-It is completely trained on self trained data from an initially simple HCE using the [bullet](https://github.com/jw1912/bullet) trainer.
-Architecture: **(768 -> 256)x2 -> 1x8**, which is a basic 256 hidden layer perspective net with 8 output buckets.
 
+Eleanor uses a **fully neural network-based evaluation function**, entirely trained on self-play data from an initially simple HCE using the [bullet](https://github.com/jw1912/bullet) trainer.  
+
+**Architecture:** `(768 -> 256)x2 -> 1x8`  
+A basic 256-hidden-layer *perspective net* with 8 output buckets.
 
 ## Installation
 
-> Prerequisites:
-> - `clang++` compiler
-> - Access to `make` command
-> 
+> **Prerequisites:**  
+> - `clang++` compiler  
+> - Access to `make` command  
 
- 1. Clone the repo to your PC
- 
- 2. Run the command `make` in the root directory 
- 
- 3. Enjoy your executable
+1. Clone the repository  
+2. Run `make` in the root directory  
+3. Enjoy your executable 🎉
 
-## How to use
-There are some commands that you can use the engine with.
+## How to Use
 
-- **`position`**: Set the current position of the board with [FEN](https://www.chess.com/terms/fen-chess). 
-`position fen [FEN]` or `position startpos` can be used.
-- **`ucinewgame`** resets the position and game state
-- **`quit`** terminates the program
-- **`go`** is the command that asks what is the best move in the current position (search),
-but we have to give it some parameters:
-`wtime` `btime` `winc` `binc`
-The first letter tells the color of player
-wtime sets the remaining time of the white player
-and winc sets the increments for the white player.
-**It's important that these parameters are given in milliseconds!**
-- **`stop`** stops the current search
-- **`bench`** tests the search speed of the engine on a set of positions
+You can interact with the engine via these commands:
 
-Also, the engine can be connected to any GUI software that has UCI support.
+- `position` — Set the board state using a [FEN](https://www.chess.com/terms/fen-chess):  
+  - `position fen [FEN]` or  
+  - `position startpos`
 
-## Sources I used
-[Stockfish discord community](https://discord.com/invite/GWDRS3kU6R "Stockfish discord community"): the best possible source for an engine dev.
+- `ucinewgame` — Resets the position and game state  
+- `quit` — Terminates the program  
+- `go` — Begins search and returns the best move  
+  - Parameters (all in **milliseconds**):  
+    - `wtime`, `btime` — Remaining time for white/black  
+    - `winc`, `binc` — Increment time for white/black  
 
-[Chess Programming Wiki](https://www.chessprogramming.org/Main_Page "Chess Programming Wiki"): contains some good articles. Used it mostly when started the project.
+- `stop` — Stops the current search  
+- `bench` — Runs a speed benchmark on a set of positions  
 
-[Maksim Korzh&apos;s chess engine in C series](https://www.youtube.com/watch?v=QUNP-UjujBM&list=PLmN0neTso3Jxh8ZIylk74JpwfiWNI76Cs "Maksim Korzh&apos;s chess engine in C series"): it was a good series helping with some fundamental stuff early on.
-<hr>
+The engine can be used in any GUI with **UCI support**.
 
-**The project is still in progress and developed constantly.  Contributions are highly appreciated.**
+## Sources I Used
 
-###### Last edit: 2025-06-02
+- [Stockfish Discord Community](https://discord.com/invite/GWDRS3kU6R) — The best possible source for an engine dev.
+- [Chess Programming Wiki](https://www.chessprogramming.org/Main_Page) — Contains some good articles. Used it mostly when started the project.
+- [Maksim Korzh's Chess Engine in C (YouTube Series)](https://www.youtube.com/watch?v=QUNP-UjujBM&list=PLmN0neTso3Jxh8ZIylk74JpwfiWNI76Cs) — it was a good series helping with some fundamental stuff early on.
+
+---
+
+**The project is a work in progress and actively developed. Contributions are highly appreciated.**
+
+###### Last updated: 2025-06-02
