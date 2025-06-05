@@ -22,8 +22,8 @@ void InitLMRTable() {
     }
 }
 
-static int ScoreMove(Board &board, Move &move, int ply, SearchContext& ctx) {
-    TTEntry *current = ctx.TT.GetRawEntry(board.hashKey);
+static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
+    TTEntry *current = ctx->TT.GetRawEntry(board.hashKey);
     if (current->hashKey == board.hashKey && current->bestMove == move) {
         return 50000;
     }
@@ -38,20 +38,20 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext& ctx) {
 
         return 30000 * ((SEE(board, move, -100))) + moveScoreTable[attackerType][targetType];
     } else {
-        if (ctx.killerMoves[0][ply] == move) {
+        if (ctx->killerMoves[0][ply] == move) {
             return 20000;
-        } else if (ctx.killerMoves[1][ply] == move) {
+        } else if (ctx->killerMoves[1][ply] == move) {
             return 18000;
         } else {
             // Max 16384
-            return ctx.history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
+            return ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
         }
     }
 
     return 0;
 }
 
-static void SortMoves(Board &board, int ply, SearchContext& ctx) {
+static void SortMoves(Board &board, int ply, SearchContext* ctx) {
     if (board.currentMoveIndex <= 1) {
         return;
     }
@@ -78,7 +78,7 @@ static void SortMoves(Board &board, int ply, SearchContext& ctx) {
     }
 }
 
-void ListScores(Board &board, int ply, SearchContext& ctx) {
+void ListScores(Board &board, int ply, SearchContext* ctx) {
     SortMoves(board, ply, ctx);
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
@@ -89,9 +89,9 @@ void ListScores(Board &board, int ply, SearchContext& ctx) {
     }
 }
 
-static bool IsThreefold(Board &board, SearchContext& ctx) {
+static bool IsThreefold(Board &board, SearchContext* ctx) {
     for (int i = 0; i < board.positionIndex; i++) {
-        if (ctx.positionHistory[i] == board.hashKey) {
+        if (ctx->positionHistory[i] == board.hashKey) {
             // repetition found
             return true;
         }
@@ -110,11 +110,11 @@ static bool IsInsuffMat(Board &board) {
         && !(board.pieces[Pawn] | board.pieces[Queen] | board.pieces[Rook]));
 }
 
-bool IsDraw(Board &board, SearchContext& ctx) {
+bool IsDraw(Board &board, SearchContext* ctx) {
     return IsFifty(board) || IsInsuffMat(board) || IsThreefold(board, ctx);
 }
 
-static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, SearchContext& ctx) {
+static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, SearchContext* ctx) {
     int reduction = 0;
     
     // Late Move Reduction
@@ -125,7 +125,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
             reduction += 2;
 
         // History LMR
-        int historyReduction = ctx.history[board.sideToMove][move.MoveFrom()][move.MoveTo()] / 8192;
+        int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()] / 8192;
         reduction -= historyReduction;
     }
 
@@ -205,35 +205,35 @@ bool SEE(Board& board, Move& move, int threshold) {
 }
 
 template <searchMode mode>
-static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext& ctx) {
+static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext* ctx) {
     if constexpr (mode != nodesMode)  {
         if constexpr (mode != bench) {
-            if (ctx.nodes % 1024 == 0) {
-                if (ctx.sw.GetElapsedMS() >= ctx.timeToSearch) {
-                    ctx.searchStopped = true;
+            if (ctx->nodes % 1024 == 0) {
+                if (ctx->sw.GetElapsedMS() >= ctx->timeToSearch) {
+                    ctx->searchStopped = true;
                     return 0;
                 }
             }
         }
     } else if constexpr (mode == nodesMode) {
-        if (ctx.nodes > ctx.nodesToGo) {
-            ctx.searchStopped = true;
+        if (ctx->nodes > ctx->nodesToGo) {
+            ctx->searchStopped = true;
             return 0;
         }
     } else if constexpr (mode == datagen) {
-        if (ctx.nodes > DATAGEN::HARD_NODES) {
-            ctx.searchStopped = true;
+        if (ctx->nodes > DATAGEN::HARD_NODES) {
+            ctx->searchStopped = true;
             return 0;
         }
     }
 
-    if (ply > ctx.seldepth)
-        ctx.seldepth = ply;
+    if (ply > ctx->seldepth)
+        ctx->seldepth = ply;
     
     int bestScore = NNUE::net.Evaluate(board);
-    ctx.ss[ply].eval = bestScore;
+    ctx->ss[ply].eval = bestScore;
 
-    TTEntry *entry = ctx.TT.GetRawEntry(board.hashKey);
+    TTEntry *entry = ctx->TT.GetRawEntry(board.hashKey);
     if (entry->hashKey == board.hashKey) {
         bestScore = entry->score;
     }
@@ -261,11 +261,11 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         if (!SEE(board, board.moveList[i], 0))
             continue;
 
-        if (copy.positionIndex >= ctx.positionHistory.size()) {
-            ctx.positionHistory.resize(copy.positionIndex + 100);
+        if (copy.positionIndex >= ctx->positionHistory.size()) {
+            ctx->positionHistory.resize(copy.positionIndex + 100);
         }
-        ctx.positionHistory[copy.positionIndex] = copy.hashKey;
-        ctx.nodes++;
+        ctx->positionHistory[copy.positionIndex] = copy.hashKey;
+        ctx->nodes++;
         int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1, ctx).score;
 
         if (score >= beta) {
@@ -281,44 +281,44 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     }
 
     results.score = bestScore;
-    if (ctx.searchStopped) return 0;
+    if (ctx->searchStopped) return 0;
     return results;
 }
 
 template <bool isPV, searchMode mode>
-SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchContext& ctx, bool cutnode) {
+SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchContext* ctx, bool cutnode) {
     if constexpr (mode != bench && mode != nodesMode) {
-        if (ctx.nodes % 1024 == 0) {
+        if (ctx->nodes % 1024 == 0) {
             if constexpr (mode == normal) {
-                if (ctx.sw.GetElapsedMS() >= ctx.timeToSearch) {
-                    ctx.searchStopped = true;
+                if (ctx->sw.GetElapsedMS() >= ctx->timeToSearch) {
+                    ctx->searchStopped = true;
                     return 0;
                 }
             }
         }
     } else if constexpr (mode == nodesMode) {
-        if (ctx.nodes > ctx.nodesToGo) {
-            ctx.searchStopped = true;
+        if (ctx->nodes > ctx->nodesToGo) {
+            ctx->searchStopped = true;
             return 0;
         }
     } else if constexpr (mode == datagen) {
-        if (ctx.nodes > DATAGEN::HARD_NODES) {
-            ctx.searchStopped = true;
+        if (ctx->nodes > DATAGEN::HARD_NODES) {
+            ctx->searchStopped = true;
             return 0;
         }
     }
 
-    if (ply > ctx.seldepth)
-        ctx.seldepth = ply;
+    if (ply > ctx->seldepth)
+        ctx->seldepth = ply;
 
 
-    ctx.pvLine.SetLength(ply);
+    ctx->pvLine.SetLength(ply);
     if (ply && (IsDraw(board, ctx))) return 0;
 
 
     // if NOT PV node then we try to hit the TTable
     if constexpr (!isPV) {
-        SearchResults entry = ctx.TT.ReadEntry(board.hashKey, depth, alpha, beta);
+        SearchResults entry = ctx->TT.ReadEntry(board.hashKey, depth, alpha, beta);
         if (entry.score != invalidEntry) {
             return entry;
         }
@@ -327,16 +327,16 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
 
     const int staticEval = NNUE::net.Evaluate(board);
-    ctx.ss[ply].eval = staticEval;
+    ctx->ss[ply].eval = staticEval;
 
     const bool improving = [&]
     {
         if (board.InCheck())
             return false;
-        if (ply > 1 && ctx.ss[ply - 2].eval != ScoreNone)
-            return staticEval > ctx.ss[ply - 2].eval;
-        if (ply > 3 && ctx.ss[ply - 4].eval != ScoreNone)
-            return staticEval > ctx.ss[ply - 4].eval;
+        if (ply > 1 && ctx->ss[ply - 2].eval != ScoreNone)
+            return staticEval > ctx->ss[ply - 2].eval;
+        if (ply > 3 && ctx->ss[ply - 4].eval != ScoreNone)
+            return staticEval > ctx->ss[ply - 4].eval;
 
         return true;
     }();
@@ -350,17 +350,17 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
 
             // Null Move Pruning
-            if (!ctx.doingNullMove && staticEval >= beta) {
+            if (!ctx->doingNullMove && staticEval >= beta) {
                 if (depth >= 3 && !board.InPossibleZug()) {
                     Board copy = board;
                     bool isLegal = copy.MakeMove(Move());
                     // Always legal so we dont check it
     
-                    ctx.doingNullMove = true;
+                    ctx->doingNullMove = true;
                     int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1, ctx, !cutnode).score;
-                    ctx.doingNullMove = false;
+                    ctx->doingNullMove = false;
     
-                    if (ctx.searchStopped) return 0;
+                    if (ctx->searchStopped) return 0;
                     if (score >= beta) return score; 
                 }
             }
@@ -412,11 +412,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         bool isLegal = copy.MakeMove(currMove);
 
         if (!isLegal) continue;
-        if (copy.positionIndex >= ctx.positionHistory.size()) {
-            ctx.positionHistory.resize(copy.positionIndex + 100);
+        if (copy.positionIndex >= ctx->positionHistory.size()) {
+            ctx->positionHistory.resize(copy.positionIndex + 100);
         }
-        ctx.positionHistory[copy.positionIndex] = copy.hashKey;
-        ctx.nodes++;
+        ctx->positionHistory[copy.positionIndex] = copy.hashKey;
+        ctx->nodes++;
 
         // PVS SEE
         int SEEThreshold = currMove.IsQuiet() ? -80 * depth : -30 * depth * depth;
@@ -457,7 +457,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         moveSeen++;
 
-        if (ctx.searchStopped) return 0;
+        if (ctx->searchStopped) return 0;
 
         if (currMove != 0 && currMove.IsQuiet()) {
             seenQuiets[seenQuietsCount] = currMove;
@@ -467,20 +467,20 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // Fail high (beta cutoff)
         if (score >= beta) {
             if (!currMove.IsCapture()) {
-                ctx.killerMoves[1][ply] = ctx.killerMoves[0][ply];
-                ctx.killerMoves[0][ply] = currMove;
+                ctx->killerMoves[1][ply] = ctx->killerMoves[0][ply];
+                ctx->killerMoves[0][ply] = currMove;
 
                 int bonus = 300 * depth - 250;
 
-                ctx.history.Update(board.sideToMove, currMove, bonus);
+                ctx->history.Update(board.sideToMove, currMove, bonus);
 
                 // Malus
                 for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
-                    ctx.history.Update(board.sideToMove, seenQuiets[moveIndex], -bonus);
+                    ctx->history.Update(board.sideToMove, seenQuiets[moveIndex], -bonus);
                 }
             }
 
-            ctx.TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
+            ctx->TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
             return score;
         }
 
@@ -490,7 +490,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             nodeType = PV;
             alpha = score;
             results.bestMove = currMove;
-            ctx.pvLine.SetMove(ply, currMove);
+            ctx->pvLine.SetMove(ply, currMove);
         }
     }
 
@@ -502,8 +502,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
     }
 
-    if (ctx.searchStopped) return 0;
-    ctx.TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
+    if (ctx->searchStopped) return 0;
+    ctx->TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
     return results;
 }
 
@@ -533,7 +533,7 @@ public:
 
 // Iterative deepening
 template <searchMode mode>
-static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
+static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
     int fullTime = board.sideToMove ? params.btime : params.wtime;
     int inc = board.sideToMove ? params.binc : params.winc;
     int movesToGo = params.movesToGo ? params.movesToGo : 20;
@@ -551,14 +551,14 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
 
     int elapsed = 0;
 
-    ctx.sw.Restart();
+    ctx->sw.Restart();
 
     for (int depth = 1; depth <= toDepth; depth++) {
-        ctx.timeToSearch = std::max((fullTime / movesToGo) + (inc / 2), 4);
-        int softTime = ctx.timeToSearch * 0.65;
+        ctx->timeToSearch = std::max((fullTime / movesToGo) + (inc / 2), 4);
+        int softTime = ctx->timeToSearch * 0.65;
 
         SearchResults currentResults = PVS<true, mode>(board, depth, aw.alpha, aw.beta, 0, ctx, false);
-        elapsed = ctx.sw.GetElapsedMS();
+        elapsed = ctx->sw.GetElapsedMS();
 
         if (aw.alpha != -inf && currentResults.score <= aw.alpha) {
             aw.WidenDown();
@@ -573,7 +573,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
 
         aw.Set(currentResults.score);
 
-        if (ctx.searchStopped) {
+        if (ctx->searchStopped) {
             break;
         } else {
             if (currentResults.bestMove) {
@@ -583,24 +583,24 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
             if constexpr (mode == normal || mode == nodesMode) {
                 std::cout << "info ";
                 std::cout << "depth " << depth;
-                std::cout << " seldepth " << ctx.seldepth;
+                std::cout << " seldepth " << ctx->seldepth;
                 std::cout << " time " << elapsed;
                 std::cout << " score cp " << UTILS::ConvertToWhiteRelative(board, safeResults.score);
-                std::cout << " nodes " << ctx.nodes << " nps " << int(ctx.nodes/ctx.sw.GetElapsedSec());
-                std::cout << " hashfull " << ctx.TT.GetUsedPercentage();
+                std::cout << " nodes " << ctx->nodes << " nps " << int(ctx->nodes/ctx->sw.GetElapsedSec());
+                std::cout << " hashfull " << ctx->TT.GetUsedPercentage();
                 std::cout << " pv ";
-                ctx.pvLine.Print(0);
+                ctx->pvLine.Print(0);
                 std::cout << std::endl;
 
                 if constexpr (mode == normal) {
-                    if (ctx.sw.GetElapsedMS() >= softTime) {
-                        ctx.searchStopped = true;
+                    if (ctx->sw.GetElapsedMS() >= softTime) {
+                        ctx->searchStopped = true;
                         break;
                     }
                 }
             } else if constexpr (mode == datagen) {
-                if (ctx.nodes >= DATAGEN::SOFT_NODES) {
-                    ctx.searchStopped = true;
+                if (ctx->nodes >= DATAGEN::SOFT_NODES) {
+                    ctx->searchStopped = true;
                     break;
                 }
             }
@@ -611,17 +611,17 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext& ctx) {
 }
 
 template <searchMode mode>
-SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& ctx) {
-    ctx.searchStopped = false;
-    ctx.seldepth = 0;
+SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* ctx) {
+    ctx->searchStopped = false;
+    ctx->seldepth = 0;
     if constexpr (mode != bench) {
-        ctx.nodes = 0;
+        ctx->nodes = 0;
 
         if constexpr (mode == nodesMode) {
-            ctx.nodesToGo = params.nodes;
+            ctx->nodesToGo = params.nodes;
         }
     }
-    ctx.pvLine.Clear();
+    ctx->pvLine.Clear();
 
     SearchResults results = ID<mode>(board, params, ctx);
 
@@ -656,16 +656,16 @@ int MoveEstimatedValue(Board& board, Move& move) {
     return value;
 }
 
-template SearchResults PVS<true, searchMode::bench>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
-template SearchResults PVS<false, searchMode::bench>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
-template SearchResults PVS<true, searchMode::normal>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
-template SearchResults PVS<false, searchMode::normal>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
-template SearchResults PVS<true, searchMode::datagen>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
-template SearchResults PVS<false, searchMode::datagen>(Board&, int, int, int, int, SearchContext& ctx, bool cutnode);
+template SearchResults PVS<true, searchMode::bench>(Board&, int, int, int, int, SearchContext* ctx, bool cutnode);
+template SearchResults PVS<false, searchMode::bench>(Board&, int, int, int, int, SearchContext* ctx, bool cutnode);
+template SearchResults PVS<true, searchMode::normal>(Board&, int, int, int, int, SearchContext* ctx, bool cutnode);
+template SearchResults PVS<false, searchMode::normal>(Board&, int, int, int, int, SearchContext* ctx, bool cutnode);
+template SearchResults PVS<true, searchMode::datagen>(Board&, int, int, int, int, SearchContext* ctx, bool cutnode);
+template SearchResults PVS<false, searchMode::datagen>(Board&, int, int, int, int, SearchContext* ctx, bool cutnode);
 
-template SearchResults SearchPosition<normal>(Board &board, SearchParams params, SearchContext& ctx);
-template SearchResults SearchPosition<bench>(Board &board, SearchParams params, SearchContext& ctx);
-template SearchResults SearchPosition<datagen>(Board &board, SearchParams params, SearchContext& ctx);
-template SearchResults SearchPosition<nodesMode>(Board &board, SearchParams params, SearchContext& ctx);
+template SearchResults SearchPosition<normal>(Board &board, SearchParams params, SearchContext* ctx);
+template SearchResults SearchPosition<bench>(Board &board, SearchParams params, SearchContext* ctx);
+template SearchResults SearchPosition<datagen>(Board &board, SearchParams params, SearchContext* ctx);
+template SearchResults SearchPosition<nodesMode>(Board &board, SearchParams params, SearchContext* ctx);
 
 }

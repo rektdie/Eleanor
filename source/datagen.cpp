@@ -44,7 +44,7 @@ namespace DATAGEN {
 
 static std::mutex fileOpenMutex;
 
-static bool IsGameOver(Board &board, SEARCH::SearchContext& ctx) {
+static bool IsGameOver(Board &board, SEARCH::SearchContext* ctx) {
     if (SEARCH::IsDraw(board, ctx)) return true;
 
     int moveSeen = 0;
@@ -60,7 +60,7 @@ static bool IsGameOver(Board &board, SEARCH::SearchContext& ctx) {
     return moveSeen == 0;
 }
 
-static void PlayRandMoves(Board &board, SEARCH::SearchContext& ctx) {
+static void PlayRandMoves(Board &board, SEARCH::SearchContext* ctx) {
     std::random_device dev;
     std::mt19937_64 rng(dev());
 
@@ -77,7 +77,7 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext& ctx) {
             count--;
             continue;
         }
-        ctx.positionHistory[board.positionIndex] = board.hashKey;
+        ctx->positionHistory[board.positionIndex] = board.hashKey;
         MOVEGEN::GenerateMoves<All>(board);
         if (IsGameOver(board, ctx)) break;
     }
@@ -130,7 +130,7 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
     while (!stopFlag) {
         Game game;
         Board board;
-        SEARCH::SearchContext ctx;
+        SEARCH::SearchContext *ctx = new SEARCH::SearchContext();
         PlayRandMoves(board, ctx);
         if (IsGameOver(board, ctx)) continue;
 
@@ -151,7 +151,7 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
                     UTILS::ConvertToWhiteRelative(board, results.score)));
 
             board.MakeMove(results.bestMove);
-            ctx.positionHistory[board.positionIndex] = board.hashKey;
+            ctx->positionHistory[board.positionIndex] = board.hashKey;
 
             positions++;
 

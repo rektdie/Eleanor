@@ -12,7 +12,7 @@
 #include "utils.h"
 #include "datagen.h"
 
-static void ParsePosition(Board &board, std::string_view command, SEARCH::SearchContext& ctx) {
+static void ParsePosition(Board &board, std::string_view command, SEARCH::SearchContext* ctx) {
     if (command.find("startpos") != std::string::npos) {
         board.SetByFen(StartingFen);
     }
@@ -33,7 +33,7 @@ static void ParsePosition(Board &board, std::string_view command, SEARCH::Search
 
         for (std::string_view move : moves) {
             bool isLegal = board.MakeMove(UTILS::parseMove(board, move));
-            ctx.positionHistory[board.positionIndex] = board.hashKey;
+            ctx->positionHistory[board.positionIndex] = board.hashKey;
         }
     }
 
@@ -69,7 +69,7 @@ static int ReadParam(std::string param, std::string &command) {
     return 0;
 }
 
-static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext& ctx) {
+static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* ctx) {
     SearchParams params;
 
     params.wtime = ReadParam("wtime", command);
@@ -93,10 +93,10 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext& c
     }
 }
 
-static void SetOption(std::string &command, SEARCH::SearchContext& ctx) {
+static void SetOption(std::string &command, SEARCH::SearchContext* ctx) {
     if (command.find("Hash") != std::string::npos) {
         U64 hashSize = (ReadParam("value", command) * 1000000) / sizeof(TTEntry);
-        ctx.TT.Resize(hashSize);
+        ctx->TT.Resize(hashSize);
     }
 }
 
@@ -111,7 +111,7 @@ static void PrintEngineInfo() {
 void UCILoop(Board &board) {
     std::string input = "";
 
-    SEARCH::SearchContext ctx;
+    SEARCH::SearchContext *ctx = new SEARCH::SearchContext();
 
     // main loop
     while (true) {
@@ -135,11 +135,11 @@ void UCILoop(Board &board) {
             board.SetByFen(StartingFen);
             
             // Clearing
-            ctx.TT.Clear();
+            ctx->TT.Clear();
             
-            ctx.killerMoves = {};
-            ctx.history.Clear();
-            ctx.positionHistory = {};
+            ctx->killerMoves = {};
+            ctx->history.Clear();
+            ctx->positionHistory = {};
 
             continue;
         }
@@ -159,7 +159,7 @@ void UCILoop(Board &board) {
         // parse UCI "stop" command
         if (input.find("stop") != std::string::npos) {
             // stop the loop
-            ctx.searchStopped = true;
+            ctx->searchStopped = true;
             continue;
         }
 
