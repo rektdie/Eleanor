@@ -7,6 +7,8 @@
 #include "stopwatch.h"
 #include "tt.h"
 
+#include "../external/multi_array.h"
+
 namespace SEARCH {
 
 enum searchMode {
@@ -34,7 +36,7 @@ void InitLMRTable();
 
 class History {
 private:
-    int historyMoves[2][64][64];
+    MultiArray<int, 2, 64, 64> historyMoves;
 public:
     void Update(bool stm, Move move, int bonus) {
         int clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
@@ -43,13 +45,7 @@ public:
     }
 
     void Clear() {
-        for (auto &side : historyMoves) {
-            for (auto &from : side) {
-                for (auto &to : from) {
-                    to = 0;
-                }
-            }
-        }
+        std::fill(&historyMoves[0][0][0], &historyMoves[0][0][0] + sizeof(historyMoves) / sizeof(int), 0);
     }
 
     auto& operator[](int index) {
@@ -131,12 +127,12 @@ public:
 bool SEE(Board& board, Move& move, int threshold);
 
 template <bool isPV, searchMode mode>
-SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchContext& ctx, bool cutnode);
+SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchContext* ctx, bool cutnode);
 
 template <searchMode mode>
-SearchResults SearchPosition(Board &board, SearchParams params, SearchContext& ctx);
+SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* ctx);
 
-bool IsDraw(Board &board, SearchContext& ctx);
+bool IsDraw(Board &board, SearchContext* ctx);
 
 constexpr int moveScoreTable[6][6] = {
     105, 205, 305, 405, 505, 605,
@@ -147,7 +143,7 @@ constexpr int moveScoreTable[6][6] = {
     100, 200, 300, 400, 500, 600
 };
 
-void ListScores(Board &board, SearchContext& ctx);
+void ListScores(Board &board, SearchContext* ctx);
 
 int MoveEstimatedValue(Board& board, Move& move);
 }

@@ -64,7 +64,7 @@ void RunBenchmark() {
     Board board;
     int depth = BENCH_DEPTH;
 
-    SearchContext ctx;
+    SEARCH::SearchContext *ctx = new SearchContext();
 
     Stopwatch sw;
     for (int i = 0; i < fenPositions.size(); i++) {
@@ -72,5 +72,5 @@ void RunBenchmark() {
         SearchPosition<bench>(board, SearchParams(), ctx);
     }
 
-    std::cout << ctx.nodes << " nodes " << int(ctx.nodes/sw.GetElapsedSec()) << " nps" << std::endl;
+    std::cout << ctx->nodes << " nodes " << int(ctx->nodes/sw.GetElapsedSec()) << " nps" << std::endl;
 }
