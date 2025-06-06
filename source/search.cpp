@@ -325,7 +325,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             return SearchResults(entry.score, entry.bestMove);
     }
 
-    if ((isPV || cutnode) && !ttHit) {
+    if ((isPV || cutnode) && (!ttHit | !entry.bestMove)) {
         depth--;
     }
 
