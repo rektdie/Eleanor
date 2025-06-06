@@ -1,6 +1,7 @@
 #include <cstring>
 #include <string_view>
 #include <array>
+#include <memory>
 #include "benchmark.h"
 #include "search.h"
 #include "stopwatch.h"
@@ -64,12 +65,12 @@ void RunBenchmark() {
     Board board;
     int depth = BENCH_DEPTH;
 
-    SEARCH::SearchContext *ctx = new SearchContext();
+    auto ctx = std::make_unique<SearchContext>();
 
     Stopwatch sw;
     for (int i = 0; i < fenPositions.size(); i++) {
         board.SetByFen(fenPositions[i]);
-        SearchPosition<bench>(board, SearchParams(), ctx);
+        SearchPosition<bench>(board, SearchParams(), ctx.get());
     }
 
     std::cout << ctx->nodes << " nodes " << int(ctx->nodes/sw.GetElapsedSec()) << " nps" << std::endl;

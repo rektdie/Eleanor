@@ -130,9 +130,9 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
     while (!stopFlag) {
         Game game;
         Board board;
-        SEARCH::SearchContext *ctx = new SEARCH::SearchContext();
-        PlayRandMoves(board, ctx);
-        if (IsGameOver(board, ctx)) continue;
+        auto ctx = std::make_unique<SEARCH::SearchContext>();
+        PlayRandMoves(board, ctx.get());
+        if (IsGameOver(board, ctx.get())) continue;
 
         Board startpos = board;
 
@@ -141,8 +141,8 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
         int staticEval = UTILS::ConvertToWhiteRelative(board, NNUE::net.Evaluate(board));
         int wdl = 1;
 
-        while (!IsGameOver(board, ctx)) {
-            SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx);
+        while (!IsGameOver(board, ctx.get())) {
+            SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx.get());
 
             if (!results.bestMove) break;
             safeResults = results;
@@ -158,7 +158,7 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
             MOVEGEN::GenerateMoves<All>(board);
         }
 
-        if (!SEARCH::IsDraw(board, ctx)) {
+        if (!SEARCH::IsDraw(board, ctx.get())) {
             wdl = board.sideToMove ? 2 : 0;
         }
 

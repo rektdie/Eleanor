@@ -111,7 +111,7 @@ static void PrintEngineInfo() {
 void UCILoop(Board &board) {
     std::string input = "";
 
-    SEARCH::SearchContext *ctx = new SEARCH::SearchContext();
+    auto ctx = std::make_unique<SEARCH::SearchContext>();
 
     // main loop
     while (true) {
@@ -125,7 +125,7 @@ void UCILoop(Board &board) {
 
         // parse UCI "position" command
         if (input.find("position") != std::string::npos) {
-            ParsePosition(board, input, ctx);
+            ParsePosition(board, input, ctx.get());
 
             continue;
         }
@@ -146,7 +146,7 @@ void UCILoop(Board &board) {
 
         // parse UCI "go" command
         if (input.find("go") != std::string::npos) {
-            ParseGo(board, input, ctx); 
+            ParseGo(board, input, ctx.get()); 
             continue;
         }
 
@@ -171,7 +171,7 @@ void UCILoop(Board &board) {
         }
 
         if (input.find("setoption") != std::string::npos) {
-            SetOption(input, ctx);
+            SetOption(input, ctx.get());
             continue;
         }
 
