@@ -316,12 +316,13 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (ply && (IsDraw(board, ctx))) return 0;
 
 
+    TTEntry entry = ctx->TT.ReadEntry(board.hashKey, depth, alpha, beta);
+    const bool ttHit = entry.score != invalidEntry;
+
     // if NOT PV node then we try to hit the TTable
     if constexpr (!isPV) {
-        SearchResults entry = ctx->TT.ReadEntry(board.hashKey, depth, alpha, beta);
-        if (entry.score != invalidEntry) {
-            return entry;
-        }
+        if (ttHit)
+            return SearchResults(entry.score, entry.bestMove);
     }
 
     if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
