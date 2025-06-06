@@ -27,6 +27,12 @@ public:
     uint8_t depth = 0;
     uint8_t nodeType = 0;
 
+    TTEntry() {}
+
+    TTEntry(int16_t score) {
+        this->score = score;
+    }
+
     operator U64() {
         return hashKey;
     }
@@ -37,7 +43,7 @@ constexpr U64 maxHash = (1024 * 1000000) / sizeof(TTEntry);
 // 5 MB
 constexpr U64 defaultHash = (8 * 1000000) / sizeof(TTEntry);
 
-constexpr int invalidEntry = 111111;
+constexpr int16_t invalidEntry = 111111;
 
 class TTable {
 private:
@@ -71,7 +77,7 @@ public:
         return count;
     }
 
-    SearchResults ReadEntry(U64 &hashKey, int depth, int alpha, int beta);
+    TTEntry ReadEntry(U64 &hashKey, int depth, int alpha, int beta);
 
     void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move besteMove);
 };

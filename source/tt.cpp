@@ -1,16 +1,16 @@
 #include "tt.h"
 
-SearchResults TTable::ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
+TTEntry TTable::ReadEntry(U64 &hashKey, int depth, int alpha, int beta) {
     TTEntry *current = &table[hashKey % table.size()];
 
     if (current->hashKey == hashKey) {
         if (current->depth >= depth) {
             if (current->nodeType == PV){
-                return {current->score, current->bestMove};
+                return *current;
             } else if (current->nodeType == AllNode && current->score <= alpha) {
-                return current->score;
+                return *current;
             } else if (current->nodeType == CutNode && current->score >= beta) {
-                return current->score;
+                return *current;
             }
         }
     }
