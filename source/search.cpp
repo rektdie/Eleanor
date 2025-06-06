@@ -481,7 +481,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 }
             }
 
-            ctx->TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
+            ctx->TT.WriteEntry(board.hashKey, depth, score, CutNode, currMove);
             return score;
         }
 
