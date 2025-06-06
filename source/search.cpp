@@ -325,6 +325,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             return SearchResults(entry.score, entry.bestMove);
     }
 
+    if ((isPV || cutnode) && !ttHit) {
+        depth--;
+    }
+
+
     if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
 
     const int staticEval = NNUE::net.Evaluate(board);
