@@ -232,10 +232,12 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     
     int bestScore = NNUE::net.Evaluate(board);
     ctx->ss[ply].eval = bestScore;
-
-    TTEntry *entry = ctx->TT.GetRawEntry(board.hashKey);
-    if (entry->hashKey == board.hashKey) {
-        bestScore = entry->score;
+    
+    if (!ctx->excluded) {
+        TTEntry *entry = ctx->TT.GetRawEntry(board.hashKey);
+        if (entry->hashKey == board.hashKey) {
+            bestScore = entry->score;
+        }
     }
 
 
@@ -316,7 +318,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (ply && (IsDraw(board, ctx))) return 0;
 
 
-    TTEntry entry = ctx->TT.ReadEntry(board.hashKey, depth, alpha, beta);
+    TTEntry entry = TTEntry(invalidEntry);
+    if (!ctx->excluded)
+        entry = ctx->TT.ReadEntry(board.hashKey, depth, alpha, beta);
+
     const bool ttHit = entry.score != invalidEntry;
 
     // if NOT PV node then we try to hit the TTable
@@ -342,7 +347,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         return true;
     }();
 
-    if (!board.InCheck()) {
+    if (!board.InCheck() && !ctx->excluded) {
         if (ply) {
             // Reverse Futility Pruning
             int margin = 100 * (depth - improving);
@@ -354,9 +359,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             if (!ctx->doingNullMove && staticEval >= beta) {
                 if (depth >= 3 && !board.InPossibleZug()) {
                     Board copy = board;
-                    bool isLegal = copy.MakeMove(Move());
-                    // Always legal so we dont check it
-    
+                    copy.MakeMove(Move());
+
                     ctx->doingNullMove = true;
                     int score = -PVS<false, mode>(copy, depth - 3, -beta, -beta + 1, ply + 1, ctx, !cutnode).score;
                     ctx->doingNullMove = false;
@@ -384,6 +388,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Move currMove = board.moveList[i];
 
+        if (ctx->excluded == currMove)
+            continue;
+
         bool notMated = results.score > (-MATE_SCORE + MAX_PLY);
 
         // Late move pruning
@@ -408,7 +415,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             continue;
         }
 
-
         Board copy = board;
         bool isLegal = copy.MakeMove(currMove);
 
@@ -419,6 +425,26 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         ctx->positionHistory[copy.positionIndex] = copy.hashKey;
         ctx->nodes++;
 
+        int extension = 0;
+
+        if (ply
+            && depth >= 8
+            && currMove == entry.bestMove
+            && ctx->excluded == 0
+            && entry.depth >= depth - 3
+            && entry.nodeType != AllNode)
+        {
+            const int sBeta = std::max(-inf + 1, entry.score - depth * 2);
+            const int sDepth = (depth - 1) / 2;
+
+            ctx->excluded = currMove;
+            const int score = PVS<false, mode>(board, sDepth, sBeta-1, sBeta, ply, ctx, cutnode).score;
+            ctx->excluded = Move();
+
+            if (score < sBeta)
+                extension = 1;
+        }
+
         // PVS SEE
         int SEEThreshold = currMove.IsQuiet() ? -80 * depth : -30 * depth * depth;
 
@@ -428,7 +454,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         int reductions = GetReductions(board, currMove, depth, moveSeen, ply, cutnode, ctx);
 
-        int newDepth = depth + copy.InCheck() - 1;
+        int newDepth = depth + copy.InCheck() - 1 + extension;
 
         // First move (suspected PV node)
         if (!moveSeen) {
@@ -481,7 +507,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 }
             }
 
-            ctx->TT.WriteEntry(board.hashKey, depth, score, CutNode, currMove);
+            if (!ctx->excluded)
+                ctx->TT.WriteEntry(board.hashKey, depth, score, CutNode, currMove);
             return score;
         }
 
@@ -504,7 +531,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     }
 
     if (ctx->searchStopped) return 0;
-    ctx->TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
+    if (!ctx->excluded)
+        ctx->TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
     return results;
 }
 
