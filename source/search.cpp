@@ -408,6 +408,16 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             continue;
         }
 
+        // Razoring
+        if constexpr (!isPV) {
+            if (!board.InCheck() && depth <= 3 && staticEval + 200 * depth < alpha) {
+                SearchResults razoringResults = Quiescence<mode>(board, alpha, beta, ply, ctx);
+
+                if (razoringResults.score <= alpha)
+                    return razoringResults;
+            }
+        }
+
 
         Board copy = board;
         bool isLegal = copy.MakeMove(currMove);
