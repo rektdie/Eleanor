@@ -350,6 +350,16 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 return (beta + (staticEval - beta) / 3);
             }
 
+            // Razoring
+            if constexpr (!isPV) {
+                if (depth <= 3 && staticEval + 200 * depth < alpha) {
+                    SearchResults razoringResults = Quiescence<mode>(board, alpha, beta, ply, ctx);
+
+                    if (razoringResults.score <= alpha)
+                        return razoringResults;
+                }
+            }
+
             // Null Move Pruning
             if (!ctx->doingNullMove && staticEval >= beta) {
                 if (depth >= 3 && !board.InPossibleZug()) {
@@ -407,17 +417,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             && depth <= 5 && staticEval + fpMargin < alpha && notMated) {
             continue;
         }
-
-        // Razoring
-        if constexpr (!isPV) {
-            if (!board.InCheck() && depth <= 3 && staticEval + 200 * depth < alpha) {
-                SearchResults razoringResults = Quiescence<mode>(board, alpha, beta, ply, ctx);
-
-                if (razoringResults.score <= alpha)
-                    return razoringResults;
-            }
-        }
-
 
         Board copy = board;
         bool isLegal = copy.MakeMove(currMove);
