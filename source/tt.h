@@ -38,9 +38,9 @@ public:
     }
 };
 
-// 64 MB
+// 1024 MB
 constexpr U64 maxHash = (1024 * 1000000) / sizeof(TTEntry);
-// 5 MB
+// 8 MB
 constexpr U64 defaultHash = (8 * 1000000) / sizeof(TTEntry);
 
 constexpr int16_t invalidEntry = 111111;
