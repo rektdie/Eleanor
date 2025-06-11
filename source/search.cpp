@@ -48,8 +48,12 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             int conthistScore = 0;
 
             if (ply > 0) {
-                conthistScore = ctx->conthist[board.sideToMove][ctx->ss[ply-1].pieceType]
-                    [ctx->ss[ply-1].moveTo][ctx->ss[ply].pieceType][ctx->ss[ply].moveTo];
+                int prevType = ctx->ss[ply-1].pieceType;
+                int prevTo = ctx->ss[ply-1].moveTo;
+                int pieceType = ctx->ss[ply].pieceType;
+                int to = ctx->ss[ply].moveTo;
+
+                conthistScore = ctx->conthist[board.sideToMove][prevType][prevTo][pieceType][to];
             }
 
             return historyScore + conthistScore;
@@ -497,6 +501,14 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     int to = ctx->ss[ply].moveTo;
 
                     ctx->conthist.Update(board.sideToMove, prevType, prevTo, pieceType, to, bonus);
+
+                    // Malus
+                    for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
+                        pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
+                        to = seenQuiets[moveIndex].MoveTo();
+
+                        ctx->conthist.Update(board.sideToMove, prevType, prevTo, pieceType, to, -bonus);
+                    }
                 }
                 
 
