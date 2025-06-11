@@ -25,7 +25,7 @@ void InitLMRTable() {
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
     TTEntry *current = ctx->TT.GetRawEntry(board.hashKey);
     if (current->hashKey == board.hashKey && current->bestMove == move) {
-        return 50000;
+        return 100000;
     }
 
     if (move.IsCapture()) {
@@ -36,15 +36,23 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             targetType = Pawn;
         }
 
-        return 30000 * ((SEE(board, move, -100))) + moveScoreTable[attackerType][targetType];
+        return 60000 * ((SEE(board, move, -100))) + moveScoreTable[attackerType][targetType];
     } else {
         if (ctx->killerMoves[0][ply] == move) {
-            return 20000;
+            return 40000;
         } else if (ctx->killerMoves[1][ply] == move) {
-            return 18000;
+            return 36000;
         } else {
             // Max 16384
-            return ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
+            int historyScore = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
+            int conthistScore = 0;
+
+            if (ply > 0) {
+                conthistScore = ctx->conthist[board.sideToMove][ctx->ss[ply-1].pieceType]
+                    [ctx->ss[ply-1].moveTo][ctx->ss[ply].pieceType][ctx->ss[ply].moveTo];
+            }
+
+            return historyScore + conthistScore;
         }
     }
 
@@ -258,6 +266,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         int isLegal = copy.MakeMove(board.moveList[i]);
         if (!isLegal) continue;
 
+        ctx->ss[ply].pieceType = board.GetPieceType(board.moveList[i].MoveFrom());
+        ctx->ss[ply].moveTo = board.moveList[i].MoveTo();
+
         if (!SEE(board, board.moveList[i], 0))
             continue;
 
@@ -413,6 +424,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         bool isLegal = copy.MakeMove(currMove);
 
         if (!isLegal) continue;
+
+        ctx->ss[ply].pieceType = board.GetPieceType(currMove.MoveFrom());
+        ctx->ss[ply].moveTo = currMove.MoveTo();
+
         if (copy.positionIndex >= ctx->positionHistory.size()) {
             ctx->positionHistory.resize(copy.positionIndex + 100);
         }
@@ -474,6 +489,16 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 int bonus = 300 * depth - 250;
 
                 ctx->history.Update(board.sideToMove, currMove, bonus);
+
+                if (ply > 0) {
+                    int prevType = ctx->ss[ply-1].pieceType;
+                    int prevTo = ctx->ss[ply-1].moveTo;
+                    int pieceType = ctx->ss[ply].pieceType;
+                    int to = ctx->ss[ply].moveTo;
+
+                    ctx->conthist.Update(board.sideToMove, prevType, prevTo, pieceType, to, bonus);
+                }
+                
 
                 // Malus
                 for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
