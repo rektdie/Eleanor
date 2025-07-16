@@ -323,6 +323,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if constexpr (!isPV) {
         if (ttHit)
             return SearchResults(entry.score, entry.bestMove);
+    } else {
+        // Internal Iterative Reductions 
+        if (!entry.bestMove && depth >= 8) {
+            depth--;
+        }
     }
 
     if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
