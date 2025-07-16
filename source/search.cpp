@@ -323,14 +323,16 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if constexpr (!isPV) {
         if (ttHit)
             return SearchResults(entry.score, entry.bestMove);
-    } else {
-        // Internal Iterative Reductions 
-        if (!entry.bestMove && depth >= 12) {
-            depth--;
-        }
     }
 
     if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
+
+    // Internal Iterative Reduction
+    if constexpr (isPV) {
+        if (depth >= 8 && !entry.bestMove) {
+            depth--;
+        }
+    }
 
     const int staticEval = NNUE::net.Evaluate(board);
     ctx->ss[ply].eval = staticEval;
