@@ -329,7 +329,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     // Internal Iterative Reduction
     if constexpr (isPV) {
-        if (depth >= 8 && !entry.bestMove) {
+        if (depth >= 12 && !entry.bestMove) {
             depth--;
         }
     }
