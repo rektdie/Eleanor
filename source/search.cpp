@@ -325,7 +325,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             return SearchResults(entry.score, entry.bestMove);
     } else {
         // Internal Iterative Reductions 
-        if (!entry.bestMove && depth >= 8) {
+        if (!entry.bestMove && depth >= 12) {
             depth--;
         }
     }
