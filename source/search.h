@@ -43,7 +43,7 @@ public:
         int clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
 
         contHistMoves[stm][prevType][prevTo][type][to] +=
-            clampedBonus - contHistMoves[stm][prevType][prevTo][type][to] * std::abs(clampedBonus) / MAX_HISTORY * 4;
+            clampedBonus - contHistMoves[stm][prevType][prevTo][type][to] * std::abs(clampedBonus) / MAX_HISTORY / 2;
     }
 
     void Clear() {
