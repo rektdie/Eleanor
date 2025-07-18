@@ -127,8 +127,6 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
         
         if constexpr (!isPV)
             reduction++;
-        else
-            reduction--;
 
         // History LMR
         int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()] / 8192;
