@@ -36,7 +36,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             targetType = Pawn;
         }
 
-        return 50000 * ((SEE(board, move, -100))) + moveScoreTable[attackerType][targetType];
+        return 50000 + (20000 * (SEE(board, move, -100))) + moveScoreTable[attackerType][targetType];
     } else {
         if (ctx->killerMoves[0][ply] == move) {
             return 21000;
