@@ -25,7 +25,7 @@ void InitLMRTable() {
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
     TTEntry *current = ctx->TT.GetRawEntry(board.hashKey);
     if (current->hashKey == board.hashKey && current->bestMove == move) {
-        return 200000;
+        return 100000;
     }
 
     if (move.IsCapture()) {
@@ -36,12 +36,12 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             targetType = Pawn;
         }
 
-        return 120000 * ((SEE(board, move, -100))) + moveScoreTable[attackerType][targetType];
+        return 50000 * ((SEE(board, move, -100))) + moveScoreTable[attackerType][targetType];
     } else {
         if (ctx->killerMoves[0][ply] == move) {
-            return 110000;
+            return 21000;
         } else if (ctx->killerMoves[1][ply] == move) {
-            return 100000;
+            return 20000;
         } else {
             // Max 16384
             int historyScore = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
