@@ -85,10 +85,10 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* c
     }
 
     if (params.nodes) {
-        auto worker = std::thread(SEARCH::SearchPosition<SEARCH::nodesMode>, std::ref(board), params, std::ref(ctx));
+        auto worker = std::thread(SEARCH::SearchPosition<SEARCH::nodesMode>, std::ref(board), params, ctx);
         worker.detach();
     } else {
-        auto worker = std::thread(SEARCH::SearchPosition<SEARCH::normal>, std::ref(board), params, std::ref(ctx));
+        auto worker = std::thread(SEARCH::SearchPosition<SEARCH::normal>, std::ref(board), params, ctx);
         worker.detach();
     }
 }
