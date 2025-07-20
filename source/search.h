@@ -146,6 +146,7 @@ public:
         TT.Clear();
         sw.Restart();
         killerMoves = {};
+        ss = {};
         positionHistory.reserve(1000);
     }
 };
