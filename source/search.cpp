@@ -406,8 +406,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (!isPV && !board.InCheck() && currMove.IsQuiet() && notMated) {
             int lmpBase = 4;
 
+
             int lmpMultiplier = 3;
-            int lmpThreshold = (lmpBase + lmpMultiplier * (depth - 1) * (depth - 1));
+            int lmpThreshold = (lmpBase + lmpMultiplier * depth * depth);
 
             if (moveSeen >= lmpThreshold) {
                 continue;
