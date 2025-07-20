@@ -49,8 +49,8 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             if (ply > 0) {
                 int prevType = ctx->ss[ply-1].pieceType;
                 int prevTo = ctx->ss[ply-1].moveTo;
-                int pieceType = ctx->ss[ply].pieceType;
-                int to = ctx->ss[ply].moveTo;
+                int pieceType = board.GetPieceType(move.MoveFrom());
+                int to = move.MoveTo();
 
                 conthistScore = ctx->conthist[board.sideToMove][prevType][prevTo][pieceType][to];
             }
