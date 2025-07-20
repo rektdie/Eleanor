@@ -444,7 +444,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
             continue;
 
-
         int reductions = GetReductions(board, currMove, depth, moveSeen, ply, cutnode, ctx);
 
         int newDepth = depth + copy.InCheck() - 1;
