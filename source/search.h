@@ -34,6 +34,27 @@ constexpr std::array<int, 6> SEEPieceValues = {
 
 void InitLMRTable();
 
+class ContHistory {
+private:
+    // indexed by [stm][prev move piece][prev move to][piece][to]
+    MultiArray<int16_t, 2, 6, 64, 6, 64> contHistMoves;
+public:
+    void Update(bool stm, int prevType, int prevTo, int type, int to, int bonus) {
+        int clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
+
+        contHistMoves[stm][prevType][prevTo][type][to] +=
+            clampedBonus - contHistMoves[stm][prevType][prevTo][type][to] * std::abs(clampedBonus) / MAX_HISTORY;
+    }
+
+    void Clear() {
+        std::fill(&contHistMoves[0][0][0][0][0], &contHistMoves[0][0][0][0][0] + sizeof(contHistMoves) / sizeof(int16_t), 0);
+    }
+
+    auto& operator[](int index) {
+        return contHistMoves[index];
+    }
+};
+
 class History {
 private:
     MultiArray<int, 2, 64, 64> historyMoves;
@@ -88,6 +109,9 @@ public:
 class Stack {
 public:
     int32_t eval = ScoreNone;
+
+    int pieceType = -1;
+    int moveTo = -1;
 };
 
 class SearchContext {
@@ -103,6 +127,7 @@ public:
 
     PVLine pvLine;
     History history;
+    ContHistory conthist;
 
     std::array<std::array<int, MAX_PLY>, 2> killerMoves{};
 
@@ -117,9 +142,11 @@ public:
     SearchContext(){
         pvLine.Clear();
         history.Clear();
+        conthist.Clear();
         TT.Clear();
         sw.Restart();
         killerMoves = {};
+        ss = {};
         positionHistory.reserve(1000);
     }
 };
