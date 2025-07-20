@@ -141,6 +141,7 @@ void UCILoop(Board &board) {
             ctx->history.Clear();
             ctx->conthist.Clear();
             ctx->positionHistory = {};
+            ctx->ss = {};
 
             continue;
         }
