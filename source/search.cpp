@@ -36,14 +36,13 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             targetType = Pawn;
         }
 
-        return 50000 + (20000 * (SEE(board, move, -100))) + moveScoreTable[attackerType][targetType];
+        return 50000 * ((SEE(board, move, -100))) + moveScoreTable[attackerType][targetType];
     } else {
         if (ctx->killerMoves[0][ply] == move) {
-            return 21000;
+            return 41000;
         } else if (ctx->killerMoves[1][ply] == move) {
-            return 20000;
+            return 40000;
         } else {
-            // Max 16384
             int historyScore = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
             int conthistScore = 0;
 
@@ -56,7 +55,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
                 conthistScore = ctx->conthist[board.sideToMove][prevType][prevTo][pieceType][to];
             }
 
-            return historyScore + conthistScore;
+            return 20000 + historyScore + conthistScore;
         }
     }
 
