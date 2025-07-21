@@ -32,10 +32,20 @@ int16_t ContHistory::GetOnePly(Board& board, Move& move, SearchContext* ctx, int
     return ctx->conthist[otherColor][prevType][prevTo][board.sideToMove][pieceType][to];
 }
 
+int16_t ContHistory::GetTwoPly(Board& board, Move& move, SearchContext* ctx, int ply) {
+    int prevType = ctx->ss[ply-2].pieceType;
+    int prevTo = ctx->ss[ply-2].moveTo;
+    int pieceType = board.GetPieceType(move.MoveFrom());
+    int to = move.MoveTo();
+    bool otherColor = ctx->ss[ply-2].side;
+
+    return ctx->conthist[otherColor][prevType][prevTo][board.sideToMove][pieceType][to];
+}
+
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
     TTEntry *current = ctx->TT.GetRawEntry(board.hashKey);
     if (current->hashKey == board.hashKey && current->bestMove == move) {
-        return 100000;
+        return 200000;
     }
 
     if (move.IsCapture()) {
@@ -46,21 +56,24 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             targetType = Pawn;
         }
 
-        return 50000 * ((SEE(board, move, -100))) + moveScoreTable[attackerType][targetType];
+        return 100000 * ((SEE(board, move, -100))) + moveScoreTable[attackerType][targetType];
     } else {
         if (ctx->killerMoves[0][ply] == move) {
-            return 41000;
+            return 81000;
         } else if (ctx->killerMoves[1][ply] == move) {
-            return 40000;
+            return 80000;
         } else {
             int historyScore = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
             int conthistScore = 0;
 
             if (ply > 0) {
                 conthistScore = ctx->conthist.GetOnePly(board, move, ctx, ply);
+                if (ply > 1) {
+                    conthistScore += ctx->conthist.GetTwoPly(board, move, ctx, ply);
+                }
             }
 
-            return 20000 + historyScore + conthistScore;
+            return 40000 + historyScore + conthistScore;
         }
     }
 
@@ -513,10 +526,27 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                     // Malus
                     for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
-                        pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
-                        to = seenQuiets[moveIndex].MoveTo();
+                        int pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
+                        int to = seenQuiets[moveIndex].MoveTo();
 
                         ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, -bonus);
+                    }
+
+                    if (ply > 1) {
+                        prevType = ctx->ss[ply-2].pieceType;
+                        prevTo = ctx->ss[ply-2].moveTo;
+                        otherColor = ctx->ss[ply-2].side;
+
+                        ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, bonus);
+
+                        // Malus
+                        for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
+                            int pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
+                            int to = seenQuiets[moveIndex].MoveTo();
+
+                            ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, -bonus);
+                        }
+
                     }
                 }
                 

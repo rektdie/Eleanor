@@ -52,6 +52,7 @@ public:
     }
     
     int16_t GetOnePly(Board& board, Move& move, SearchContext* ctx, int ply);
+    int16_t GetTwoPly(Board& board, Move& move, SearchContext* ctx, int ply);
 
     auto& operator[](int index) {
         return contHistMoves[index];
