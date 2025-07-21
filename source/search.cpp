@@ -46,38 +46,39 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
     TTEntry current = ctx->TT.GetRawEntry(board.hashKey);
     if (current.hashKey == board.hashKey && current.bestMove == move) {
         return 100000;
-    }
 
-    if (move.IsCapture()) {
-        const int attackerType = board.GetPieceType(move.MoveFrom());
-        int targetType = board.GetPieceType(move.MoveTo());
+        if (move.IsCapture()) {
+            const int attackerType = board.GetPieceType(move.MoveFrom());
+            int targetType = board.GetPieceType(move.MoveTo());
 
-        if (move.GetFlags() == epCapture) {
-            targetType = Pawn;
-        }
-
-        int capthistScore = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
-        return 50000 * ((SEE(board, move, -100))) + (100 * targetType - attackerType + 105) + capthistScore;
-    } else {
-        if (ctx->killerMoves[0][ply] == move) {
-            return 41000;
-        } else if (ctx->killerMoves[1][ply] == move) {
-            return 40000;
-        } else {
-            int historyScore = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
-            int conthistScore = 0;
-
-            if (ply > 0) {
-                conthistScore = ctx->conthist.GetOnePly(board, move, ctx, ply);
-                /*
-                if (ply > 1) {
-                    conthistScore += ctx->conthist.GetTwoPly(board, move, ctx, ply);
-                }
-                */
+            if (move.GetFlags() == epCapture) {
+                targetType = Pawn;
             }
 
-            return 20000 + historyScore + conthistScore;
+            int capthistScore = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
+            return 50000 * ((SEE(board, move, -100))) + (100 * targetType - attackerType + 105) + capthistScore;
+        } else {
+            if (ctx->killerMoves[0][ply] == move) {
+                return 250000;
+            } else if (ctx->killerMoves[1][ply] == move) {
+                return 200000;
+            } else {
+                int historyScore = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
+                int conthistScore = 0;
+
+                if (ply > 0) {
+                    conthistScore = ctx->conthist.GetOnePly(board, move, ctx, ply);
+                    /*
+                       if (ply > 1) {
+                       conthistScore += ctx->conthist.GetTwoPly(board, move, ctx, ply);
+                       }
+                       */
+                }
+
+                return 100000 + historyScore + conthistScore;
+            }
         }
+
     }
 
     return 0;
