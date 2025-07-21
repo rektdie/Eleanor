@@ -82,7 +82,7 @@ public:
     void Update(bool stm, int movingPT, int capturedPT, int to, int bonus) {
         int clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
         captHistMoves[stm][movingPT][capturedPT][to] +=
-            clampedBonus - captHistMoves[stm][movingPT][capturedPT][to] * std::abs(clampedBonus) / MAX_HISTORY / 2;
+            clampedBonus - captHistMoves[stm][movingPT][capturedPT][to] * std::abs(clampedBonus) / MAX_HISTORY;
     }
 
     void Clear() {
