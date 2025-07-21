@@ -417,7 +417,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // Futility pruning
         // If our static eval is far below alpha, there is only a small chance
         // that a quiet move will help us so we skip them
-        int fpMargin = 100 * depth;
+        int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()];
+        int fpMargin = 100 * depth + historyScore / 32;
+
         if (!isPV && ply && currMove.IsQuiet()
             && depth <= 5 && staticEval + fpMargin < alpha && notMated) {
             continue;
