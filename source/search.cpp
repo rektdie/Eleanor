@@ -45,7 +45,7 @@ int16_t ContHistory::GetTwoPly(Board& board, Move& move, SearchContext* ctx, int
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
     TTEntry *current = ctx->TT.GetRawEntry(board.hashKey);
     if (current->hashKey == board.hashKey && current->bestMove == move) {
-        return 200000;
+        return 1000000;
     }
 
     if (move.IsCapture()) {
@@ -56,12 +56,12 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             targetType = Pawn;
         }
 
-        return 100000 * ((SEE(board, move, -100))) + moveScoreTable[attackerType][targetType];
+        return 500000 * ((SEE(board, move, -100))) + moveScoreTable[attackerType][targetType];
     } else {
         if (ctx->killerMoves[0][ply] == move) {
-            return 81000;
+            return 410000;
         } else if (ctx->killerMoves[1][ply] == move) {
-            return 80000;
+            return 400000;
         } else {
             int historyScore = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
             int conthistScore = 0;
@@ -73,7 +73,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
                 }
             }
 
-            return 40000 + historyScore + conthistScore;
+            return 150000 + historyScore + conthistScore;
         }
     }
 
