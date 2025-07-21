@@ -51,7 +51,7 @@ public:
         std::fill(&contHistMoves[0][0][0][0][0][0], &contHistMoves[0][0][0][0][0][0] + sizeof(contHistMoves) / sizeof(int16_t), 0);
     }
     
-    int16_t GetOnePly(Board& board, Move& move, bool otherColor, SearchContext* ctx, int ply);
+    int16_t GetOnePly(Board& board, Move& move, SearchContext* ctx, int ply);
 
     auto& operator[](int index) {
         return contHistMoves[index];
@@ -115,6 +115,7 @@ public:
 
     int pieceType = -1;
     int moveTo = -1;
+    bool side = -1;
 };
 
 class SearchContext {
