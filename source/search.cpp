@@ -22,6 +22,15 @@ void InitLMRTable() {
     }
 }
 
+int16_t ContHistory::GetOnePly(Board& board, Move& move, bool otherColor, SearchContext* ctx, int ply) {
+    int prevType = ctx->ss[ply-1].pieceType;
+    int prevTo = ctx->ss[ply-1].moveTo;
+    int pieceType = board.GetPieceType(move.MoveFrom());
+    int to = move.MoveTo();
+
+    return ctx->conthist[otherColor][prevType][prevTo][board.sideToMove][pieceType][to];
+}
+
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
     TTEntry *current = ctx->TT.GetRawEntry(board.hashKey);
     if (current->hashKey == board.hashKey && current->bestMove == move) {
@@ -47,12 +56,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             int conthistScore = 0;
 
             if (ply > 0) {
-                int prevType = ctx->ss[ply-1].pieceType;
-                int prevTo = ctx->ss[ply-1].moveTo;
-                int pieceType = board.GetPieceType(move.MoveFrom());
-                int to = move.MoveTo();
-
-                conthistScore = ctx->conthist[board.sideToMove][prevType][prevTo][pieceType][to];
+                conthistScore = ctx->conthist.GetOnePly(board, move, !board.sideToMove, ctx, ply);
             }
 
             return 20000 + historyScore + conthistScore;
@@ -530,14 +534,14 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     int pieceType = ctx->ss[ply].pieceType;
                     int to = ctx->ss[ply].moveTo;
 
-                    ctx->conthist.Update(board.sideToMove, prevType, prevTo, pieceType, to, bonus);
+                    ctx->conthist.Update(board.sideToMove, !board.sideToMove, prevType, prevTo, pieceType, to, bonus);
 
                     // Malus
                     for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
                         pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
                         to = seenQuiets[moveIndex].MoveTo();
 
-                        ctx->conthist.Update(board.sideToMove, prevType, prevTo, pieceType, to, -bonus);
+                        ctx->conthist.Update(board.sideToMove, !board.sideToMove, prevType, prevTo, pieceType, to, -bonus);
                     }
                 }
                 

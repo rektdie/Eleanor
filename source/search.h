@@ -33,22 +33,25 @@ constexpr std::array<int, 6> SEEPieceValues = {
 };
 
 void InitLMRTable();
+class SearchContext;
 
 class ContHistory {
 private:
-    // indexed by [stm][prev move piece][prev move to][piece][to]
-    MultiArray<int16_t, 2, 6, 64, 6, 64> contHistMoves;
+    // indexed by [other color][prev move piece][stm][prev move to][piece][to]
+    MultiArray<int16_t, 2, 6, 64, 2, 6, 64> contHistMoves;
 public:
-    void Update(bool stm, int prevType, int prevTo, int type, int to, int bonus) {
+    void Update(bool stm, bool otherColor, int prevType, int prevTo, int type, int to, int bonus) {
         int clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
 
-        contHistMoves[stm][prevType][prevTo][type][to] +=
-            clampedBonus - contHistMoves[stm][prevType][prevTo][type][to] * std::abs(clampedBonus) / MAX_HISTORY;
+        contHistMoves[otherColor][prevType][prevTo][stm][type][to] +=
+            clampedBonus - contHistMoves[otherColor][prevType][prevTo][stm][type][to] * std::abs(clampedBonus) / MAX_HISTORY;
     }
 
     void Clear() {
-        std::fill(&contHistMoves[0][0][0][0][0], &contHistMoves[0][0][0][0][0] + sizeof(contHistMoves) / sizeof(int16_t), 0);
+        std::fill(&contHistMoves[0][0][0][0][0][0], &contHistMoves[0][0][0][0][0][0] + sizeof(contHistMoves) / sizeof(int16_t), 0);
     }
+    
+    int16_t GetOnePly(Board& board, Move& move, bool otherColor, SearchContext* ctx, int ply);
 
     auto& operator[](int index) {
         return contHistMoves[index];
