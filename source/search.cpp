@@ -125,11 +125,12 @@ bool IsDraw(Board &board, SearchContext* ctx) {
     return IsFifty(board) || IsInsuffMat(board) || IsThreefold(board, ctx);
 }
 
+template <bool isPV>
 static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, SearchContext* ctx) {
     int reduction = 0;
     
     // Late Move Reduction
-    if (depth >= 3 && moveSeen >= 3 && !move.IsCapture()) {
+    if (depth >= 3 && moveSeen >= 2 + (2 * isPV) && !move.IsCapture()) {
         reduction = lmrTable[depth][moveSeen];
 
         if (cutnode)
@@ -446,7 +447,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
             continue;
 
-        int reductions = GetReductions(board, currMove, depth, moveSeen, ply, cutnode, ctx);
+        int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, ctx);
 
         int newDepth = depth + copy.InCheck() - 1;
 
