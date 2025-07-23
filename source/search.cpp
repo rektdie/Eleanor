@@ -259,7 +259,11 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         alpha = bestScore;
     }
 
-    MOVEGEN::GenerateMoves<Noisy>(board);
+    if (!board.InCheck()) {
+        MOVEGEN::GenerateMoves<Noisy>(board);
+    } else {
+        MOVEGEN::GenerateMoves<All>(board);
+    }
 
     SortMoves(board, ply, ctx);
 
