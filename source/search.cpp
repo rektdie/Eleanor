@@ -259,6 +259,8 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         alpha = bestScore;
     }
 
+    bool skipQuiets = false;
+
     if (!board.InCheck()) {
         MOVEGEN::GenerateMoves<Noisy>(board);
     } else {
@@ -270,6 +272,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     SearchResults results;
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
+        if (board.moveList[i].IsQuiet() && skipQuiets)
+            continue;
+
         Board copy = board;
         int isLegal = copy.MakeMove(board.moveList[i]);
         if (!isLegal) continue;
@@ -286,6 +291,11 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         ctx->positionHistory[copy.positionIndex] = copy.hashKey;
         ctx->nodes++;
         int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1, ctx).score;
+
+        bool notMated = score > (-MATE_SCORE + MAX_PLY);
+
+        if (board.moveList[i].IsQuiet() && notMated)
+            skipQuiets = true;
 
         if (score >= beta) {
             return score;
