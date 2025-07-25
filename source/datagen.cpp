@@ -285,6 +285,31 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
 
     std::cout << std::endl;
 
+    double remainingTime = 0.0;
+    if (positions > 0 && elapsed > 0.0) {
+        double positionsPerSec = positions / elapsed;
+        remainingTime = (targetPositions - positions) / positionsPerSec;
+    }
+
+    remainingTime = std::max(0.0, remainingTime);
+
+    int remainingHours = static_cast<int>(remainingTime) / 3600;
+    int remainingMinutes = (static_cast<int>(remainingTime) % 3600) / 60;
+    int remainingSeconds = static_cast<int>(remainingTime) % 60;
+
+    std::ostringstream remainingTimeStream;
+    remainingTimeStream << "Estimated Time Left: "
+        << std::setfill('0') << std::setw(2) << remainingHours << "h "
+        << std::setw(2) << remainingMinutes << "m "
+        << std::setw(2) << remainingSeconds << "s";
+
+    std::string remainingTimeText = remainingTimeStream.str();
+    int remainingPadding = (width - remainingTimeText.length()) / 2;
+    std::cout << COLOR_SECTION << std::setw(remainingPadding + remainingTimeText.length())
+        << remainingTimeText << COLOR_RESET << std::endl;
+
+    std::cout << std::endl;
+
     int barWidth = 50;
     double progress = (double)positions / targetPositions;
     int pos = (int)(progress * barWidth);
