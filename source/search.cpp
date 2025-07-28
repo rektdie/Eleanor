@@ -467,8 +467,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
             if (score < sBeta)
                 extension = 1;
-            else if (cutnode)
-                extension = -2;
         }
 
         // PVS SEE
