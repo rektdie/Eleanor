@@ -374,12 +374,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             if (!ctx->doingNullMove && staticEval >= beta) {
                 if (depth > 1 && !board.InPossibleZug()) {
                     Board copy = board;
-                    bool isLegal = copy.MakeMove(Move());
-                    // Always legal so we dont check it
-                    
-                    const int reduction = 3 + improving;
-    
                     copy.MakeMove(Move());
+
+                    const int reduction = 3 + improving;
 
                     ctx->doingNullMove = true;
                     int score = -PVS<false, mode>(copy, depth - reduction, -beta, -beta + 1, ply + 1, ctx, !cutnode).score;
@@ -470,6 +467,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
             if (score < sBeta)
                 extension = 1;
+            else if (cutnode)
+                extension = -2;
         }
 
         // PVS SEE
