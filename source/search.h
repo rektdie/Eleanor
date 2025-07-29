@@ -121,6 +121,8 @@ public:
     int timeToSearch = 0;
 
     int seldepth = 0;
+
+    Move excluded = Move();
     
     bool doingNullMove = false;
     bool searchStopped = false;
