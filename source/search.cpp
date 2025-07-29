@@ -414,7 +414,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // If we are near a leaf node we prune moves
         // that are late in the list
         if (ply && currMove.IsQuiet() && notMated) {
-            int lmpBase = 3;
+            int lmpBase = 5;
             int lmpThreshold = (lmpBase + depth * depth) / (2 - improving);
 
             if (moveSeen >= lmpThreshold) {
