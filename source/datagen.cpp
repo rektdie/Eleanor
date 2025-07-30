@@ -127,13 +127,30 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
         exit(-1);
     }
 
+    const int evenityMargin = 200;
+
+    const int winAdjMoveCount = 3;
+    const int winAdjScore = 400;
+
+    const int drawAdjMoveNumber = 40;
+    const int drawAdjMoveCount = 8;
+    const int drawAdjScore = 10;
+
     while (!stopFlag) {
-        Game game;
         Board board;
         auto ctx = std::make_unique<SEARCH::SearchContext>();
+        
         PlayRandMoves(board, ctx.get());
         if (IsGameOver(board, ctx.get())) continue;
 
+        // Filter out games with a highly uneven starting position
+        const int startingScore = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx.get()).score;
+
+        if (std::abs(startingScore) >= evenityMargin) continue;
+
+        ctx->nodes = 0;
+
+        Game game;
         Board startpos = board;
 
         SearchResults safeResults;
@@ -141,24 +158,72 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
         int staticEval = UTILS::ConvertToWhiteRelative(board, NNUE::net.Evaluate(board));
         int wdl = 1;
 
+        int whiteWinAdjCurrentMoveCount = 0;
+        int blackWinAdjCurrentMoveCount = 0;
+
+        int moveNumber = 0;
+        int drawAdjCurrentMoveCount = 0;
+
+        bool earlyDraw = false;
+
         while (!IsGameOver(board, ctx.get())) {
             SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx.get());
 
             if (!results.bestMove) break;
             safeResults = results;
-            
+
             game.moves.emplace_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(),
                     UTILS::ConvertToWhiteRelative(board, results.score)));
 
+            if (moveNumber >= drawAdjMoveNumber) {
+                if (!results.bestMove.IsCapture() && board.GetPieceType(results.bestMove) != Pawn
+                    && results.score > -drawAdjScore && results.score < drawAdjScore) {
+                    drawAdjCurrentMoveCount++;
+
+                    if (drawAdjCurrentMoveCount >= drawAdjMoveCount) {
+                        earlyDraw = true;
+                        break;
+                    }
+                } else {
+                    drawAdjCurrentMoveCount = 0;
+                }
+            }
+
             board.MakeMove(results.bestMove);
+            moveNumber++;
             ctx->positionHistory[board.positionIndex] = board.hashKey;
 
             positions++;
 
+            // We are checking after making the move, so that's why it's inversed 
+            if (board.sideToMove == Black) {
+                if (safeResults.score >= winAdjScore) {
+                    whiteWinAdjCurrentMoveCount++;
+
+                    if (whiteWinAdjCurrentMoveCount >= winAdjMoveCount)
+                        break;
+                } else if (safeResults.score <= winAdjScore) {
+                    blackWinAdjCurrentMoveCount++;
+                } else {
+                    whiteWinAdjCurrentMoveCount = 0;
+                }
+            } else {
+                if (safeResults.score >= winAdjScore) {
+                    blackWinAdjCurrentMoveCount++;
+
+                    if (blackWinAdjCurrentMoveCount >= winAdjMoveCount)
+                        break;
+                } else if (safeResults.score <= winAdjScore) {
+                    whiteWinAdjCurrentMoveCount++;
+                } else {
+                    blackWinAdjCurrentMoveCount = 0;
+                }
+            }
+
             MOVEGEN::GenerateMoves<All>(board);
         }
 
-        if (!SEARCH::IsDraw(board, ctx.get())) {
+        if (!earlyDraw && !SEARCH::IsDraw(board, ctx.get())) {
             wdl = board.sideToMove ? 2 : 0;
         }
 
