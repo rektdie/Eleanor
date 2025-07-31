@@ -410,32 +410,29 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         bool notMated = results.score > (-MATE_SCORE + MAX_PLY);
 
-        // We disable pruning in PV nodes in datagen
-        if constexpr(!(mode == datagen && isPV)) {
-            // Late move pruning
-            // If we are near a leaf node we prune moves
-            // that are late in the list
-            if (!isPV && !board.InCheck() && currMove.IsQuiet() && notMated) {
-                int lmpBase = 7;
+        // Late move pruning
+        // If we are near a leaf node we prune moves
+        // that are late in the list
+        if (!isPV && !board.InCheck() && currMove.IsQuiet() && notMated) {
+            int lmpBase = 7;
 
 
-                int lmpThreshold = lmpBase + 4 * depth;
+            int lmpThreshold = lmpBase + 4 * depth;
 
-                if (moveSeen >= lmpThreshold) {
-                    continue;
-                }
-            }
-
-            // Futility pruning
-            // If our static eval is far below alpha, there is only a small chance
-            // that a quiet move will help us so we skip them
-            int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()];
-            int fpMargin = 100 * depth + historyScore / 32;
-
-            if (!isPV && ply && currMove.IsQuiet()
-                    && depth <= 5 && staticEval + fpMargin < alpha && notMated) {
+            if (moveSeen >= lmpThreshold) {
                 continue;
             }
+        }
+
+        // Futility pruning
+        // If our static eval is far below alpha, there is only a small chance
+        // that a quiet move will help us so we skip them
+        int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()];
+        int fpMargin = 100 * depth + historyScore / 32;
+
+        if (!isPV && ply && currMove.IsQuiet()
+                && depth <= 5 && staticEval + fpMargin < alpha && notMated) {
+            continue;
         }
 
         Board copy = board;
