@@ -8,7 +8,7 @@
 class Board;
 
 #ifdef __AVX512F__
-constexpr usize ALIGNMENT = 64;
+constexpr size_t ALIGNMENT = 64;
 #else
 constexpr size_t ALIGNMENT = 32;
 #endif
@@ -16,7 +16,7 @@ constexpr size_t ALIGNMENT = 32;
 namespace NNUE {
 
 constexpr size_t INPUT_SIZE = 768;
-constexpr size_t HL_SIZE = 512;
+constexpr size_t HL_SIZE = 1024;
 constexpr size_t OUTPUT_BUCKETS = 8;
 
 constexpr int16_t SCALE = 400;

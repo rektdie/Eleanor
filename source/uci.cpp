@@ -82,6 +82,9 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* c
     if (command.find("movetime") != std::string::npos) {
         params.wtime = ReadParam("movetime", command);
         params.btime = ReadParam("movetime", command);
+    } else if (command.find("infinite") != std::string::npos) {
+        params.wtime = 99999999;
+        params.btime = 99999999;
     }
 
     if (params.nodes) {
