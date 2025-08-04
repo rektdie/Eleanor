@@ -170,13 +170,8 @@ static int32_t VectorizedSCReLU(const Board& board, const Network& net, size_t o
 }
 
 int Forward(const Board& board, const Network& net) {
-    bool stm = board.sideToMove;
-
     const size_t divisor      = 32 / OUTPUT_BUCKETS;
     const size_t outputBucket = (board.occupied.PopCount() - 2) / divisor;
-
-    const ACC::Accumulator& stmACC = stm ? board.accPair.white : board.accPair.black;
-    const ACC::Accumulator& nstmACC = !stm ? board.accPair.white : board.accPair.black;
 
     int64_t eval = 0;
 

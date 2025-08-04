@@ -43,7 +43,7 @@ constexpr U64 maxHash = (1024 * 1000000) / sizeof(TTEntry);
 // 8 MB
 constexpr U64 defaultHash = (8 * 1000000) / sizeof(TTEntry);
 
-constexpr int16_t invalidEntry = 111111;
+constexpr int16_t invalidEntry = 11111;
 
 class TTable {
 private:

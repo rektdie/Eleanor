@@ -263,9 +263,6 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
         lastElapsed = elapsed;
     }
 
-    int positionsInThousands = static_cast<int>(round(positions / 1000.0));
-    int targetInThousands = static_cast<int>(round(targetPositions / 1000.0));
-
     std::cout << "\033[H";
 
     int width = 60;

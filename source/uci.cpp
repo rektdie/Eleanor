@@ -32,7 +32,7 @@ static void ParsePosition(Board &board, std::string_view command, SEARCH::Search
         std::vector<std::string> moves = UTILS::split(command.substr(movesIndex + 6, command.length() - (movesIndex + 5)), ' ');
 
         for (std::string_view move : moves) {
-            bool isLegal = board.MakeMove(UTILS::parseMove(board, move));
+            board.MakeMove(UTILS::parseMove(board, move));
             ctx->positionHistory[board.positionIndex] = board.hashKey;
         }
     }
