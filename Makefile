@@ -1,42 +1,70 @@
 # Define directories
 SRC_DIR := source
 OBJ_DIR := obj
+FMT_DIR := external/fmt
 
 CXX := clang++
 EXE ?= Eleanor
 EVALFILE := ./nnue.bin
+
+UNAME_S := $(shell uname -s)
+ARCH := $(shell uname -m)
 
 ifeq ($(OS),Windows_NT)
     EXE_EXT := .exe
     MKDIR := mkdir
     RM := rmdir /s /q
     DEL := del /q
+    PLATFORM := windows
 else
     EXE_EXT :=
     MKDIR := mkdir -p
     RM := rm -rf
     DEL := rm -f
+    ifeq ($(UNAME_S),Darwin)
+        PLATFORM := mac
+    else
+        PLATFORM := unix
+    endif
 endif
+
+CXXFLAGS := -std=c++20 -O3 -flto
+LDFLAGS := -O3 -flto
+
+ifeq ($(PLATFORM),mac)
+    ifeq ($(ARCH),arm64)
+        ARCH_FLAGS :=
+    else
+        ARCH_FLAGS := -march=native
+    endif
+else
+    ARCH_FLAGS := -march=native
+    LDFLAGS += -fuse-ld=lld -static
+endif
+
+CXXFLAGS += $(ARCH_FLAGS)
+LDFLAGS += $(ARCH_FLAGS)
 
 MAKEFLAGS += -j
 
-# Source and object files
 SRCS := $(wildcard $(SRC_DIR)/*.cpp)
 OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
-# Final binary
-$(EXE)$(EXE_EXT): $(OBJS)
-	$(CXX) -DEVALFILE=\"$(EVALFILE)\" $^ ./external/fmt/format.cc -o $@ -O3 -fuse-ld=lld -march=native -flto -static
+FMT_SRC := $(FMT_DIR)/format.cc
+FMT_OBJ := $(OBJ_DIR)/format.o
 
-# Compile .cpp -> .o
+$(EXE)$(EXE_EXT): $(OBJS) $(FMT_OBJ)
+	$(CXX) $(CXXFLAGS) -DEVALFILE=\"$(EVALFILE)\" $^ -o $@ $(LDFLAGS)
+
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	$(CXX) -std=c++20 -c -o $@ $< -O3 -march=native -flto -static
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-# Create object directory
+$(FMT_OBJ): $(FMT_SRC) | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
 $(OBJ_DIR):
 	$(MKDIR) $(OBJ_DIR)
 
-# Clean up and rebuild
 .PHONY: clean
 clean:
 ifeq ($(OS),Windows_NT)

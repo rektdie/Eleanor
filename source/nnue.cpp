@@ -35,7 +35,7 @@ void Network::Load(const std::string& path) {
     // Output biases
     for (size_t i = 0; i < output_bias.size(); i++) {
         file.read(reinterpret_cast<char*>(&output_bias[i]), sizeof(int16_t));
-    }   
+    }
 }
 
 #if defined(__x86_64__) || defined(__amd64__) || (defined(_WIN64) && (defined(_M_X64) || defined(_M_AMD64)))
@@ -74,7 +74,6 @@ using nativeVector = __m256i;
     }
 #else
 #pragma message("Using SSE NNUE inference")
-// Assumes SSE support here
 using nativeVector = __m128i;
 #define set1_epi16 _mm_set1_epi16
 #define load_epi16 _mm_load_si128
@@ -92,6 +91,47 @@ using nativeVector = __m128i;
         return _mm_cvtsi128_si32(vec); \
     }
 #endif
+
+#elif defined(__aarch64__)
+#pragma message("Using ARM64 (NEON) NNUE inference")
+#include <arm_neon.h>
+using nativeVector = int16x8_t;
+static inline nativeVector set1_epi16(int16_t v) {
+    return vdupq_n_s16(v);
+}
+static inline nativeVector load_epi16(const nativeVector* ptr) {
+    return *ptr;
+}
+static inline nativeVector min_epi16(nativeVector a, nativeVector b) {
+    return vminq_s16(a, b);
+}
+static inline nativeVector max_epi16(nativeVector a, nativeVector b) {
+    return vmaxq_s16(a, b);
+}
+static inline int32x4_t madd_epi16(nativeVector a, nativeVector b) {
+    int32x4_t lo = vmull_s16(vget_low_s16(a), vget_low_s16(b));
+    int32x4_t hi = vmull_s16(vget_high_s16(a), vget_high_s16(b));
+    int32x4_t sum_lo = vpaddq_s32(lo, lo);
+    int32x4_t sum_hi = vpaddq_s32(hi, hi);
+    return vcombine_s32(vget_low_s32(sum_lo), vget_low_s32(sum_hi));
+}
+static inline nativeVector mullo_epi16(nativeVector a, nativeVector b) {
+    return vmulq_s16(a, b);
+}
+static inline int32x4_t add_epi32(int32x4_t a, int32x4_t b) {
+    return vaddq_s32(a, b);
+}
+static inline int reduce_epi32(int32x4_t v) {
+    int32x2_t pair = vadd_s32(vget_low_s32(v), vget_high_s32(v));
+    int32x2_t total = vpadd_s32(pair, pair);
+    return vget_lane_s32(total, 0);
+}
+
+#else
+#pragma message("Using fallback scalar NNUE inference")
+using nativeVector = void*;
+#endif
+
 
 static int32_t VectorizedSCReLU(const Board& board, const Network& net, size_t outputBucket) {
     const size_t VECTOR_SIZE = sizeof(nativeVector) / sizeof(int16_t);
@@ -128,7 +168,6 @@ static int32_t VectorizedSCReLU(const Board& board, const Network& net, size_t o
 
     return reduce_epi32(accumulator);
 }
-#endif
 
 int Forward(const Board& board, const Network& net) {
     bool stm = board.sideToMove;
@@ -145,7 +184,8 @@ int Forward(const Board& board, const Network& net) {
 
     eval /= QA;
 
-    eval += net.output_bias[outputBucket];
+    eval += net.output_bias[outputBucket];git show --summary
+
 
     return (eval * SCALE) / (QA * QB);
 }
