@@ -184,7 +184,7 @@ int Forward(const Board& board, const Network& net) {
 
     eval /= QA;
 
-    eval += net.output_bias[outputBucket];git show --summary
+    eval += net.output_bias[outputBucket];
 
 
     return (eval * SCALE) / (QA * QB);
