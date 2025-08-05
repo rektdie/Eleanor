@@ -22,6 +22,26 @@ void InitLMRTable() {
     }
 }
 
+int16_t ContHistory::GetOnePly(Board& board, Move& move, SearchContext* ctx, int ply) {
+    int prevType = ctx->ss[ply-1].pieceType;
+    int prevTo = ctx->ss[ply-1].moveTo;
+    int pieceType = board.GetPieceType(move.MoveFrom());
+    int to = move.MoveTo();
+    bool otherColor = ctx->ss[ply-1].side;
+
+    return ctx->conthist[otherColor][prevType][prevTo][board.sideToMove][pieceType][to];
+}
+
+int16_t ContHistory::GetTwoPly(Board& board, Move& move, SearchContext* ctx, int ply) {
+    int prevType = ctx->ss[ply-2].pieceType;
+    int prevTo = ctx->ss[ply-2].moveTo;
+    int pieceType = board.GetPieceType(move.MoveFrom());
+    int to = move.MoveTo();
+    bool otherColor = ctx->ss[ply-2].side;
+
+    return ctx->conthist[otherColor][prevType][prevTo][board.sideToMove][pieceType][to];
+}
+
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
     TTEntry *current = ctx->TT.GetRawEntry(board.hashKey);
     if (current->hashKey == board.hashKey && current->bestMove == move) {
@@ -47,12 +67,12 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             int conthistScore = 0;
 
             if (ply > 0) {
-                int prevType = ctx->ss[ply-1].pieceType;
-                int prevTo = ctx->ss[ply-1].moveTo;
-                int pieceType = board.GetPieceType(move.MoveFrom());
-                int to = move.MoveTo();
-
-                conthistScore = ctx->conthist[board.sideToMove][prevType][prevTo][pieceType][to];
+                conthistScore = ctx->conthist.GetOnePly(board, move, ctx, ply);
+                /*
+                if (ply > 1) {
+                    conthistScore += ctx->conthist.GetTwoPly(board, move, ctx, ply);
+                }
+                */
             }
 
             return 20000 + historyScore + conthistScore;
@@ -66,24 +86,24 @@ static void SortMoves(Board &board, int ply, SearchContext* ctx) {
     if (board.currentMoveIndex <= 1) {
         return;
     }
-    
+
     int scores[MAX_MOVES];
-    
+
     for (int i = 0; i < board.currentMoveIndex; i++) {
         scores[i] = ScoreMove(board, board.moveList[i], ply, ctx);
     }
-    
+
     for (int i = 1; i < board.currentMoveIndex; i++) {
         Move tempMove = board.moveList[i];
         int tempScore = scores[i];
         int j = i - 1;
-        
+
         while (j >= 0 && scores[j] < tempScore) {
             board.moveList[j + 1] = board.moveList[j];
             scores[j + 1] = scores[j];
             j--;
         }
-        
+
         board.moveList[j + 1] = tempMove;
         scores[j + 1] = tempScore;
     }
@@ -117,7 +137,7 @@ static bool IsFifty(Board &board) {
 }
 
 static bool IsInsuffMat(Board &board) {
-    return (board.occupied.PopCount() <= 3 
+    return (board.occupied.PopCount() <= 3
         && !(board.pieces[Pawn] | board.pieces[Queen] | board.pieces[Rook]));
 }
 
@@ -128,7 +148,7 @@ bool IsDraw(Board &board, SearchContext* ctx) {
 template <bool isPV>
 static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, SearchContext* ctx) {
     int reduction = 0;
-    
+
     // Late Move Reduction
     if (depth >= 3 && moveSeen >= 2 + (2 * isPV) && !move.IsCapture()) {
         reduction = lmrTable[depth][moveSeen];
@@ -177,7 +197,7 @@ bool SEE(Board& board, Move& move, int threshold) {
 
     if (flags == epCapture)
         occupied.SetBit(board.enPassantTarget);
-    
+
     Bitboard attackers = board.AttacksTo(to, occupied) & occupied;
 
     bool color = !board.sideToMove;
@@ -200,7 +220,7 @@ bool SEE(Board& board, Move& move, int threshold) {
             attackers |= MOVEGEN::getRookAttack(to, occupied) & rooks;
 
         attackers &= occupied;
-        
+
         color = !color;
 
         balance = -balance - 1 - SEEPieceValues[nextVictim];
@@ -241,10 +261,10 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
-    
+
     int bestScore = NNUE::net.Evaluate(board);
     ctx->ss[ply].eval = bestScore;
-    
+
     if (!ctx->excluded) {
         TTEntry *entry = ctx->TT.GetRawEntry(board.hashKey);
         if (entry->hashKey == board.hashKey) {
@@ -274,6 +294,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
         ctx->ss[ply].pieceType = board.GetPieceType(board.moveList[i].MoveFrom());
         ctx->ss[ply].moveTo = board.moveList[i].MoveTo();
+        ctx->ss[ply].side = board.sideToMove;
 
         if (!SEE(board, board.moveList[i], 0))
             continue;
@@ -381,9 +402,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     ctx->doingNullMove = true;
                     int score = -PVS<false, mode>(copy, depth - reduction, -beta, -beta + 1, ply + 1, ctx, !cutnode).score;
                     ctx->doingNullMove = false;
-    
+
                     if (ctx->searchStopped) return 0;
-                    if (score >= beta) return score; 
+                    if (score >= beta) return score;
                 }
             }
         }
@@ -442,6 +463,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         ctx->ss[ply].pieceType = board.GetPieceType(currMove.MoveFrom());
         ctx->ss[ply].moveTo = currMove.MoveTo();
+        ctx->ss[ply].side = board.sideToMove;
 
         if (copy.positionIndex >= ctx->positionHistory.size()) {
             ctx->positionHistory.resize(copy.positionIndex + 100);
@@ -529,18 +551,36 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     int prevTo = ctx->ss[ply-1].moveTo;
                     int pieceType = ctx->ss[ply].pieceType;
                     int to = ctx->ss[ply].moveTo;
+                    bool otherColor = ctx->ss[ply-1].side;
 
-                    ctx->conthist.Update(board.sideToMove, prevType, prevTo, pieceType, to, bonus);
+                    ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, bonus);
 
                     // Malus
                     for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
-                        pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
-                        to = seenQuiets[moveIndex].MoveTo();
+                        int pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
+                        int to = seenQuiets[moveIndex].MoveTo();
 
-                        ctx->conthist.Update(board.sideToMove, prevType, prevTo, pieceType, to, -bonus);
+                        ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, -bonus);
+                    }
+
+                    if (ply > 1) {
+                        prevType = ctx->ss[ply-2].pieceType;
+                        prevTo = ctx->ss[ply-2].moveTo;
+                        otherColor = ctx->ss[ply-2].side;
+
+                        ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, bonus);
+
+                        // Malus
+                        for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
+                            int pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
+                            int to = seenQuiets[moveIndex].MoveTo();
+
+                            ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, -bonus);
+                        }
+
                     }
                 }
-                
+
 
                 // Malus
                 for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
