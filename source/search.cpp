@@ -660,7 +660,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (!ctx->excluded) {
 
         if (!board.InCheck() && (results.bestMove.IsQuiet())
-                && !(nodeType == CutNode && results.score <= staticEval)
                 && !(nodeType == AllNode && results.score >= staticEval)) {
 
             int corrHistBonus = std::clamp(results.score - staticEval, -CORRHIST_LIMIT, CORRHIST_LIMIT);
