@@ -23,6 +23,12 @@ constexpr int MAX_DEPTH = 128;
 constexpr int MAX_PLY = 512;
 constexpr int MAX_HISTORY = 16384;
 
+constexpr int CORRHIST_WEIGHT_SCALE = 256;
+constexpr int CORRHIST_GRAIN = 256;
+constexpr int CORRHIST_LIMIT = 1024;
+constexpr int CORRHIST_SIZE = 16384;
+constexpr int CORRHIST_MAX = 16384;
+
 constexpr int32_t ScoreNone = -255000;
 constexpr int inf = 100000;
 
@@ -34,6 +40,30 @@ constexpr std::array<int, 6> SEEPieceValues = {
 
 void InitLMRTable();
 class SearchContext;
+
+class CorrHist {
+private:
+    // indexed by [stm][key]
+    MultiArray<int, 2, CORRHIST_SIZE> pawnHist;
+public:
+    void UpdatePawnHist(Board& board, int depth, int diff) {
+        int* entry = &pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE];
+
+        const int scaledDiff = diff * CORRHIST_GRAIN;
+        const int newWeight = 4 * std::min(depth + 1, 16);
+
+        *entry = (*entry * (CORRHIST_WEIGHT_SCALE - newWeight) + scaledDiff * newWeight) / CORRHIST_WEIGHT_SCALE;
+        *entry = std::clamp(*entry, -CORRHIST_MAX, CORRHIST_MAX);
+    }
+
+    int GetPawnHist(Board& board) {
+        return pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE];
+    }
+
+    void ClearPawnHist() {
+        std::fill(&pawnHist[0][0], &pawnHist[0][0] + sizeof(pawnHist) / sizeof(int), 0);
+    }
+};
 
 class ContHistory {
 private:
@@ -50,7 +80,7 @@ public:
     void Clear() {
         std::fill(&contHistMoves[0][0][0][0][0][0], &contHistMoves[0][0][0][0][0][0] + sizeof(contHistMoves) / sizeof(int16_t), 0);
     }
-    
+
     int16_t GetOnePly(Board& board, Move& move, SearchContext* ctx, int ply);
     int16_t GetTwoPly(Board& board, Move& move, SearchContext* ctx, int ply);
 
@@ -65,7 +95,7 @@ private:
 public:
     void Update(bool stm, Move move, int bonus) {
         int clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
-        historyMoves[stm][move.MoveFrom()][move.MoveTo()] += 
+        historyMoves[stm][move.MoveFrom()][move.MoveTo()] +=
             clampedBonus - historyMoves[stm][move.MoveFrom()][move.MoveTo()] * std::abs(clampedBonus) / MAX_HISTORY;
     }
 
@@ -96,12 +126,12 @@ public:
 
         length[ply] = length[ply + 1];
     }
-    
+
     void Print(int n) {
         for (int i = 0; i < length[n]; i++) {
             table[n][i].PrintMove();
             std::cout << ' ';
-        } 
+        }
     }
 
     void Clear() {
@@ -128,13 +158,14 @@ public:
     int seldepth = 0;
 
     Move excluded = Move();
-    
+
     bool doingNullMove = false;
     bool searchStopped = false;
 
     PVLine pvLine;
     History history;
     ContHistory conthist;
+    CorrHist corrhist;
 
     std::array<std::array<int, MAX_PLY>, 2> killerMoves{};
 
@@ -150,6 +181,7 @@ public:
         pvLine.Clear();
         history.Clear();
         conthist.Clear();
+        corrhist.ClearPawnHist();
         TT.Clear();
         sw.Restart();
         killerMoves = {};

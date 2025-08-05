@@ -9,7 +9,7 @@
 void Board::Reset() {
     castlingRights = 0;
 	enPassantTarget = noEPTarget;
-	
+
 	halfMoves = 0;
 	fullMoves = 1;
 
@@ -31,6 +31,7 @@ void Board::Reset() {
     currentMoveIndex = 0;
 
     hashKey = 0ULL;
+    pawnKey = 0ULL;
 }
 
 void Board::SetByFen(std::string_view fen) {
@@ -88,66 +89,66 @@ void Board::SetByFen(std::string_view fen) {
 
 std::string Board::GetFen() {
     std::ostringstream fen;
-    
+
     for (int rank = 7; rank >= 0; --rank) {
         int emptyCount = 0;
-        
+
         for (int file = 0; file < 8; ++file) {
             int square = rank * 8 + file;
             const uint64_t squareBit = 1ULL << square;
-            
+
             if (!(occupied & squareBit)) {
                 ++emptyCount;
                 continue;
             }
-            
+
             if (emptyCount > 0) {
                 fen << emptyCount;
                 emptyCount = 0;
             }
-            
+
             static constexpr std::array<char, 6> pieceChars = {'p', 'n', 'b', 'r', 'q', 'k'};
             char pieceChar = '?';
-            
+
             for (size_t pieceType = 0; pieceType < pieceChars.size(); ++pieceType) {
                 if (pieces[pieceType] & squareBit) {
                     pieceChar = pieceChars[pieceType];
                     break;
                 }
             }
-            
+
             fen << (colors[White] & squareBit ? static_cast<char>(std::toupper(pieceChar)) : pieceChar);
         }
-        
+
         if (emptyCount > 0) {
             fen << emptyCount;
         }
-        
+
         if (rank > 0) {
             fen << '/';
         }
     }
-    
+
     fen << ' ' << (sideToMove ? 'b' : 'w');
-    
+
     fen << ' ';
     bool hasCastlingRights = false;
-    
+
     const std::array<std::pair<uint8_t, char>, 4> castlingOptions = {
         {{whiteKingRight, 'K'}, {whiteQueenRight, 'Q'}, {blackKingRight, 'k'}, {blackQueenRight, 'q'}}
     };
-    
+
     for (const auto& [right, symbol] : castlingOptions) {
         if (castlingRights & right) {
             fen << symbol;
             hasCastlingRights = true;
         }
     }
-    
+
     if (!hasCastlingRights) {
         fen << '-';
     }
-    
+
     fen << ' ';
     if (enPassantTarget == noEPTarget) {
         fen << '-';
@@ -156,11 +157,11 @@ std::string Board::GetFen() {
         const int rank = enPassantTarget / 8;
         fen << static_cast<char>('a' + file) << (rank + 1);
     }
-    
+
     fen << ' ' << halfMoves;
-    
+
     fen << ' ' << fullMoves;
-    
+
     return fen.str();
 }
 
@@ -271,6 +272,10 @@ void Board::SetPiece(int piece, int square, bool color) {
 	occupied.SetBit(square);
 
     hashKey ^= UTILS::zKeys[color][piece][square];
+
+    if (piece == Pawn) {
+        pawnKey ^= UTILS::zKeys[color][Pawn][square];
+    }
 }
 
 void Board::RemovePiece(int piece, int square, bool color) {
@@ -279,6 +284,10 @@ void Board::RemovePiece(int piece, int square, bool color) {
 	occupied.PopBit(square);
 
     hashKey ^= UTILS::zKeys[color][piece][square];
+
+    if (piece == Pawn) {
+        pawnKey ^= UTILS::zKeys[color][Pawn][square];
+    }
 }
 
 // Updates castling rights
@@ -322,23 +331,23 @@ bool Board::MakeMove(Move move) {
 	// Null Move
     if (!move) {
 		int newEpTarget = noEPTarget;
-		
+
         sideToMove = !sideToMove;
         hashKey ^= UTILS::zSide;
-		
+
         if (enPassantTarget != noEPTarget) {
 			hashKey ^= UTILS::zEnPassant[enPassantTarget % 8];
         }
-		
+
         if (newEpTarget != noEPTarget) {
 			hashKey ^= UTILS::zEnPassant[newEpTarget % 8];
         }
-		
+
         enPassantTarget = newEpTarget;
-		
+
         return true;
     }
-	
+
 	int newEpTarget = noEPTarget;
 
 	int attackerPiece = GetPieceType(move.MoveFrom());
@@ -397,7 +406,7 @@ bool Board::MakeMove(Move move) {
 	case kingCastle:
 		{
 			int rookSquare = attackerColor ? h8 : h1;
-			
+
 			// Removing rook from old position
 			RemovePiece(Rook, rookSquare, attackerColor);
 
@@ -448,7 +457,7 @@ bool Board::MakeMove(Move move) {
     sideToMove = !sideToMove;
     if (InCheck())  {
 		*this = save;
-		return false;	
+		return false;
 	}
     sideToMove = !sideToMove;
 
@@ -458,7 +467,7 @@ bool Board::MakeMove(Move move) {
 	} else {
 		halfMoves++;
 	}
-	
+
     positionIndex++;
 
     return true;
@@ -513,16 +522,16 @@ void Board::ResetAccPair() {
 
 Bitboard Board::AttacksTo(int square, Bitboard occupancy) {
     Bitboard attacks;
-    
+
     // Pawn attacks
-    
+
     // Opponent attacks
     attacks |= (MOVEGEN::pawnAttacks[sideToMove][square] & colors[!sideToMove] & pieces[Pawn]);
-    
+
     // Own piece attacks
     attacks |= (MOVEGEN::pawnAttacks[!sideToMove][square] & colors[sideToMove] & pieces[Pawn]);
 
-    // Knight 
+    // Knight
     attacks |= (MOVEGEN::knightAttacks[square] & pieces[Knight]);
 
     // King
