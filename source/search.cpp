@@ -657,11 +657,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     }
 
     if (ctx->searchStopped) return 0;
-    if (!ctx->excluded)
+    if (!ctx->excluded) {
 
         if (!board.InCheck() && (results.bestMove.IsQuiet())
-            && !(nodeType == CutNode && results.score <= staticEval)
-            && !(nodeType == AllNode && results.score >= staticEval)) {
+                && !(nodeType == CutNode && results.score <= staticEval)
+                && !(nodeType == AllNode && results.score >= staticEval)) {
 
             int corrHistBonus = std::clamp(results.score - staticEval, -CORRHIST_LIMIT, CORRHIST_LIMIT);
 
@@ -669,6 +669,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
 
         ctx->TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
+    }
     return results;
 }
 
