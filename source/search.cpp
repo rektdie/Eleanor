@@ -359,16 +359,23 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (ply && (IsDraw(board, ctx))) return 0;
 
 
-    TTEntry entry = TTEntry(invalidEntry);
+    TTEntry* entry = nullptr;
     if (!ctx->excluded)
-        entry = ctx->TT.ReadEntry(board.hashKey, depth, alpha, beta);
+        entry = ctx->TT.GetRawEntry(board.hashKey);
 
-    const bool ttHit = entry.score != invalidEntry;
+    const bool ttHit = entry != nullptr
+        && entry->hashKey == board.hashKey;
 
-    // if NOT PV node then we try to hit the TTable
     if constexpr (!isPV) {
-        if (ttHit)
-            return SearchResults(entry.score, entry.bestMove);
+        if (ttHit) {
+            if (entry->depth >= depth && 
+                ((entry->nodeType == PV) ||
+                (entry->nodeType == AllNode && entry->score <= alpha) ||
+                (entry->nodeType == CutNode && entry->score >= beta))) {
+                
+                return SearchResults(entry->score, entry->bestMove);
+            }
+        }
     }
 
     if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
@@ -480,12 +487,13 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         if (ply
             && depth >= 8
-            && currMove == entry.bestMove
+            && ttHit
+            && currMove == entry->bestMove
             && ctx->excluded == 0
-            && entry.depth >= depth - 3
-            && entry.nodeType != AllNode)
+            && entry->depth >= depth - 3
+            && entry->nodeType != AllNode)
         {
-            const int sBeta = std::max(-inf + 1, entry.score - depth * 2);
+            const int sBeta = std::max(-inf + 1, entry->score - depth * 2);
             const int sDepth = (depth - 1) / 2;
 
             ctx->excluded = currMove;
