@@ -368,11 +368,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     if constexpr (!isPV) {
         if (ttHit) {
-            if (entry->depth >= depth && 
+            if (entry->depth >= depth &&
                 ((entry->nodeType == PV) ||
                 (entry->nodeType == AllNode && entry->score <= alpha) ||
                 (entry->nodeType == CutNode && entry->score >= beta))) {
-                
+
                 return SearchResults(entry->score, entry->bestMove);
             }
         }
@@ -399,7 +399,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply) {
             // Reverse Futility Pruning
             int margin = 100 * (depth - improving);
-            if (staticEval - margin >= beta && depth < 7) {
+            if (!ttHit && staticEval - margin >= beta && depth < 7) {
                 return (beta + (staticEval - beta) / 3);
             }
 
