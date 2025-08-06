@@ -1,9 +1,7 @@
 #include "uci.h"
 #include <iostream>
-#include <algorithm>
 #include <cstring>
 #include <string>
-#include <thread>
 #include <pthread.h>
 #include <tuple>
 #include "types.h"
@@ -82,7 +80,7 @@ static void* ThreadFunc(void* arg) {
 static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchContext* ctx) {
     pthread_attr_t attr;
     pthread_attr_init(&attr);
-    pthread_attr_setstacksize(&attr, 2 * 1024 * 1024);  // 2 MB stack
+    pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);  // 2 MB stack
 
     pthread_t thread;
 
