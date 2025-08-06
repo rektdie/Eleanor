@@ -2,6 +2,8 @@
 #include <fstream>
 #include <iomanip>
 #include <thread>
+#include <pthread.h>
+#include <tuple>
 #include <atomic>
 #include <mutex>
 #include "datagen.h"
@@ -54,7 +56,7 @@ static bool IsGameOver(Board &board, SEARCH::SearchContext* ctx) {
         bool isLegal = copy.MakeMove(board.moveList[i]);
 
         if (!isLegal) continue;
-        moveSeen++; 
+        moveSeen++;
     }
 
     return moveSeen == 0;
@@ -66,7 +68,7 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext* ctx) {
 
     std::uniform_int_distribution<int> moveDist(0, 1);
     bool plusOne = moveDist(rng);
-    
+
     for (int count = 0; count < RAND_MOVES + plusOne; count++) {
         MOVEGEN::GenerateMoves<All>(board);
 
@@ -141,7 +143,7 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
     while (!stopFlag) {
         Board board;
         auto ctx = std::make_unique<SEARCH::SearchContext>();
-        
+
         PlayRandMoves(board, ctx.get());
         if (IsGameOver(board, ctx.get())) continue;
 
@@ -210,11 +212,31 @@ void Run(int targetPositions, int threads) {
     std::atomic<int> positions = 0;
     std::atomic<bool> stopFlag = false;
 
-    std::vector<std::thread> workerThreads;
+    std::vector<pthread_t> workerThreads;
 
-    // Start N-1 threads
-    for (int i = 0; i < threads-1; i++) {
-        workerThreads.emplace_back(std::thread(PlayGames, i, std::ref(positions), std::ref(stopFlag)));
+    for (int i = 0; i < threads - 1; ++i) {
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_attr_setstacksize(&attr, 2 * 1024 * 1024); // 2 MB stack
+
+        auto* args = new std::tuple<int, std::atomic<int>*, std::atomic<bool>*>(i, &positions, &stopFlag);
+
+        pthread_t thread;
+        if (pthread_create(&thread, &attr,
+            [](void* a) -> void* {
+                auto* tup = static_cast<std::tuple<int, std::atomic<int>*, std::atomic<bool>*>*>(a);
+                PlayGames(std::get<0>(*tup), *std::get<1>(*tup), *std::get<2>(*tup));
+                delete tup;
+                return nullptr;
+            }, args) == 0)
+        {
+            workerThreads.push_back(thread);
+        } else {
+            std::cerr << "Failed to create thread " << i << "\n";
+            delete args;
+        }
+
+        pthread_attr_destroy(&attr);
     }
 
     Stopwatch sw;
@@ -228,14 +250,12 @@ void Run(int targetPositions, int threads) {
 
     stopFlag = true;
 
-    for (auto& thread : workerThreads) {
-        if (thread.joinable()) {
-            thread.join();
-        }
+    for (pthread_t& thread : workerThreads) {
+        pthread_join(thread, nullptr);
     }
 
 
-    #ifdef _WIN32 
+    #ifdef _WIN32
         ShowCursor();
     #else
         ShowCursorLinux();
@@ -278,7 +298,7 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
     std::cout << std::fixed << std::setprecision(0);
 
     std::ostringstream datagenTextStream;
-    datagenTextStream << std::fixed << std::setprecision(2) 
+    datagenTextStream << std::fixed << std::setprecision(2)
                     << "Positions processed: " << positions / 1000.0 << "K | Target: " << targetPositions / 1000.0 << "K";
     std::string datagenText = datagenTextStream.str();
     int datagenPadding = (width - datagenText.length()) / 2;

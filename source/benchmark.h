@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
 
-constexpr int BENCH_DEPTH = 5;
+constexpr int BENCH_DEPTH = 13;
 
 void RunBenchmark();

@@ -4,6 +4,8 @@
 #include <cstring>
 #include <string>
 #include <thread>
+#include <pthread.h>
+#include <tuple>
 #include "types.h"
 #include "movegen.h"
 #include "search.h"
@@ -69,6 +71,33 @@ static int ReadParam(std::string param, std::string &command) {
     return 0;
 }
 
+template <SEARCH::searchMode mode>
+static void* ThreadFunc(void* arg) {
+    auto* tup = static_cast<std::tuple<Board*, SearchParams, SEARCH::SearchContext*>*>(arg);
+    SEARCH::SearchPosition<mode>(*std::get<0>(*tup), std::get<1>(*tup), std::get<2>(*tup));
+    delete tup;
+    return nullptr;
+}
+
+static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchContext* ctx) {
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, 2 * 1024 * 1024);  // 2 MB stack
+
+    pthread_t thread;
+
+    if (params.nodes) {
+        auto* arg = new std::tuple<Board*, SearchParams, SEARCH::SearchContext*>(&board, params, ctx);
+        pthread_create(&thread, &attr, ThreadFunc<SEARCH::nodesMode>, arg);
+    } else {
+        auto* arg = new std::tuple<Board*, SearchParams, SEARCH::SearchContext*>(&board, params, ctx);
+        pthread_create(&thread, &attr, ThreadFunc<SEARCH::normal>, arg);
+    }
+
+    pthread_attr_destroy(&attr);
+    pthread_detach(thread);
+}
+
 static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* ctx) {
     SearchParams params;
 
@@ -87,13 +116,7 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* c
         params.btime = 99999999;
     }
 
-    if (params.nodes) {
-        auto worker = std::thread(SEARCH::SearchPosition<SEARCH::nodesMode>, std::ref(board), params, ctx);
-        worker.detach();
-    } else {
-        auto worker = std::thread(SEARCH::SearchPosition<SEARCH::normal>, std::ref(board), params, ctx);
-        worker.detach();
-    }
+    StartSearchThread(board, params, ctx);
 }
 
 static void SetOption(std::string &command, SEARCH::SearchContext* ctx) {
@@ -136,10 +159,10 @@ void UCILoop(Board &board) {
         // parse UCI "ucinewgame" command
         if (input.find("ucinewgame") != std::string::npos) {
             board.SetByFen(StartingFen);
-            
+
             // Clearing
             ctx->TT.Clear();
-            
+
             ctx->killerMoves = {};
             ctx->history.Clear();
             ctx->conthist.Clear();
@@ -151,7 +174,7 @@ void UCILoop(Board &board) {
 
         // parse UCI "go" command
         if (input.find("go") != std::string::npos) {
-            ParseGo(board, input, ctx.get()); 
+            ParseGo(board, input, ctx.get());
             continue;
         }
 

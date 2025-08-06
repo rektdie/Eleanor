@@ -28,8 +28,8 @@ else
     endif
 endif
 
-CXXFLAGS := -std=c++20 -O0 -flto -Wall -g
-LDFLAGS := -O0 -flto
+CXXFLAGS := -std=c++20 -O3 -flto -Wall
+LDFLAGS := -O3 -flto
 
 ifeq ($(PLATFORM),mac)
     ifeq ($(ARCH),arm64)
