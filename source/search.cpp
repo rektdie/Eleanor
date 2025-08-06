@@ -363,11 +363,12 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (!ctx->excluded)
         entry = ctx->TT.GetRawEntry(board.hashKey);
 
-    const bool ttHit = entry != nullptr && entry->score != invalidEntry;
+    const bool ttHit = entry != nullptr
+        && entry->hashKey == board.hashKey;
 
     if constexpr (!isPV) {
         if (ttHit) {
-            if ((entry->hashKey == board.hashKey && entry->depth >= depth) && 
+            if (entry->depth >= depth && 
                 ((entry->nodeType == PV) ||
                 (entry->nodeType == AllNode && entry->score <= alpha) ||
                 (entry->nodeType == CutNode && entry->score >= beta))) {
