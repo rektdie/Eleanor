@@ -61,9 +61,9 @@ public:
         table.resize(size);
     }
 
-    TTEntry* GetRawEntry(U64 &hashKey) {
+    TTEntry GetRawEntry(U64 &hashKey) {
         TTEntry *current = &table[hashKey % table.size()];
-        return current;
+        return *current;
     }
 
     // returns used space per mill
