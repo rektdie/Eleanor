@@ -43,8 +43,8 @@ int16_t ContHistory::GetTwoPly(Board& board, Move& move, SearchContext* ctx, int
 }
 
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
-    TTEntry *current = ctx->TT.GetRawEntry(board.hashKey);
-    if (current->hashKey == board.hashKey && current->bestMove == move) {
+    TTEntry current = ctx->TT.GetRawEntry(board.hashKey);
+    if (current.hashKey == board.hashKey && current.bestMove == move) {
         return 100000;
     }
 
@@ -271,9 +271,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     ctx->ss[ply].eval = bestScore;
 
     if (!ctx->excluded) {
-        TTEntry *entry = ctx->TT.GetRawEntry(board.hashKey);
-        if (entry->hashKey == board.hashKey) {
-            bestScore = entry->score;
+        TTEntry entry = ctx->TT.GetRawEntry(board.hashKey);
+        if (entry.hashKey == board.hashKey) {
+            bestScore = entry.score;
         }
     }
 
@@ -359,21 +359,20 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (ply && (IsDraw(board, ctx))) return 0;
 
 
-    TTEntry* entry = nullptr;
+    TTEntry entry;
     if (!ctx->excluded)
         entry = ctx->TT.GetRawEntry(board.hashKey);
 
-    const bool ttHit = entry != nullptr
-        && entry->hashKey == board.hashKey;
+    const bool ttHit = entry.hashKey == board.hashKey;
 
     if constexpr (!isPV) {
         if (ttHit) {
-            if (entry->depth >= depth &&
-                ((entry->nodeType == PV) ||
-                (entry->nodeType == AllNode && entry->score <= alpha) ||
-                (entry->nodeType == CutNode && entry->score >= beta))) {
+            if (entry.depth >= depth &&
+                ((entry.nodeType == PV) ||
+                (entry.nodeType == AllNode && entry.score <= alpha) ||
+                (entry.nodeType == CutNode && entry.score >= beta))) {
 
-                return SearchResults(entry->score, entry->bestMove);
+                return SearchResults(entry.score, entry.bestMove);
             }
         }
     }
@@ -488,12 +487,12 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply
             && depth >= 8
             && ttHit
-            && currMove == entry->bestMove
+            && currMove == entry.bestMove
             && ctx->excluded == 0
-            && entry->depth >= depth - 3
-            && entry->nodeType != AllNode)
+            && entry.depth >= depth - 3
+            && entry.nodeType != AllNode)
         {
-            const int sBeta = std::max(-inf + 1, entry->score - depth * 2);
+            const int sBeta = std::max(-inf + 1, entry.score - depth * 2);
             const int sDepth = (depth - 1) / 2;
 
             ctx->excluded = currMove;

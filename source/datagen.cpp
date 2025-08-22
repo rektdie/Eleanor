@@ -217,7 +217,7 @@ void Run(int targetPositions, int threads) {
     for (int i = 0; i < threads - 1; ++i) {
         pthread_attr_t attr;
         pthread_attr_init(&attr);
-        pthread_attr_setstacksize(&attr, 8 * 1024 * 1024); // 2 MB stack
+        pthread_attr_setstacksize(&attr, 8 * 1024 * 1024); // 8 MB stack
 
         auto* args = new std::tuple<int, std::atomic<int>*, std::atomic<bool>*>(i, &positions, &stopFlag);
 

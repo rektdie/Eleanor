@@ -154,7 +154,7 @@ public:
         sw.Restart();
         killerMoves = {};
         ss = {};
-        positionHistory.reserve(1000);
+        positionHistory.resize(1000);
     }
 };
 
