@@ -19,8 +19,8 @@ enum searchMode {
 };
 
 constexpr int MATE_SCORE = 32767;
-constexpr int MAX_DEPTH = 64;
-constexpr int MAX_PLY = 128;
+constexpr int MAX_DEPTH = 128;
+constexpr int MAX_PLY = 512;
 constexpr int MAX_HISTORY = 16384;
 
 constexpr int32_t ScoreNone = -255000;
