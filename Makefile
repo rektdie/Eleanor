@@ -7,16 +7,16 @@ CXX := clang++
 EXE ?= Eleanor
 EVALFILE := ./nnue.bin
 
-UNAME_S := $(shell uname -s)
-ARCH := $(shell uname -m)
-
 ifeq ($(OS),Windows_NT)
+    UNAME_S := Windows
     EXE_EXT := .exe
     MKDIR := mkdir
     RM := rmdir /s /q
     DEL := del /q
     PLATFORM := windows
 else
+    UNAME_S := $(shell uname -s)
+    ARCH := $(shell uname -m)
     EXE_EXT :=
     MKDIR := mkdir -p
     RM := rm -rf

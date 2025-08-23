@@ -2,7 +2,6 @@
 #include <fstream>
 #include <iomanip>
 #include <thread>
-#include <pthread.h>
 #include <tuple>
 #include <atomic>
 #include <mutex>
@@ -12,8 +11,11 @@
 #include "movegen.h"
 #include "utils.h"
 
+// OS-dependent threading includes
 #ifdef _WIN32
-#include <windows.h>
+    #include <windows.h>
+#else
+    #include <pthread.h>
 #endif
 
 #ifdef _WIN32
@@ -32,15 +34,15 @@ static void ShowCursor() {
     cursorInfo.bVisible = TRUE;
     SetConsoleCursorInfo(hConsole, &cursorInfo);
 }
-#endif
-
-static void HideCursorLinux() {
+#else
+static void HideCursor() {
     std::cout << "\033[?25l";
 }
 
-static void ShowCursorLinux() {
+static void ShowCursor() {
     std::cout << "\033[?25h";
 }
+#endif
 
 namespace DATAGEN {
 
@@ -200,18 +202,42 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
     }
 }
 
+#ifdef _WIN32
+// Windows implementation using std::thread
+static void CreateWorkerThread(int id, std::atomic<int>& positions, std::atomic<bool>& stopFlag, std::vector<std::thread>& threads) {
+    threads.emplace_back(PlayGames, id, std::ref(positions), std::ref(stopFlag));
+}
+#else
+// Unix/Linux implementation using pthread
+static void* ThreadFunc(void* arg) {
+    auto* tup = static_cast<std::tuple<int, std::atomic<int>*, std::atomic<bool>*>*>(arg);
+    PlayGames(std::get<0>(*tup), *std::get<1>(*tup), *std::get<2>(*tup));
+    delete tup;
+    return nullptr;
+}
+#endif
+
 void Run(int targetPositions, int threads) {
     #ifdef _WIN32
         system("cls");
         HideCursor();
     #else
         std::cout << "\033[2J\033[H";
-        HideCursorLinux();
+        HideCursor();
     #endif
 
     std::atomic<int> positions = 0;
     std::atomic<bool> stopFlag = false;
 
+#ifdef _WIN32
+    // Windows implementation using std::thread
+    std::vector<std::thread> workerThreads;
+    
+    for (int i = 0; i < threads - 1; ++i) {
+        CreateWorkerThread(i, positions, stopFlag, workerThreads);
+    }
+#else
+    // Unix/Linux implementation using pthread
     std::vector<pthread_t> workerThreads;
 
     for (int i = 0; i < threads - 1; ++i) {
@@ -222,14 +248,7 @@ void Run(int targetPositions, int threads) {
         auto* args = new std::tuple<int, std::atomic<int>*, std::atomic<bool>*>(i, &positions, &stopFlag);
 
         pthread_t thread;
-        if (pthread_create(&thread, &attr,
-            [](void* a) -> void* {
-                auto* tup = static_cast<std::tuple<int, std::atomic<int>*, std::atomic<bool>*>*>(a);
-                PlayGames(std::get<0>(*tup), *std::get<1>(*tup), *std::get<2>(*tup));
-                delete tup;
-                return nullptr;
-            }, args) == 0)
-        {
+        if (pthread_create(&thread, &attr, ThreadFunc, args) == 0) {
             workerThreads.push_back(thread);
         } else {
             std::cerr << "Failed to create thread " << i << "\n";
@@ -238,6 +257,7 @@ void Run(int targetPositions, int threads) {
 
         pthread_attr_destroy(&attr);
     }
+#endif
 
     Stopwatch sw;
     while (positions < targetPositions) {
@@ -245,20 +265,28 @@ void Run(int targetPositions, int threads) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-
     PrintProgress(positions, targetPositions, sw, threads);
 
     stopFlag = true;
 
+#ifdef _WIN32
+    // Join Windows threads
+    for (std::thread& thread : workerThreads) {
+        if (thread.joinable()) {
+            thread.join();
+        }
+    }
+#else
+    // Join pthread threads
     for (pthread_t& thread : workerThreads) {
         pthread_join(thread, nullptr);
     }
-
+#endif
 
     #ifdef _WIN32
         ShowCursor();
     #else
-        ShowCursorLinux();
+        ShowCursor();
     #endif
 }
 
@@ -328,7 +356,7 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
         remainingTime = (targetPositions - positions) / positionsPerSec;
     }
 
-    remainingTime = std::max(0.0, remainingTime);
+    remainingTime = (std::max)(0.0, remainingTime);
 
     int remainingHours = static_cast<int>(remainingTime) / 3600;
     int remainingMinutes = (static_cast<int>(remainingTime) % 3600) / 60;
@@ -370,6 +398,5 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
 
     std::cout << std::endl;
 }
-
 
 }

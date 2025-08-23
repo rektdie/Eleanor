@@ -2,7 +2,6 @@
 #include <iostream>
 #include <cstring>
 #include <string>
-#include <pthread.h>
 #include <tuple>
 #include <memory>
 #include "types.h"
@@ -12,6 +11,13 @@
 #include "perft.h"
 #include "utils.h"
 #include "datagen.h"
+
+// OS-dependent threading includes
+#ifdef _WIN32
+    #include <thread>
+#else
+    #include <pthread.h>
+#endif
 
 static void ParsePosition(Board &board, std::string_view command, SEARCH::SearchContext* ctx) {
     if (command.find("startpos") != std::string::npos) {
@@ -70,6 +76,27 @@ static int ReadParam(std::string param, std::string &command) {
     return 0;
 }
 
+#ifdef _WIN32
+// Windows implementation using std::thread
+template <SEARCH::searchMode mode>
+static void ThreadFunc(Board* board, SearchParams params, SEARCH::SearchContext* ctx) {
+    SEARCH::SearchPosition<mode>(*board, params, ctx);
+}
+
+static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchContext* ctx) {
+    std::thread searchThread;
+    
+    if (params.nodes) {
+        searchThread = std::thread(ThreadFunc<SEARCH::nodesMode>, &board, params, ctx);
+    } else {
+        searchThread = std::thread(ThreadFunc<SEARCH::normal>, &board, params, ctx);
+    }
+    
+    searchThread.detach();
+}
+
+#else
+// Unix/Linux implementation using pthread
 template <SEARCH::searchMode mode>
 static void* ThreadFunc(void* arg) {
     auto* tup = static_cast<std::tuple<Board*, SearchParams, SEARCH::SearchContext*>*>(arg);
@@ -81,7 +108,7 @@ static void* ThreadFunc(void* arg) {
 static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchContext* ctx) {
     pthread_attr_t attr;
     pthread_attr_init(&attr);
-    pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);  // 2 MB stack
+    pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);  // 8 MB stack
 
     pthread_t thread;
 
@@ -96,6 +123,7 @@ static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchC
     pthread_attr_destroy(&attr);
     pthread_detach(thread);
 }
+#endif
 
 static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* ctx) {
     SearchParams params;
