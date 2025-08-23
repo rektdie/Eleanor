@@ -125,7 +125,7 @@ static void SetOption(std::string &command, SEARCH::SearchContext* ctx) {
 }
 
 static void PrintEngineInfo() {
-    std::cout << "id name Eleanor v1.0" << std::endl;
+    std::cout << "id name Eleanor v2.0" << std::endl;
     std::cout << "id author rektdie" << std::endl;
     std::cout << "option name Hash type spin default 8 min 1 max 1024" << std::endl;
     std::cout << "option name Threads type spin default 1 min 1 max 1" << std::endl;
