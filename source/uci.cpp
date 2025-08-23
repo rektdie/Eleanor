@@ -4,6 +4,7 @@
 #include <string>
 #include <pthread.h>
 #include <tuple>
+#include <memory>
 #include "types.h"
 #include "movegen.h"
 #include "search.h"
