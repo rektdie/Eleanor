@@ -1,37 +1,16 @@
 
 <p align="center">
-  <img src="https://i.postimg.cc/NjR2CdBB/Eleanor.png" alt="Eleanor Chess Engine">
+  <img src="https://i.postimg.cc/bvDr095w/image.png" alt="Eleanor Chess Engine" width="300">
 </p>
 
 <h1 align="center">Eleanor Chess Engine</h1>
-
-## Search Features
-
-- Negamax  
-- Quiescent Search  
-- Transposition Table  
-- Move Ordering (TT, SEE + MVV-LVA, Killers, History)  
-- Iterative Deepening  
-  - Aspiration Windows  
-- Principal Variation Search  
-- Reverse Futility Pruning  
-  - Improving  
-- Null Move Pruning  
-- Late Move Reductions  
-  - Log formula  
-  - Cutnode  
-  - History  
-- Late Move Pruning  
-- Futility Pruning  
-- QS SEE Pruning  
-- PVS SEE Pruning  
 
 ## Evaluation
 
 Eleanor uses a **fully neural network-based evaluation function**, entirely trained on self-play data from an initially simple HCE using the [bullet](https://github.com/jw1912/bullet) trainer.  
 
-**Architecture:** `(768 -> 256)x2 -> 1x8`  
-A basic 256-hidden-layer *perspective net* with 8 output buckets.
+**Architecture:** `(768 -> 1024)x2 -> 1x8`  
+A 1024-hidden-layer *perspective net* with 8 output buckets.
 
 ## Installation
 
@@ -73,4 +52,4 @@ The engine can be used in any GUI with **UCI support**.
 
 **The project is a work in progress and actively developed. Contributions are highly appreciated.**
 
-###### Last updated: 2025-06-02
+###### Last updated: 2025-08-24
