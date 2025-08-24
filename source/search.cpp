@@ -398,7 +398,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply) {
             // Reverse Futility Pruning
             int margin = 100 * (depth - improving);
-            if (!ttHit && staticEval - margin >= beta && depth < 7) {
+            if (!ttHit && staticEval - margin >= beta && depth < 8) {
                 return (beta + (staticEval - beta) / 3);
             }
 
