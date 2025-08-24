@@ -1,9 +1,17 @@
-
-<p align="center">
+<div align="center">
+<p>
   <img src="https://i.postimg.cc/bvDr095w/image.png" alt="Eleanor Chess Engine" width="300">
 </p>
 
 <h1 align="center">Eleanor Chess Engine</h1>
+
+| Version | Release Date | [CCRL 40/15](https://www.computerchess.org.uk/ccrl/4040/cgi/compare_engines.cgi?family=Eleanor&print=Rating+list&print=Results+table&print=LOS+table&print=Ponder+hit+table&print=Eval+difference+table&print=Comopp+gamenum+table&print=Overlap+table&print=Score+with+common+opponents) | [CCRL Blitz](https://www.computerchess.org.uk/ccrl/404/cgi/compare_engines.cgi?family=Eleanor&print=Rating+list&print=Results+table&print=LOS+table&print=Ponder+hit+table&print=Eval+difference+table&print=Comopp+gamenum+table&print=Overlap+table&print=Score+with+common+opponents) |
+| --- | --- | --- | --- |
+| 2.0 | 2025-08-23 | 3386? (#87) | ?
+| 1.0 | 2025-06-02 | 2856 (#244) | 2759 (#256)
+
+</div>
+
 
 ## Evaluation
 
