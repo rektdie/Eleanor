@@ -50,6 +50,8 @@ You can interact with the engine via these commands:
 
 The engine can be used in any GUI with **UCI support**.
 
+[Testing site](https://rektdie.pythonanywhere.com/)
+
 ## Sources I Used
 
 - [Stockfish Discord Community](https://discord.com/invite/GWDRS3kU6R) — The best possible source for an engine dev.
