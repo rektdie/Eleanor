@@ -498,9 +498,15 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             ctx->excluded = currMove;
             const int singularScore = PVS<false, mode>(board, sDepth, sBeta-1, sBeta, ply, ctx, cutnode).score;
             ctx->excluded = Move();
-
-            if (singularScore < sBeta)
-                extension = 1;
+            
+            // Singular extension
+            if (singularScore < sBeta) {
+                extension++;
+            }
+            // Negative extension
+            else if (entry.score >= beta) {
+                extension--;
+            }
         }
 
         // PVS SEE
