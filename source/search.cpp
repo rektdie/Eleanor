@@ -461,8 +461,12 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // that a quiet move will help us so we skip them
         int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()];
         
-        if (ply > 0)
+        if (ply > 0) {
             historyScore += ctx->conthist.GetOnePly(board, currMove, ctx, ply);
+            
+            if (ply > 1)
+                historyScore += ctx->conthist.GetTwoPly(board, currMove, ctx, ply);
+        }
         
         int fpMargin = 100 * depth + historyScore / 32;
 
