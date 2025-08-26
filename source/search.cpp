@@ -460,6 +460,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // If our static eval is far below alpha, there is only a small chance
         // that a quiet move will help us so we skip them
         int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()];
+        
+        if (ply > 0)
+            historyScore += ctx->conthist.GetOnePly(board, currMove, ctx, ply);
+        
         int fpMargin = 100 * depth + historyScore / 32;
 
         if (!isPV && ply && currMove.IsQuiet()
