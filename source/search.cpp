@@ -510,6 +510,13 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             // Singular extension
             if (singularScore < sBeta) {
                 extension++;
+
+                if constexpr (!isPV) {
+                    // Double extension
+                    if (singularScore <= sBeta - 1 - 30) {
+                        extension++;
+                    }
+                }
             }
             // Negative extension
             else if (entry.score >= beta) {
