@@ -56,7 +56,8 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             targetType = Pawn;
         }
 
-        return 50000 * ((SEE(board, move, -100))) + (100 * targetType - attackerType + 105);
+        int capthistScore = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
+        return 50000 * ((SEE(board, move, -100))) + (100 * targetType - attackerType + 105) + capthistScore;
     } else {
         if (ctx->killerMoves[0][ply] == move) {
             return 41000;
@@ -434,6 +435,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     int moveSeen = 0;
     std::array<Move, MAX_MOVES> seenQuiets;
+    std::array<Move, MAX_MOVES> seenCaptures;
+
+    int seenCapturesCount = 0;
     int seenQuietsCount = 0;
 
     // For all moves
@@ -570,15 +574,18 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (currMove != 0 && currMove.IsQuiet()) {
             seenQuiets[seenQuietsCount] = currMove;
             seenQuietsCount++;
+        } else if (currMove.IsCapture()) {
+            seenCaptures[seenCapturesCount] = currMove;
+            seenCapturesCount++;
         }
 
         // Fail high (beta cutoff)
         if (score >= beta) {
+            int bonus = 300 * depth - 250;
+
             if (!currMove.IsCapture()) {
                 ctx->killerMoves[1][ply] = ctx->killerMoves[0][ply];
                 ctx->killerMoves[0][ply] = currMove;
-
-                int bonus = 300 * depth - 250;
 
                 ctx->history.Update(board.sideToMove, currMove, bonus);
 
@@ -622,6 +629,26 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
                     ctx->history.Update(board.sideToMove, seenQuiets[moveIndex], -bonus);
                 }
+            } else {
+                // Capthist
+                int movingPT = board.GetPieceType(currMove.MoveFrom());
+                int capturedPT = board.GetPieceType(currMove.MoveTo());
+
+                if (currMove.GetFlags() == epCapture)
+                    capturedPT = Pawn;
+
+                ctx->capthist.Update(board.sideToMove, movingPT, capturedPT, currMove.MoveTo(), bonus);
+            }
+
+            // Capthist malus
+            for (int moveIndex = 0; moveIndex < seenCapturesCount - 1; moveIndex++) {
+                int movingPT = board.GetPieceType(seenCaptures[moveIndex].MoveFrom());
+                int capturedPT = board.GetPieceType(seenCaptures[moveIndex].MoveTo());
+
+                if (seenCaptures[moveIndex].GetFlags() == epCapture)
+                    capturedPT = Pawn;
+
+                ctx->capthist.Update(board.sideToMove, movingPT, capturedPT, seenCaptures[moveIndex].MoveTo(), -bonus);
             }
 
             if (!ctx->excluded)

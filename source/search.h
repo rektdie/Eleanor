@@ -78,6 +78,26 @@ public:
     }
 };
 
+class CaptHistory {
+private:
+    // indexed by [stm][moving piece][captured piece][to square]
+    MultiArray<int, 2, 6, 6, 64> captHistMoves;
+public:
+    void Update(bool stm, int movingPT, int capturedPT, int to, int bonus) {
+        int clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
+        captHistMoves[stm][movingPT][capturedPT][to] +=
+            clampedBonus - captHistMoves[stm][movingPT][capturedPT][to] * std::abs(clampedBonus) / MAX_HISTORY;
+    }
+
+    void Clear() {
+        std::fill(&captHistMoves[0][0][0][0], &captHistMoves[0][0][0][0] + sizeof(captHistMoves) / sizeof(int), 0);
+    }
+
+    auto& operator[](int index) {
+        return captHistMoves[index];
+    }
+};
+
 class PVLine {
 private:
     int length[MAX_PLY] = {};
@@ -135,6 +155,7 @@ public:
     PVLine pvLine;
     History history;
     ContHistory conthist;
+    CaptHistory capthist;
 
     std::array<std::array<int, MAX_PLY>, 2> killerMoves{};
 
@@ -150,6 +171,7 @@ public:
         pvLine.Clear();
         history.Clear();
         conthist.Clear();
+        capthist.Clear();
         TT.Clear();
         sw.Restart();
         killerMoves = {};
