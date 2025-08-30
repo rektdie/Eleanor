@@ -169,6 +169,15 @@ static int32_t VectorizedSCReLU(const Board& board, const Network& net, size_t o
     return reduce_epi32(accumulator);
 }
 
+static int ScaleEval(const Board& board) {
+    return 720 + (board.pieces[Pawn].PopCount() * SEARCH::SEEPieceValues[Pawn] +
+                  board.pieces[Knight].PopCount() * SEARCH::SEEPieceValues[Knight] +
+                  board.pieces[Bishop].PopCount() * SEARCH::SEEPieceValues[Bishop] +
+                  board.pieces[Rook].PopCount() * SEARCH::SEEPieceValues[Rook] +
+                  board.pieces[Queen].PopCount() * SEARCH::SEEPieceValues[Queen]) / 32 -
+                  board.halfMoves * 4;
+}
+
 int Forward(const Board& board, const Network& net) {
     const size_t divisor      = 32 / OUTPUT_BUCKETS;
     const size_t outputBucket = (board.occupied.PopCount() - 2) / divisor;
@@ -182,7 +191,10 @@ int Forward(const Board& board, const Network& net) {
     eval += net.output_bias[outputBucket];
 
 
-    return (eval * SCALE) / (QA * QB);
+    eval = (eval * SCALE) / (QA * QB);
+    eval = eval * ScaleEval(board) / 1024;
+
+    return eval;
 }
 
 int16_t Network::Evaluate(const Board& board) {
