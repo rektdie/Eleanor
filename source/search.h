@@ -50,7 +50,7 @@ public:
         int* entry = &pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE];
 
         const int scaledDiff = diff * CORRHIST_GRAIN;
-        const int newWeight = 4 * std::min(depth + 1, 16);
+        const int newWeight = std::min(depth * depth + 2 * depth + 1, 128);
 
         *entry = (*entry * (CORRHIST_WEIGHT_SCALE - newWeight) + scaledDiff * newWeight) / CORRHIST_WEIGHT_SCALE;
         *entry = std::clamp(*entry, -CORRHIST_MAX, CORRHIST_MAX);
