@@ -527,6 +527,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     // Double extension
                     if (singularScore <= sBeta - 1 - 30) {
                         extension++;
+
+                        // Triple extension
+                        if (singularScore <= sBeta - 1 - 120) {
+                            extension++;
+                        }
                     }
                 }
             }
