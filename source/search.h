@@ -45,10 +45,9 @@ class CorrHist {
 private:
     // indexed by [stm][key]
     MultiArray<int, 2, CORRHIST_SIZE> pawnHist;
+    MultiArray<int, 2, CORRHIST_SIZE> nonPawnHist;
 public:
-    void UpdatePawnHist(Board& board, int depth, int diff) {
-        int* entry = &pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE];
-
+    void Update(Board& board, int depth, int diff, int* entry) {
         const int scaledDiff = diff * CORRHIST_GRAIN;
         const int newWeight = std::min(depth * depth + 2 * depth + 1, 128);
 
@@ -56,12 +55,19 @@ public:
         *entry = std::clamp(*entry, -CORRHIST_MAX, CORRHIST_MAX);
     }
 
-    int GetPawnHist(Board& board) {
-        return pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE];
+    void UpdateAll(Board& board, int depth, int diff) {
+        Update(board, depth, diff, &pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]);
+        Update(board, depth, diff, &nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE]);
     }
 
-    void ClearPawnHist() {
+    int GetAllHist(Board& board) {
+        return pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]
+            +  nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE];
+    }
+
+    void Clear() {
         std::fill(&pawnHist[0][0], &pawnHist[0][0] + sizeof(pawnHist) / sizeof(int), 0);
+        std::fill(&nonPawnHist[0][0], &nonPawnHist[0][0] + sizeof(nonPawnHist) / sizeof(int), 0);
     }
 };
 
@@ -181,7 +187,7 @@ public:
         pvLine.Clear();
         history.Clear();
         conthist.Clear();
-        corrhist.ClearPawnHist();
+        corrhist.Clear();
         TT.Clear();
         sw.Restart();
         killerMoves = {};
