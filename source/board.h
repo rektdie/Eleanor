@@ -40,6 +40,7 @@ public:
 	int fullMoves = 1;
 
     U64 hashKey = 0ULL;
+    U64 pawnKey = 0ULL;
 
 	void Reset();
 	void SetByFen(std::string_view fen);
@@ -56,7 +57,7 @@ public:
 
 	int GetPieceType(int square);
 	int GetPieceColor(int square);
-	
+
 	bool InCheck();
 
 	void SetPiece(int piece, int square, bool color);

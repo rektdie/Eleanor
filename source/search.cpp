@@ -4,6 +4,7 @@
 #include <cmath>
 #include "datagen.h"
 #include "benchmark.h"
+#include "types.h"
 
 namespace SEARCH {
 
@@ -40,6 +41,14 @@ int16_t ContHistory::GetTwoPly(Board& board, Move& move, SearchContext* ctx, int
     bool otherColor = ctx->ss[ply-2].side;
 
     return ctx->conthist[otherColor][prevType][prevTo][board.sideToMove][pieceType][to];
+}
+
+static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
+    int pawnHist = ctx->corrhist.GetPawnHist(board);
+
+    int mateFound = MATE_SCORE - MAX_PLY;
+
+    return std::clamp(eval + pawnHist / CORRHIST_GRAIN, -mateFound + 1, mateFound - 1);
 }
 
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
@@ -270,7 +279,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
 
-    int bestScore = NNUE::net.Evaluate(board);
+    int bestScore = AdjustEval(board, ctx, NNUE::net.Evaluate(board));
     ctx->ss[ply].eval = bestScore;
 
     if (!ctx->excluded) {
@@ -382,7 +391,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
 
-    const int staticEval = NNUE::net.Evaluate(board);
+    const int staticEval = AdjustEval(board, ctx, NNUE::net.Evaluate(board));
     ctx->ss[ply].eval = staticEval;
 
     const bool improving = [&]
@@ -648,8 +657,18 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     }
 
     if (ctx->searchStopped) return 0;
-    if (!ctx->excluded)
+    if (!ctx->excluded) {
+
+        if (!board.InCheck() && ((results.bestMove.IsQuiet() || !results.bestMove))
+                && !(nodeType == AllNode && results.score >= staticEval)) {
+
+            int corrHistBonus = std::clamp(results.score - staticEval, -CORRHIST_LIMIT, CORRHIST_LIMIT);
+
+            ctx->corrhist.UpdatePawnHist(board, depth, corrHistBonus);
+        }
+
         ctx->TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
+    }
     return results;
 }
 
