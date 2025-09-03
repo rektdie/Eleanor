@@ -290,6 +290,8 @@ void Board::RemovePiece(int piece, int square, bool color) {
 
     if (piece == Pawn) {
         pawnKey ^= UTILS::zKeys[color][Pawn][square];
+    } else {
+        nonPawnKey ^= UTILS::zKeys[color][piece][square];
     }
 }
 
