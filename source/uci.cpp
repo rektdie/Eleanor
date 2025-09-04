@@ -180,20 +180,18 @@ static void SetOption(std::string& command, SEARCH::SearchContext* ctx) {
 
     double rawValue = ReadParam("value", command);
 
-    std::cout << rawValue << std::endl;
-
-    #define X_DOUBLE(paramName, default_val, min_val, max_val, step_val) \
+    #define X_DOUBLE(paramName, default_val, min_val, max_val) \
         if (name == #paramName) { \
-            double v = static_cast<double>(rawValue); \
+            double v = rawValue; \
             if (v < min_val) v = min_val; \
             if (v > max_val) v = max_val; \
             paramName = v; \
             return; \
         }
 
-    #define X_INT(paramName, default_val, min_val, max_val, step_val) \
+    #define X_INT(paramName, default_val, min_val, max_val) \
         if (name == #paramName) { \
-            int v = rawValue; \
+            int v = static_cast<int>(rawValue); \
             if (v < min_val) v = min_val; \
             if (v > max_val) v = max_val; \
             paramName = v; \

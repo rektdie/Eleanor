@@ -63,7 +63,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             targetType = Pawn;
         }
 
-        return 50000 * ((SEE(board, move, -100))) + (100 * targetType - attackerType + 105);
+        return 50000 * ((SEE(board, move, seeOrderingThreshold))) + (100 * targetType - attackerType + 105);
     } else {
         if (ctx->killerMoves[0][ply] == move) {
             return 41000;
@@ -157,27 +157,30 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     int reduction = 0;
 
     // Late Move Reduction
-    if (depth >= lmrDepth && moveSeen >= lmrMoveSeen + (lmrMoveSeenPVModifier * isPV) && !move.IsCapture()) {
-        reduction = lmrTable[depth][moveSeen];
+    if (depth >= 3 && moveSeen >= 2 + (2 * isPV) && !move.IsCapture()) {
+        reduction = lmrTable[depth][moveSeen] * 1024;
 
         if (cutnode)
-            reduction += 2;
+            reduction += lmrCutnode;
 
         if constexpr (isPV)
-            reduction--;
+            reduction -= lmrIsPV;
 
         // History LMR
         int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
-
         if (ply > 0)
             historyReduction += ctx->conthist.GetOnePly(board, move, ctx, ply);
 
-        historyReduction /= 8192;
+        reduction /= 1024;
+
+        historyReduction = historyReduction / lmrHistoryDivisor;
+
         reduction -= historyReduction;
     }
 
     return std::clamp(reduction, -1, depth - 1);
 }
+
 
 bool SEE(Board& board, Move& move, int threshold) {
     int from = move.MoveFrom();
@@ -311,7 +314,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         ctx->ss[ply].moveTo = board.moveList[i].MoveTo();
         ctx->ss[ply].side = board.sideToMove;
 
-        if (!SEE(board, board.moveList[i], 0))
+        if (!SEE(board, board.moveList[i], seeQsThreshold))
             continue;
 
         if (copy.positionIndex >= ctx->positionHistory.size()) {
@@ -408,17 +411,17 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply) {
             // Reverse Futility Pruning
             int margin = rfpMargin * (depth - improving);
-            if (!ttHit && staticEval - margin >= beta && depth < rfpDepth) {
+            if (!ttHit && staticEval - margin >= beta && depth < 7) {
                 return (beta + (staticEval - beta) / 3);
             }
 
             // Null Move Pruning
             if (!ctx->doingNullMove && staticEval >= beta) {
-                if (depth > nmpDepth && !board.InPossibleZug()) {
+                if (depth > 1 && !board.InPossibleZug()) {
                     Board copy = board;
                     copy.MakeMove(Move());
 
-                    const int reduction = nmpReduction + improving + depth / 3;
+                    const int reduction = 4 + improving + depth / 3;
 
                     ctx->doingNullMove = true;
                     int score = -PVS<false, mode>(copy, depth - reduction, -beta, -beta + 1, ply + 1, ctx, !cutnode).score;
@@ -457,7 +460,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // that are late in the list
         if (!isPV && !board.InCheck() && currMove.IsQuiet() && notMated) {
 
-            int lmpThreshold = lmpBase + lmpMultiplier * depth;
+            int lmpThreshold = 7 + 4 * depth;
 
             if (moveSeen >= lmpThreshold) {
                 continue;
@@ -479,7 +482,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         int margin = fpMargin * depth + historyScore / 32;
 
         if (!isPV && ply && currMove.IsQuiet()
-                && depth <= fpDepth && staticEval + margin < alpha && notMated) {
+                && depth <= 5 && staticEval + margin < alpha && notMated) {
             continue;
         }
 
@@ -535,7 +538,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // PVS SEE
         int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
 
-        if (ply && depth <= seeDepth && !SEE(board, currMove, SEEThreshold))
+        if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
             continue;
 
         int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, ctx);
@@ -583,7 +586,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 ctx->killerMoves[1][ply] = ctx->killerMoves[0][ply];
                 ctx->killerMoves[0][ply] = currMove;
 
-                int bonus = 300 * depth - 250;
+                int bonus = historyBonusMultiplier * depth - historyBonusSub;
 
                 ctx->history.Update(board.sideToMove, currMove, bonus);
 
@@ -686,7 +689,7 @@ public:
     }
 
     void Set(int score) {
-        delta = 50;
+        delta = aspInitialDelta;
         alpha = score - delta;
         beta = score + delta;
     }
