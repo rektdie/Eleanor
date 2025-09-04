@@ -33,13 +33,19 @@ LDFLAGS := -O3 -flto
 
 ifeq ($(PLATFORM),mac)
     ifeq ($(ARCH),arm64)
-        ARCH_FLAGS :=
+        # Apple Silicon
+        ARCH_FLAGS := -mcpu=apple-m1
     else
         ARCH_FLAGS := -march=native
     endif
 else
-    ARCH_FLAGS := -march=native
-    LDFLAGS += -fuse-ld=lld -static
+    ifeq ($(ARCH),aarch64)
+        # Generic Linux ARM64
+        ARCH_FLAGS := -mcpu=native
+    else
+        ARCH_FLAGS := -march=native
+        LDFLAGS += -fuse-ld=lld -static
+    endif
 endif
 
 CXXFLAGS += $(ARCH_FLAGS)
