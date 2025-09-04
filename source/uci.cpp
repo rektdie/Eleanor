@@ -48,34 +48,43 @@ static void ParsePosition(Board &board, std::string_view command, SEARCH::Search
     MOVEGEN::GenerateMoves<All>(board);
 }
 
-static int ReadParam(std::string param, std::string &command) {
+static double ReadParam(const std::string& param, const std::string &command) {
     size_t pos = command.find(param);
-    if (pos != std::string::npos) {
-        pos += param.length() + 1;
-        bool isNegative = false;
-        std::string result = "";
+    if (pos == std::string::npos)
+        return 0.0;
 
-        // Check for negative sign
-        if (pos < command.length() && command[pos] == '-') {
-            isNegative = true;
-            pos++;
+    pos += param.length() + 1; // skip "param "
+    std::string result;
+
+    // optional sign
+    if (pos < command.length() && (command[pos] == '-' || command[pos] == '+')) {
+        result += command[pos];
+        pos++;
+    }
+
+    // digits and optional decimal point
+    bool decimalSeen = false;
+    while (pos < command.length() && (std::isdigit(command[pos]) || command[pos] == '.')) {
+        if (command[pos] == '.') {
+            if (decimalSeen) break; // only one decimal point
+            decimalSeen = true;
         }
+        result += command[pos++];
+    }
 
-        // Extract digits
-        while (pos < command.length() && std::isdigit(command[pos])) {
-            result += command[pos];
-            pos++;
-        }
-
-        // Ensure result is not empty before calling stoi
-        if (!result.empty()) {
-            int value = std::stoi(result);
-            return isNegative ? -value : value;
+    if (!result.empty()) {
+        try {
+            return std::stod(result);
+        } catch (const std::out_of_range&) {
+            return (result[0] == '-') ? -1e308 : 1e308; // clamp to double range
+        } catch (const std::invalid_argument&) {
+            return 0.0;
         }
     }
 
-    return 0;
+    return 0.0;
 }
+
 
 #ifdef _WIN32
 // Windows implementation using std::thread
@@ -169,7 +178,9 @@ static void SetOption(std::string& command, SEARCH::SearchContext* ctx) {
     name.erase(0, name.find_first_not_of(' '));
     name.erase(name.find_last_not_of(' ') + 1);
 
-    int rawValue = ReadParam("value", command);
+    double rawValue = ReadParam("value", command);
+
+    std::cout << rawValue << std::endl;
 
     #define X_DOUBLE(paramName, default_val, min_val, max_val, step_val) \
         if (name == #paramName) { \
