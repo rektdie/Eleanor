@@ -66,3 +66,25 @@ inline void PrintTunables() {
     #undef X_INT
 }
 
+inline void PrintTunablesUCI() {
+    #define X_DOUBLE(name, default_val, min_val, max_val, step_val) \
+        std::cout << "option name " #name \
+                  << " type string default " << name \
+                  << " min " << min_val \
+                  << " max " << max_val \
+                  << std::endl;
+
+    #define X_INT(name, default_val, min_val, max_val, step_val) \
+        std::cout << "option name " #name \
+                  << " type spin default " << name \
+                  << " min " << min_val \
+                  << " max " << max_val \
+                  << std::endl;
+
+    TUNABLE_LIST
+
+    #undef X_DOUBLE
+    #undef X_INT
+}
+
+
