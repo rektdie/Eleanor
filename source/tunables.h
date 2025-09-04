@@ -47,15 +47,22 @@ TUNABLE_LIST
 
 inline void PrintTunables() {
     #define X_DOUBLE(name, default_val, min_val, max_val, step_val) \
-        std::cout << "option name " #name " type string default " << default_val \
-                  << " min " << min_val << " max " << max_val << " step " << step_val << std::endl;
+        std::cout << #name << ", double, " << name \
+                  << ", " << min_val \
+                  << ", " << max_val \
+                  << ", " << step_val \
+                  << ", 0.002" << std::endl;
 
     #define X_INT(name, default_val, min_val, max_val, step_val) \
-        std::cout << "option name " #name " type spin default " << default_val \
-                  << " min " << min_val << " max " << max_val << " step " << step_val << std::endl;
+        std::cout << #name << ", int, " << name \
+                  << ", " << min_val \
+                  << ", " << max_val \
+                  << ", " << step_val \
+                  << ", 0.002" << std::endl;
 
     TUNABLE_LIST
 
     #undef X_DOUBLE
     #undef X_INT
 }
+
