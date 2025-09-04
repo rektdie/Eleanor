@@ -11,6 +11,7 @@
 #include "perft.h"
 #include "utils.h"
 #include "datagen.h"
+#include "tunables.h"
 
 // OS-dependent threading includes
 #ifdef _WIN32
@@ -146,11 +147,53 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* c
     StartSearchThread(board, params, ctx);
 }
 
-static void SetOption(std::string &command, SEARCH::SearchContext* ctx) {
+static void SetOption(std::string& command, SEARCH::SearchContext* ctx) {
     if (command.find("Hash") != std::string::npos) {
-        U64 hashSize = (ReadParam("value", command) * 1000000) / sizeof(TTEntry);
+        U64 hashSize = (ReadParam("value", command) * 1000000ULL) / sizeof(TTEntry);
         ctx->TT.Resize(hashSize);
+        return;
     }
+
+    #ifdef TUNING
+
+    size_t namePos = command.find("name");
+    if (namePos == std::string::npos)
+        return;
+
+    namePos += 5; // skip "name "
+    size_t valuePos = command.find(" value");
+    if (valuePos == std::string::npos)
+        return;
+
+    std::string name = command.substr(namePos, valuePos - namePos);
+    name.erase(0, name.find_first_not_of(' '));
+    name.erase(name.find_last_not_of(' ') + 1);
+
+    int rawValue = ReadParam("value", command);
+
+    #define X_DOUBLE(paramName, default_val, min_val, max_val, step_val) \
+        if (name == #paramName) { \
+            double v = static_cast<double>(rawValue); \
+            if (v < min_val) v = min_val; \
+            if (v > max_val) v = max_val; \
+            paramName = v; \
+            return; \
+        }
+
+    #define X_INT(paramName, default_val, min_val, max_val, step_val) \
+        if (name == #paramName) { \
+            int v = rawValue; \
+            if (v < min_val) v = min_val; \
+            if (v > max_val) v = max_val; \
+            paramName = v; \
+            return; \
+        }
+
+    TUNABLE_LIST
+
+    #undef X_DOUBLE
+    #undef X_INT
+    #endif
 }
 
 static void PrintEngineInfo() {
@@ -254,6 +297,11 @@ void UCILoop(Board &board) {
 
         if (input.find("nnue") != std::string::npos) {
             board.PrintNNUE();
+            continue;
+        }
+
+        if (input.find("tunables") != std::string::npos) {
+            PrintTunables();
             continue;
         }
 

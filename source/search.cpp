@@ -5,6 +5,7 @@
 #include "datagen.h"
 #include "benchmark.h"
 #include "types.h"
+#include "tunables.h"
 
 namespace SEARCH {
 
@@ -14,10 +15,7 @@ void InitLMRTable() {
             if (depth == 0 || move == 0) {
                 lmrTable[depth][move] = 0;
             } else {
-                double base = 0.77;
-                double divisor = 2.36;
-
-                lmrTable[depth][move] = std::floor(base + std::log(depth) * std::log(move) / divisor);
+                lmrTable[depth][move] = std::floor(lmrBase + std::log(depth) * std::log(move) / lmrDivisor);
             }
         }
     }
@@ -159,7 +157,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     int reduction = 0;
 
     // Late Move Reduction
-    if (depth >= 3 && moveSeen >= 2 + (2 * isPV) && !move.IsCapture()) {
+    if (depth >= lmrDepth && moveSeen >= lmrMoveSeen + (lmrMoveSeenPVModifier * isPV) && !move.IsCapture()) {
         reduction = lmrTable[depth][moveSeen];
 
         if (cutnode)
@@ -409,18 +407,18 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (!board.InCheck() && !ctx->excluded) {
         if (ply) {
             // Reverse Futility Pruning
-            int margin = 100 * (depth - improving);
-            if (!ttHit && staticEval - margin >= beta && depth < 7) {
+            int margin = rfpMargin * (depth - improving);
+            if (!ttHit && staticEval - margin >= beta && depth < rfpDepth) {
                 return (beta + (staticEval - beta) / 3);
             }
 
             // Null Move Pruning
             if (!ctx->doingNullMove && staticEval >= beta) {
-                if (depth > 1 && !board.InPossibleZug()) {
+                if (depth > nmpDepth && !board.InPossibleZug()) {
                     Board copy = board;
                     copy.MakeMove(Move());
 
-                    const int reduction = 4 + improving + depth / 3;
+                    const int reduction = nmpReduction + improving + depth / 3;
 
                     ctx->doingNullMove = true;
                     int score = -PVS<false, mode>(copy, depth - reduction, -beta, -beta + 1, ply + 1, ctx, !cutnode).score;
@@ -458,10 +456,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // If we are near a leaf node we prune moves
         // that are late in the list
         if (!isPV && !board.InCheck() && currMove.IsQuiet() && notMated) {
-            int lmpBase = 7;
 
-
-            int lmpThreshold = lmpBase + 4 * depth;
+            int lmpThreshold = lmpBase + lmpMultiplier * depth;
 
             if (moveSeen >= lmpThreshold) {
                 continue;
@@ -480,10 +476,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 historyScore += ctx->conthist.GetTwoPly(board, currMove, ctx, ply);
         }
         
-        int fpMargin = 100 * depth + historyScore / 32;
+        int margin = fpMargin * depth + historyScore / 32;
 
         if (!isPV && ply && currMove.IsQuiet()
-                && depth <= 5 && staticEval + fpMargin < alpha && notMated) {
+                && depth <= fpDepth && staticEval + margin < alpha && notMated) {
             continue;
         }
 
@@ -525,7 +521,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                 if constexpr (!isPV) {
                     // Double extension
-                    if (singularScore <= sBeta - 1 - 30) {
+                    if (singularScore <= sBeta - 1 - doubleExtMargin) {
                         extension++;
                     }
                 }
@@ -537,9 +533,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
 
         // PVS SEE
-        int SEEThreshold = currMove.IsQuiet() ? -80 * depth : -30 * depth * depth;
+        int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
 
-        if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
+        if (ply && depth <= seeDepth && !SEE(board, currMove, SEEThreshold))
             continue;
 
         int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, ctx);
@@ -674,7 +670,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
 class AspirationWindow {
 public:
-    int delta = 50;
+    int delta = aspInitialDelta;
 
     int alpha = -inf;
     int beta = inf;
