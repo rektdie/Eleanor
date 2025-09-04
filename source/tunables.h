@@ -47,7 +47,7 @@ TUNABLE_LIST
 
 inline void PrintTunables() {
     #define X_DOUBLE(name, default_val, min_val, max_val, step_val) \
-        std::cout << #name << ", double, " << name \
+        std::cout << #name << ", float, " << name \
                   << ", " << min_val \
                   << ", " << max_val \
                   << ", " << step_val \
