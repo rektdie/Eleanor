@@ -11,6 +11,7 @@
     X_INT(lmrCutnode, 2048, 1024, 3072) \
     X_INT(lmrIsPV, 1024, 512, 2048) \
     X_INT(lmrHistoryDivisor, 8192, 6000, 10000) \
+    X_INT(lmrImproving, 1024, 6000, 10000) \
     X_INT(rfpMargin, 100, 50, 200) \
     X_INT(fpMargin, 100, 50, 200) \
     X_INT(doubleExtMargin, 30, 10, 60) \
