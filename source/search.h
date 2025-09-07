@@ -5,6 +5,7 @@
 #include "move.h"
 #include <algorithm>
 #include "stopwatch.h"
+#include "tunables.h"
 #include "tt.h"
 
 #include "../external/multi_array.h"
@@ -34,9 +35,15 @@ constexpr int inf = 100000;
 
 inline int lmrTable[MAX_DEPTH+1][MAX_MOVES];
 
-constexpr std::array<int, 6> SEEPieceValues = {
-    100, 300, 350, 500, 900, 0
+#ifdef TUNING
+inline std::array<int, 6> SEEPieceValues = {
+    seePawnValue, seeKnightValue, seeBishopValue, seeRookValue, seeQueenValue, 0
 };
+#else
+constexpr std::array<int, 6> SEEPieceValues = {
+    seePawnValue, seeKnightValue, seeBishopValue, seeRookValue, seeQueenValue, 0
+};
+#endif
 
 void InitLMRTable();
 class SearchContext;

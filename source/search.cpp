@@ -5,6 +5,7 @@
 #include "datagen.h"
 #include "benchmark.h"
 #include "types.h"
+#include "tunables.h"
 
 namespace SEARCH {
 
@@ -14,10 +15,7 @@ void InitLMRTable() {
             if (depth == 0 || move == 0) {
                 lmrTable[depth][move] = 0;
             } else {
-                double base = 0.77;
-                double divisor = 2.36;
-
-                lmrTable[depth][move] = std::floor(base + std::log(depth) * std::log(move) / divisor);
+                lmrTable[depth][move] = std::floor(lmrBase + std::log(depth) * std::log(move) / lmrDivisor);
             }
         }
     }
@@ -65,7 +63,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             targetType = Pawn;
         }
 
-        return 50000 * ((SEE(board, move, -100))) + (100 * targetType - attackerType + 105);
+        return 50000 * ((SEE(board, move, seeOrderingThreshold))) + (100 * targetType - attackerType + 105);
     } else {
         if (ctx->killerMoves[0][ply] == move) {
             return 41000;
@@ -160,26 +158,29 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
 
     // Late Move Reduction
     if (depth >= 3 && moveSeen >= 2 + (2 * isPV) && !move.IsCapture()) {
-        reduction = lmrTable[depth][moveSeen];
+        reduction = lmrTable[depth][moveSeen] * 1024;
 
         if (cutnode)
-            reduction += 2;
+            reduction += lmrCutnode;
 
         if constexpr (isPV)
-            reduction--;
+            reduction -= lmrIsPV;
 
         // History LMR
         int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
-
         if (ply > 0)
             historyReduction += ctx->conthist.GetOnePly(board, move, ctx, ply);
 
-        historyReduction /= 8192;
+        reduction /= 1024;
+
+        historyReduction = historyReduction / lmrHistoryDivisor;
+
         reduction -= historyReduction;
     }
 
     return std::clamp(reduction, -1, depth - 1);
 }
+
 
 bool SEE(Board& board, Move& move, int threshold) {
     int from = move.MoveFrom();
@@ -313,7 +314,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         ctx->ss[ply].moveTo = board.moveList[i].MoveTo();
         ctx->ss[ply].side = board.sideToMove;
 
-        if (!SEE(board, board.moveList[i], 0))
+        if (!SEE(board, board.moveList[i], seeQsThreshold))
             continue;
 
         if (copy.positionIndex >= ctx->positionHistory.size()) {
@@ -409,7 +410,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (!board.InCheck() && !ctx->excluded) {
         if (ply) {
             // Reverse Futility Pruning
-            int margin = 100 * (depth - improving);
+            int margin = rfpMargin * (depth - improving);
             if (!ttHit && staticEval - margin >= beta && depth < 7) {
                 return (beta + (staticEval - beta) / 3);
             }
@@ -458,10 +459,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // If we are near a leaf node we prune moves
         // that are late in the list
         if (!isPV && !board.InCheck() && currMove.IsQuiet() && notMated) {
-            int lmpBase = 7;
 
-
-            int lmpThreshold = lmpBase + 4 * depth;
+            int lmpThreshold = 7 + 4 * depth;
 
             if (moveSeen >= lmpThreshold) {
                 continue;
@@ -480,10 +479,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 historyScore += ctx->conthist.GetTwoPly(board, currMove, ctx, ply);
         }
         
-        int fpMargin = 100 * depth + historyScore / 32;
+        int margin = fpMargin * depth + historyScore / 32;
 
         if (!isPV && ply && currMove.IsQuiet()
-                && depth <= 5 && staticEval + fpMargin < alpha && notMated) {
+                && depth <= 5 && staticEval + margin < alpha && notMated) {
             continue;
         }
 
@@ -525,7 +524,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                 if constexpr (!isPV) {
                     // Double extension
-                    if (singularScore <= sBeta - 1 - 30) {
+                    if (singularScore <= sBeta - 1 - doubleExtMargin) {
                         extension++;
                     }
                 }
@@ -537,7 +536,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
 
         // PVS SEE
-        int SEEThreshold = currMove.IsQuiet() ? -80 * depth : -30 * depth * depth;
+        int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
 
         if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
             continue;
@@ -587,7 +586,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 ctx->killerMoves[1][ply] = ctx->killerMoves[0][ply];
                 ctx->killerMoves[0][ply] = currMove;
 
-                int bonus = 300 * depth - 250;
+                int bonus = historyBonusMultiplier * depth - historyBonusSub;
 
                 ctx->history.Update(board.sideToMove, currMove, bonus);
 
@@ -674,7 +673,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
 class AspirationWindow {
 public:
-    int delta = 50;
+    int delta = aspInitialDelta;
 
     int alpha = -inf;
     int beta = inf;
@@ -690,7 +689,7 @@ public:
     }
 
     void Set(int score) {
-        delta = 50;
+        delta = aspInitialDelta;
         alpha = score - delta;
         beta = score + delta;
     }

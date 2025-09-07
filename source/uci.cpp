@@ -11,6 +11,7 @@
 #include "perft.h"
 #include "utils.h"
 #include "datagen.h"
+#include "tunables.h"
 
 // OS-dependent threading includes
 #ifdef _WIN32
@@ -47,34 +48,43 @@ static void ParsePosition(Board &board, std::string_view command, SEARCH::Search
     MOVEGEN::GenerateMoves<All>(board);
 }
 
-static int ReadParam(std::string param, std::string &command) {
+static double ReadParam(const std::string& param, const std::string &command) {
     size_t pos = command.find(param);
-    if (pos != std::string::npos) {
-        pos += param.length() + 1;
-        bool isNegative = false;
-        std::string result = "";
+    if (pos == std::string::npos)
+        return 0.0;
 
-        // Check for negative sign
-        if (pos < command.length() && command[pos] == '-') {
-            isNegative = true;
-            pos++;
+    pos += param.length() + 1; // skip "param "
+    std::string result;
+
+    // optional sign
+    if (pos < command.length() && (command[pos] == '-' || command[pos] == '+')) {
+        result += command[pos];
+        pos++;
+    }
+
+    // digits and optional decimal point
+    bool decimalSeen = false;
+    while (pos < command.length() && (std::isdigit(command[pos]) || command[pos] == '.')) {
+        if (command[pos] == '.') {
+            if (decimalSeen) break; // only one decimal point
+            decimalSeen = true;
         }
+        result += command[pos++];
+    }
 
-        // Extract digits
-        while (pos < command.length() && std::isdigit(command[pos])) {
-            result += command[pos];
-            pos++;
-        }
-
-        // Ensure result is not empty before calling stoi
-        if (!result.empty()) {
-            int value = std::stoi(result);
-            return isNegative ? -value : value;
+    if (!result.empty()) {
+        try {
+            return std::stod(result);
+        } catch (const std::out_of_range&) {
+            return (result[0] == '-') ? -1e308 : 1e308; // clamp to double range
+        } catch (const std::invalid_argument&) {
+            return 0.0;
         }
     }
 
-    return 0;
+    return 0.0;
 }
+
 
 #ifdef _WIN32
 // Windows implementation using std::thread
@@ -146,11 +156,53 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* c
     StartSearchThread(board, params, ctx);
 }
 
-static void SetOption(std::string &command, SEARCH::SearchContext* ctx) {
+static void SetOption(std::string& command, SEARCH::SearchContext* ctx) {
     if (command.find("Hash") != std::string::npos) {
-        U64 hashSize = (ReadParam("value", command) * 1000000) / sizeof(TTEntry);
+        U64 hashSize = (ReadParam("value", command) * 1000000ULL) / sizeof(TTEntry);
         ctx->TT.Resize(hashSize);
+        return;
     }
+
+    #ifdef TUNING
+
+    size_t namePos = command.find("name");
+    if (namePos == std::string::npos)
+        return;
+
+    namePos += 5; // skip "name "
+    size_t valuePos = command.find(" value");
+    if (valuePos == std::string::npos)
+        return;
+
+    std::string name = command.substr(namePos, valuePos - namePos);
+    name.erase(0, name.find_first_not_of(' '));
+    name.erase(name.find_last_not_of(' ') + 1);
+
+    double rawValue = ReadParam("value", command);
+
+    #define X_DOUBLE(paramName, default_val, min_val, max_val) \
+        if (name == #paramName) { \
+            double v = rawValue; \
+            if (v < min_val) v = min_val; \
+            if (v > max_val) v = max_val; \
+            paramName = v; \
+            return; \
+        }
+
+    #define X_INT(paramName, default_val, min_val, max_val) \
+        if (name == #paramName) { \
+            int v = static_cast<int>(rawValue); \
+            if (v < min_val) v = min_val; \
+            if (v > max_val) v = max_val; \
+            paramName = v; \
+            return; \
+        }
+
+    TUNABLE_LIST
+
+    #undef X_DOUBLE
+    #undef X_INT
+    #endif
 }
 
 static void PrintEngineInfo() {
@@ -158,6 +210,11 @@ static void PrintEngineInfo() {
     std::cout << "id author rektdie" << std::endl;
     std::cout << "option name Hash type spin default 8 min 1 max 1024" << std::endl;
     std::cout << "option name Threads type spin default 1 min 1 max 1" << std::endl;
+
+    #ifdef TUNING
+        PrintTunablesUCI();
+    #endif
+
     std::cout << "uciok" << std::endl;
 }
 
@@ -254,6 +311,11 @@ void UCILoop(Board &board) {
 
         if (input.find("nnue") != std::string::npos) {
             board.PrintNNUE();
+            continue;
+        }
+
+        if (input.find("tunables") != std::string::npos) {
+            PrintTunables();
             continue;
         }
 
