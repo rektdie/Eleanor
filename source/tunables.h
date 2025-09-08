@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-#define TUNING
+//#define TUNING
 
 #define AUTO_STEP(min_val, max_val) ((max_val - min_val) / 20.0)
 
