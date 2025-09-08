@@ -723,6 +723,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
     for (int depth = 1; depth <= toDepth; depth++) {
         ctx->timeToSearch = std::max((fullTime / movesToGo) + (inc / 2), 4);
         int softTime = ctx->timeToSearch * 0.65;
+        ctx->seldepth = 0;
 
         SearchResults currentResults = PVS<true, mode>(board, depth, aw.alpha, aw.beta, 0, ctx, false);
         elapsed = ctx->sw.GetElapsedMS();
