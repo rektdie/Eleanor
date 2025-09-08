@@ -482,7 +482,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 historyScore += ctx->conthist.GetTwoPly(board, currMove, ctx, ply);
         }
         
-        int margin = fpMargin * depth + historyScore / 32;
+        int margin = fpMargin * (depth + improving) + historyScore / 32;
 
         if (!isPV && ply && currMove.IsQuiet()
                 && depth <= 5 && staticEval + margin < alpha && notMated) {
