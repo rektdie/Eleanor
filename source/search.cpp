@@ -157,7 +157,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     int reduction = 0;
 
     // Late Move Reduction
-    if (depth >= 3 && moveSeen >= 2 + (2 * isPV) && !move.IsCapture()) {
+    if (depth >= 2 && moveSeen >= 2 + (2 * isPV) && !move.IsCapture()) {
         reduction = lmrTable[depth][moveSeen] * 1024;
 
         if (cutnode)
