@@ -42,11 +42,11 @@ int16_t ContHistory::GetTwoPly(Board& board, Move& move, SearchContext* ctx, int
 }
 
 static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
-    int pawnHist = ctx->corrhist.GetPawnHist(board);
+    int corrhist = ctx->corrhist.GetAllHist(board);
 
     int mateFound = MATE_SCORE - MAX_PLY;
 
-    return std::clamp(eval + pawnHist / CORRHIST_GRAIN, -mateFound + 1, mateFound - 1);
+    return std::clamp(eval + corrhist / CORRHIST_GRAIN, -mateFound + 1, mateFound - 1);
 }
 
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
@@ -666,7 +666,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
             int corrHistBonus = std::clamp(results.score - staticEval, -CORRHIST_LIMIT, CORRHIST_LIMIT);
 
-            ctx->corrhist.UpdatePawnHist(board, depth, corrHistBonus);
+            ctx->corrhist.UpdateAll(board, depth, corrHistBonus);
         }
 
         ctx->TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
