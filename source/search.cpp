@@ -463,7 +463,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // that are late in the list
         if (currMove.IsQuiet() && notMated) {
 
-            int lmpThreshold = 7 + depth * depth * (1 + improving);
+            int lmpThreshold = 5 + depth * depth * (1 + improving);
 
             if (moveSeen >= lmpThreshold) {
                 continue;
