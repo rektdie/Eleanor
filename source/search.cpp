@@ -413,7 +413,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (!board.InCheck() && !ctx->excluded) {
         if (ply) {
             // Reverse Futility Pruning
-            int margin = rfpMargin * (depth - improving);
+            int margin = rfpBase + rfpMargin * (depth - improving);
             if (!ttHit && staticEval - margin >= beta && depth < 7) {
                 return (beta + (staticEval - beta) / 3);
             }
