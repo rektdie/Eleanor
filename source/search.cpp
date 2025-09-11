@@ -647,6 +647,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             alpha = score;
             results.bestMove = currMove;
             ctx->pvLine.SetMove(ply, currMove);
+            
+            depth--;
         }
     }
 
