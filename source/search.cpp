@@ -647,8 +647,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             alpha = score;
             results.bestMove = currMove;
             ctx->pvLine.SetMove(ply, currMove);
-            
-            depth--;
+
+            if (depth > 4 && depth < 13 && std::abs(results.score) < MATE_SCORE) {
+                depth--;
+            }
         }
     }
 
