@@ -50,7 +50,7 @@ public:
 
 	void PrintNNUE();
 
-	Bitboard GetThreats(bool side);
+	Bitboard GetThreats();
 
 	void AddMove(Move move);
 	void ResetMoves();

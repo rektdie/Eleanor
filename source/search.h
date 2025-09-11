@@ -66,13 +66,13 @@ public:
     void UpdateAll(Board& board, int depth, int diff) {
         Update(board, depth, diff, &pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]);
         Update(board, depth, diff, &nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE]);
-        Update(board, depth, diff, &threatsHist[board.sideToMove][board.GetThreats(board.sideToMove) % CORRHIST_SIZE]);
+        Update(board, depth, diff, &threatsHist[board.sideToMove][board.GetThreats() % CORRHIST_SIZE]);
     }
 
     int GetAllHist(Board& board) {
         return pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]
             +  nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE]
-            +  threatsHist[board.sideToMove][board.GetThreats(board.sideToMove) % CORRHIST_SIZE];
+            +  threatsHist[board.sideToMove][board.GetThreats() % CORRHIST_SIZE];
     }
 
     void Clear() {

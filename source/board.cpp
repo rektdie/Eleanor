@@ -232,8 +232,9 @@ void Board::ResetMoves() {
     currentMoveIndex = 0;
 }
 
-Bitboard Board::GetThreats(bool side) {
-    return (colorThreats[side] & colors[!side]);
+Bitboard Board::GetThreats() {
+	return (colorThreats[White] & colors[Black])
+		|  (colorThreats[Black] & colors[White]);
 }
 
 void Board::ListMoves() {
