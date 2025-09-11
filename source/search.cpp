@@ -169,6 +169,11 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
         if (!improving)
             reduction += lmrImproving;
 
+        if (ctx->killerMoves[0][ply] == move
+            || ctx->killerMoves[1][ply] == move) {
+            reduction -= lmrKiller;
+        }
+
         // History LMR
         int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
         if (ply > 0)
