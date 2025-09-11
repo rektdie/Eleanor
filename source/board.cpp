@@ -232,6 +232,10 @@ void Board::ResetMoves() {
     currentMoveIndex = 0;
 }
 
+Bitboard Board::GetThreats(bool side) {
+    return (colorThreats[side] & colors[!side]);
+}
+
 void Board::ListMoves() {
 	int moveCount = 1;
 	for (int i = 0; i < currentMoveIndex; i++) {

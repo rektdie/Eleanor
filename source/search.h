@@ -53,6 +53,7 @@ private:
     // indexed by [stm][key]
     MultiArray<int, 2, CORRHIST_SIZE> pawnHist;
     MultiArray<int, 2, CORRHIST_SIZE> nonPawnHist;
+    MultiArray<int, 2, CORRHIST_SIZE> threatsHist;
 public:
     void Update(Board& board, int depth, int diff, int* entry) {
         const int scaledDiff = diff * CORRHIST_GRAIN;
@@ -65,16 +66,19 @@ public:
     void UpdateAll(Board& board, int depth, int diff) {
         Update(board, depth, diff, &pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]);
         Update(board, depth, diff, &nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE]);
+        Update(board, depth, diff, &threatsHist[board.sideToMove][board.GetThreats(board.sideToMove) % CORRHIST_SIZE]);
     }
 
     int GetAllHist(Board& board) {
         return pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]
-            +  nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE];
+            +  nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE]
+            +  threatsHist[board.sideToMove][board.GetThreats(board.sideToMove) % CORRHIST_SIZE];
     }
 
     void Clear() {
         std::fill(&pawnHist[0][0], &pawnHist[0][0] + sizeof(pawnHist) / sizeof(int), 0);
         std::fill(&nonPawnHist[0][0], &nonPawnHist[0][0] + sizeof(nonPawnHist) / sizeof(int), 0);
+        std::fill(&threatsHist[0][0], &threatsHist[0][0] + sizeof(threatsHist) / sizeof(int), 0);
     }
 };
 
