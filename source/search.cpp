@@ -469,7 +469,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // that are late in the list
         if (currMove.IsQuiet() && notMated) {
 
-            int lmpThreshold = 7 + lmrDepth * lmrDepth * (1 + improving);
+            int lmpThreshold = 7 + depth * depth * (1 + improving);
 
             if (moveSeen >= lmpThreshold) {
                 continue;
@@ -487,10 +487,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 historyScore += ctx->conthist.GetTwoPly(board, currMove, ctx, ply);
         }
         
-        int margin = fpMargin * (depth + improving) + historyScore / 32;
+        int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
 
         if (!isPV && ply && currMove.IsQuiet()
-                && depth <= 5 && staticEval + margin < alpha && notMated) {
+                && lmrDepth <= 5 && staticEval + margin < alpha && notMated) {
             continue;
         }
 
