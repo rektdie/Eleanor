@@ -166,8 +166,11 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
         if constexpr (isPV)
             reduction -= lmrIsPV;
     
-        if (!improving)
+        if (!improving) {
             reduction += lmrImproving;
+        } else {
+            reduction -= lmrImproving;
+        }
 
         // History LMR
         int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
