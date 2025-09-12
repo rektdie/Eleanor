@@ -489,6 +489,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             continue;
         }
 
+        // Quiet History Pruning
+        if (depth <= 4 && !board.InCheck() && currMove.IsQuiet() && historyScore < depth * depth * -2048) {
+            break;
+        }
+
         Board copy = board;
         bool isLegal = copy.MakeMove(currMove);
 
