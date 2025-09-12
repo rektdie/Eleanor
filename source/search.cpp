@@ -181,7 +181,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
         reduction -= historyReduction;
     }
 
-    return std::clamp(reduction, -1, depth - 1);
+    return std::clamp(reduction, -2, depth - 1);
 }
 
 
