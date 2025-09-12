@@ -456,14 +456,20 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ctx->excluded == currMove)
             continue;
 
+        int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()];
+
         bool notMated = results.score > (-MATE_SCORE + MAX_PLY);
+
+        int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, ctx);
+
+        int lmrDepth = std::max(0, depth - reductions);
 
         // Late move pruning
         // If we are near a leaf node we prune moves
         // that are late in the list
         if (currMove.IsQuiet() && notMated) {
 
-            int lmpThreshold = 7 + depth * depth * (1 + improving);
+            int lmpThreshold = 7 + lmrDepth * lmrDepth * (1 + improving);
 
             if (moveSeen >= lmpThreshold) {
                 continue;
@@ -473,7 +479,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // Futility pruning
         // If our static eval is far below alpha, there is only a small chance
         // that a quiet move will help us so we skip them
-        int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()];
         
         if (ply > 0) {
             historyScore += ctx->conthist.GetOnePly(board, currMove, ctx, ply);
@@ -544,7 +549,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
             continue;
 
-        int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, ctx);
 
         int newDepth = depth + copy.InCheck() - 1 + extension;
 
