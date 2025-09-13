@@ -532,6 +532,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     }
                 }
             }
+            // Multicut
+            else if (sBeta >= beta) {
+                return sBeta;
+            }
             // Negative extension
             else if (entry.score >= beta) {
                 extension--;
