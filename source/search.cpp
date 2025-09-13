@@ -584,7 +584,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         // Root
         if (!ply) {
-            ctx->nodesTable[currMove & 4095] += ctx->nodes - nodesBeforeSearch;
+            ctx->nodesTable[currMove % 4096] += ctx->nodes - nodesBeforeSearch;
         }
 
         if (ctx->searchStopped) return 0;
@@ -711,7 +711,7 @@ public:
 
 static double ScaleTime(SearchContext *ctx, Move &move) {
     double notBmNodesFraction = 
-       ctx->nodesTable[move & 4095] / ctx->nodes;
+       ctx->nodesTable[move % 4096] / double(ctx->nodes);
     double nodeScalingFactor = (1.5f - notBmNodesFraction) * 1.35f;
     
     return nodeScalingFactor;
