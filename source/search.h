@@ -168,6 +168,8 @@ public:
     U64 nodesToGo = 0;
     int timeToSearch = 0;
 
+    std::array<U64, 4096> nodesTable{};
+
     int seldepth = 0;
 
     Move excluded = Move();

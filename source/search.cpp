@@ -552,6 +552,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         int newDepth = depth + copy.InCheck() - 1 + extension;
 
+        U64 nodesBeforeSearch = ctx->nodes;
+
         // First move (suspected PV node)
         if (!moveSeen) {
             // Full search
@@ -579,6 +581,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
 
         moveSeen++;
+
+        // Root
+        if (!ply) {
+            ctx->nodesTable[currMove & 4095] += ctx->nodes - nodesBeforeSearch;
+        }
 
         if (ctx->searchStopped) return 0;
 
@@ -702,6 +709,14 @@ public:
     }
 };
 
+static double ScaleTime(SearchContext *ctx, Move &move) {
+    double notBmNodesFraction = 
+       ctx->nodesTable[move & 4095] / ctx->nodes;
+    double nodeScalingFactor = (1.5f - notBmNodesFraction) * 1.35f;
+    
+    return nodeScalingFactor;
+}
+
 // Iterative deepening
 template <searchMode mode>
 static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
@@ -722,14 +737,17 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 
     int elapsed = 0;
 
+    double nodeScaling = 1;
+
     ctx->sw.Restart();
 
     for (int depth = 1; depth <= toDepth; depth++) {
         ctx->timeToSearch = std::max((fullTime / movesToGo) + (inc / 2), 4);
-        int softTime = ctx->timeToSearch * 0.65;
+        int softTime = ctx->timeToSearch * 0.65 * nodeScaling;
         ctx->seldepth = 0;
 
         SearchResults currentResults = PVS<true, mode>(board, depth, aw.alpha, aw.beta, 0, ctx, false);
+        nodeScaling = ScaleTime(ctx, currentResults.bestMove);
         elapsed = ctx->sw.GetElapsedMS();
 
         if (aw.alpha != -inf && currentResults.score <= aw.alpha) {
@@ -786,6 +804,7 @@ template <searchMode mode>
 SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* ctx) {
     ctx->searchStopped = false;
     ctx->seldepth = 0;
+    ctx->nodesTable = {};
     if constexpr (mode != bench) {
         ctx->nodes = 0;
 
