@@ -171,8 +171,12 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
 
         // History LMR
         int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
-        if (ply > 0)
+        if (ply > 0) {
             historyReduction += ctx->conthist.GetOnePly(board, move, ctx, ply);
+
+            if (ply > 1)
+                historyReduction += ctx->conthist.GetTwoPly(board, move, ctx, ply);
+        }
 
         reduction /= 1024;
 
