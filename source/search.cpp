@@ -747,8 +747,12 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
         ctx->seldepth = 0;
 
         SearchResults currentResults = PVS<true, mode>(board, depth, aw.alpha, aw.beta, 0, ctx, false);
-        nodeScaling = ScaleTime(ctx, currentResults.bestMove);
+
         elapsed = ctx->sw.GetElapsedMS();
+
+        if (depth > 6) {
+            nodeScaling = ScaleTime(ctx, currentResults.bestMove);
+        }
 
         if (aw.alpha != -inf && currentResults.score <= aw.alpha) {
             aw.WidenDown();
