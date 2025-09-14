@@ -779,7 +779,17 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
                 std::cout << "depth " << depth;
                 std::cout << " seldepth " << ctx->seldepth;
                 std::cout << " time " << elapsed;
-                std::cout << " score cp " << safeResults.score;
+                std::cout << " score ";
+
+                if (std::abs(safeResults.score) + MAX_PLY >= MATE_SCORE) {
+                    int mateIn = (MATE_SCORE - (std::abs(safeResults.score) - 1)) / 2;
+                    mateIn  = safeResults.score < 0 ? mateIn * -1 : mateIn;
+
+                    std::cout << "mate " << mateIn;
+                } else {
+                    std::cout << "cp " << safeResults.score;
+                }
+
                 std::cout << " nodes " << ctx->nodes << " nps " << int(ctx->nodes/ctx->sw.GetElapsedSec());
                 std::cout << " hashfull " << ctx->TT.GetUsedPercentage();
                 std::cout << " pv ";
