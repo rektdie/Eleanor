@@ -329,6 +329,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         }
         ctx->positionHistory[copy.positionIndex] = copy.hashKey;
         ctx->nodes++;
+
+        ctx->TT.PrefetchEntry(copy.hashKey);
+
         int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1, ctx).score;
 
         if (score >= beta) {
@@ -430,6 +433,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                     const int reduction = 4 + improving + depth / 3;
 
+                    ctx->TT.PrefetchEntry(copy.hashKey);
+
                     ctx->doingNullMove = true;
                     int score = -PVS<false, mode>(copy, depth - reduction, -beta, -beta + 1, ply + 1, ctx, !cutnode).score;
                     ctx->doingNullMove = false;
@@ -507,6 +512,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
         ctx->positionHistory[copy.positionIndex] = copy.hashKey;
         ctx->nodes++;
+
+        ctx->TT.PrefetchEntry(copy.hashKey);
 
         int extension = 0;
 
