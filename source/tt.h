@@ -61,6 +61,10 @@ public:
         table.resize(size);
     }
 
+    void PrefetchEntry(U64 &hashKey) {
+        __builtin_prefetch(&table[hashKey % table.size()]);
+    }
+
     TTEntry GetRawEntry(U64 &hashKey) {
         TTEntry *current = &table[hashKey % table.size()];
         return *current;
