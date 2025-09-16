@@ -70,7 +70,10 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
         } else if (ctx->killerMoves[1][ply] == move) {
             return 40000;
         } else {
-            int historyScore = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
+            bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
+            bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
+
+            int historyScore = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
             int conthistScore = 0;
 
             if (ply > 0) {
@@ -169,8 +172,11 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
         if (!improving)
             reduction += lmrImproving;
 
+        bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
+        bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
+
         // History LMR
-        int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
+        int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
         if (ply > 0) {
             historyReduction += ctx->conthist.GetOnePly(board, move, ctx, ply);
 
@@ -479,10 +485,13 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
         }
 
+        bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveFrom());
+        bool targetThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveTo());
+
         // Futility pruning
         // If our static eval is far below alpha, there is only a small chance
         // that a quiet move will help us so we skip them
-        int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()];
+        int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()][sourceThreatened][targetThreatened];
         
         if (ply > 0) {
             historyScore += ctx->conthist.GetOnePly(board, currMove, ctx, ply);
@@ -615,7 +624,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                 int bonus = historyBonusMultiplier * depth - historyBonusSub;
 
-                ctx->history.Update(board.sideToMove, currMove, bonus);
+                ctx->history.Update(board.sideToMove, currMove, sourceThreatened, targetThreatened, bonus);
 
                 if (ply > 0) {
                     int prevType = ctx->ss[ply-1].pieceType;
@@ -655,7 +664,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                 // Malus
                 for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
-                    ctx->history.Update(board.sideToMove, seenQuiets[moveIndex], -bonus);
+                    sourceThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[moveIndex].MoveFrom());
+                    targetThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[moveIndex].MoveTo());
+
+                    ctx->history.Update(board.sideToMove, seenQuiets[moveIndex], sourceThreatened, targetThreatened, -bonus);
                 }
             }
 

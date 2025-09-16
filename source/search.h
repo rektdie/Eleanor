@@ -104,16 +104,17 @@ public:
 
 class History {
 private:
-    MultiArray<int, 2, 64, 64> historyMoves;
+    // indexed by [stm][from][to][threatenedSource][threatenedTarget]
+    MultiArray<int, 2, 64, 64, 2, 2> historyMoves;
 public:
-    void Update(bool stm, Move move, int bonus) {
+    void Update(bool stm, Move move, bool source, bool target, int bonus) {
         int clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
-        historyMoves[stm][move.MoveFrom()][move.MoveTo()] +=
-            clampedBonus - historyMoves[stm][move.MoveFrom()][move.MoveTo()] * std::abs(clampedBonus) / MAX_HISTORY;
+        historyMoves[stm][move.MoveFrom()][move.MoveTo()][source][target] +=
+            clampedBonus - historyMoves[stm][move.MoveFrom()][move.MoveTo()][source][target] * std::abs(clampedBonus) / MAX_HISTORY;
     }
 
     void Clear() {
-        std::fill(&historyMoves[0][0][0], &historyMoves[0][0][0] + sizeof(historyMoves) / sizeof(int), 0);
+        std::fill(&historyMoves[0][0][0][0][0], &historyMoves[0][0][0][0][0] + sizeof(historyMoves) / sizeof(int), 0);
     }
 
     auto& operator[](int index) {

@@ -553,3 +553,7 @@ Bitboard Board::AttacksTo(int square, Bitboard occupancy) {
 
     return attacks;
 }
+
+bool Board::IsSquareThreatened(bool side, int square) {
+	return colorThreats[!side].IsSet(square);
+}
