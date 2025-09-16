@@ -550,6 +550,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             // Negative extension
             else if (entry.score >= beta) {
                 extension--;
+            } else if (cutnode) {
+                extension--;
             }
         }
 
