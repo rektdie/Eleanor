@@ -73,6 +73,12 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             int historyScore = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()];
             int conthistScore = 0;
 
+            bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
+            bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
+
+            int threatsScore = 
+                ctx->threatsHist[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
+
             if (ply > 0) {
                 conthistScore = ctx->conthist.GetOnePly(board, move, ctx, ply);
                 /*
@@ -82,7 +88,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
                 */
             }
 
-            return 20000 + historyScore + conthistScore;
+            return 20000 + historyScore + conthistScore + threatsScore;
         }
     }
 
@@ -616,6 +622,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 int bonus = historyBonusMultiplier * depth - historyBonusSub;
 
                 ctx->history.Update(board.sideToMove, currMove, bonus);
+                ctx->threatsHist.Update(board.sideToMove, currMove,
+                    board.IsSquareThreatened(board.sideToMove, currMove.MoveFrom()),
+                    board.IsSquareThreatened(board.sideToMove, currMove.MoveTo()), bonus);
 
                 if (ply > 0) {
                     int prevType = ctx->ss[ply-1].pieceType;
@@ -656,6 +665,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 // Malus
                 for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
                     ctx->history.Update(board.sideToMove, seenQuiets[moveIndex], -bonus);
+
+                    ctx->threatsHist.Update(board.sideToMove, currMove,
+                        board.IsSquareThreatened(board.sideToMove, currMove.MoveFrom()),
+                        board.IsSquareThreatened(board.sideToMove, currMove.MoveTo()), bonus);
                 }
             }
 

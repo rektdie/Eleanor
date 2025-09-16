@@ -102,6 +102,26 @@ public:
     }
 };
 
+class ThreatsHistory {
+private:
+    // indexed by [stm][from][to][threatSource][threatTarget]
+    MultiArray<int, 2, 64, 64, 2, 2> historyMoves;
+public:
+    void Update(bool stm, Move move, bool source, bool target, int bonus) {
+        int clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
+        historyMoves[stm][move.MoveFrom()][move.MoveTo()][source][target] +=
+            clampedBonus - historyMoves[stm][move.MoveFrom()][move.MoveTo()][source][target] * std::abs(clampedBonus) / MAX_HISTORY;
+    }
+
+    void Clear() {
+        std::fill(&historyMoves[0][0][0][0][0], &historyMoves[0][0][0][0][0] + sizeof(historyMoves) / sizeof(int), 0);
+    }
+
+    auto& operator[](int index) {
+        return historyMoves[index];
+    }
+};
+
 class History {
 private:
     MultiArray<int, 2, 64, 64> historyMoves;
@@ -179,6 +199,7 @@ public:
 
     PVLine pvLine;
     History history;
+    ThreatsHistory threatsHist;
     ContHistory conthist;
     CorrHist corrhist;
 
@@ -195,6 +216,7 @@ public:
     SearchContext(){
         pvLine.Clear();
         history.Clear();
+        threatsHist.Clear();
         conthist.Clear();
         corrhist.Clear();
         TT.Clear();

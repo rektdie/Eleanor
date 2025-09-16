@@ -70,4 +70,6 @@ public:
     bool InPossibleZug();
 
     Bitboard AttacksTo(int square, Bitboard occupancy);
+
+    bool IsSquareThreatened(bool side, int square);
 };
