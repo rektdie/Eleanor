@@ -78,11 +78,10 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
 
             if (ply > 0) {
                 conthistScore = ctx->conthist.GetOnePly(board, move, ctx, ply);
-                /*
+                
                 if (ply > 1) {
                     conthistScore += ctx->conthist.GetTwoPly(board, move, ctx, ply);
                 }
-                */
             }
 
             return 20000 + historyScore + conthistScore;
