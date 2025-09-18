@@ -366,6 +366,28 @@ bool Board::MakeMove(Move move) {
 	// Removing attacker piece from old position
 	RemovePiece(attackerPiece, move.MoveFrom(), attackerColor);
 
+	if (move.IsPromo()) {
+		if (move.IsCapture()) {
+			endPiece = move.GetFlags() - 9;
+			Promote(move.MoveTo(), endPiece, sideToMove, true);
+		} else {
+			endPiece = move.GetFlags() - 5;
+			Promote(move.MoveTo(), endPiece, sideToMove, false);
+		}
+	}
+
+	if (move.IsCapture()) {
+		if (move.GetFlags() != epCapture) {
+			accPair.addSubSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, move.MoveTo(), targetPiece);
+		} else {
+			accPair.addSubSub(sideToMove, enPassantTarget, endPiece, move.MoveFrom(), attackerPiece, move.MoveTo() - direction, Pawn);
+		}
+	} else {
+		if (move.GetFlags() != kingCastle && move.GetFlags() != queenCastle) {
+			accPair.addSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece);
+		}
+	}
+
 	switch (move.GetFlags())
 	{
 	case quiet:
@@ -419,33 +441,6 @@ bool Board::MakeMove(Move move) {
 		break;
 	}
 
-	if (move.IsPromo()) {
-		if (move.IsCapture()) {
-			endPiece = move.GetFlags() - 9;
-			Promote(move.MoveTo(), endPiece, sideToMove, true);
-		} else {
-			endPiece = move.GetFlags() - 5;
-			Promote(move.MoveTo(), endPiece, sideToMove, false);
-		}
-	}
-
-	if (attackerPiece == King && (move.MoveFrom() % 8) > 3) {
-		accPair.mirrored = !accPair.mirrored;
-		ResetAccPair();
-	}
-
-	if (move.IsCapture()) {
-		if (move.GetFlags() != epCapture) {
-			accPair.addSubSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, move.MoveTo(), targetPiece);
-		} else {
-			accPair.addSubSub(sideToMove, enPassantTarget, endPiece, move.MoveFrom(), attackerPiece, move.MoveTo() - direction, Pawn);
-		}
-	} else {
-		if (move.GetFlags() != kingCastle && move.GetFlags() != queenCastle) {
-			accPair.addSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece);
-		}
-	}
-
 	// Removing the right to castle on king and rook movement
 	UpdateCastlingRights(*this, move.MoveFrom(), attackerPiece, attackerColor);
 
@@ -479,6 +474,12 @@ bool Board::MakeMove(Move move) {
 	}
 
     positionIndex++;
+
+    if (attackerPiece == King && (move.MoveFrom() % 8) > 3) {
+		accPair.mirrored = !accPair.mirrored;
+	}
+
+	ResetAccPair();
 
     return true;
 }
