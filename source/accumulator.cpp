@@ -12,7 +12,7 @@ int CalculateIndex(bool perspective, bool side, int pieceType, int square, bool 
     }
     
     if (mirrored)
-        square = (square / 8) * 8 + (7 - (square % 8));
+        square ^= 7;
 
     return side * 64 * 6 + pieceType * 64 + square;
 }
