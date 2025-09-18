@@ -444,6 +444,16 @@ bool Board::MakeMove(Move move) {
 	// Removing the right to castle on king and rook movement
 	UpdateCastlingRights(*this, move.MoveFrom(), attackerPiece, attackerColor);
 
+	if (attackerPiece == King) {
+	    const int toFile = move.MoveTo() % 8;
+
+	    if ((toFile > 3) != accPair.mirrored) {
+	        accPair.mirrored = !accPair.mirrored;
+	    }
+	}
+
+	ResetAccPair();
+
 	sideToMove = !attackerColor;
     hashKey ^= UTILS::zSide;
 
@@ -474,16 +484,6 @@ bool Board::MakeMove(Move move) {
 	}
 
     positionIndex++;
-
-    if (attackerPiece == King) {
-	    const int toFile = move.MoveTo() % 8;
-
-	    if ((toFile > 3) != accPair.mirrored) {
-	        accPair.mirrored = !accPair.mirrored;
-	    }
-	}
-
-	ResetAccPair();
 
     return true;
 }
