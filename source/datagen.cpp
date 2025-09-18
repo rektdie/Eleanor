@@ -133,14 +133,10 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
 
     const int evenityMargin = 200;
 
-    /*
-    const int winAdjMoveCount = 3;
-    const int winAdjScore = 400;
-
-    const int drawAdjMoveNumber = 40;
-    const int drawAdjMoveCount = 8;
-    const int drawAdjScore = 10;
-    */
+    constexpr int ADJ_WIN_PLY_THRESHOLD = 4;
+    constexpr int ADJ_WIN_SCORE_THRESHOLD = 2000;
+    constexpr int ADJ_DRAW_PLY_THRESHOLD = 10;
+    constexpr int ADJ_DRAW_SCORE_THRESHOLD = 10;
 
     while (!stopFlag) {
         Board board;
@@ -164,6 +160,11 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
         int staticEval = UTILS::ConvertToWhiteRelative(board, NNUE::net.Evaluate(board));
         int wdl = 1;
 
+        int winCount = 0;
+        int drawCount = 0;
+
+        bool adjDone = false;
+
         while (!IsGameOver(board, ctx.get())) {
             SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx.get());
 
@@ -172,6 +173,19 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
 
             game.moves.emplace_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(),
                     UTILS::ConvertToWhiteRelative(board, results.score)));
+
+            winCount = std::abs(safeResults.score) >= ADJ_WIN_SCORE_THRESHOLD ? winCount + 1 : 0;
+            drawCount = std::abs(safeResults.score) <= ADJ_DRAW_SCORE_THRESHOLD ? drawCount + 1 : 0;
+
+            if (winCount == ADJ_WIN_PLY_THRESHOLD) {
+                wdl = safeResults.score < 0 ? 0 : 2;
+                adjDone = true;
+                break;
+            }
+            if (drawCount == ADJ_DRAW_PLY_THRESHOLD) {
+                adjDone = true;
+                break;
+            }
 
             board.MakeMove(results.bestMove);
             ctx->positionHistory[board.positionIndex] = board.hashKey;
@@ -182,7 +196,7 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
             MOVEGEN::GenerateMoves<All>(board);
         }
 
-        if (!SEARCH::IsDraw(board, ctx.get())) {
+        if (!adjDone && !SEARCH::IsDraw(board, ctx.get())) {
             wdl = board.sideToMove ? 2 : 0;
         }
 
