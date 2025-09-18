@@ -389,13 +389,13 @@ bool Board::MakeMove(Move move) {
 
 	if (move.IsCapture()) {
 		if (move.GetFlags() != epCapture) {
-			//accPair.addSubSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, move.MoveTo(), targetPiece);
+			accPair.addSubSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, move.MoveTo(), targetPiece);
 		} else {
-			//accPair.addSubSub(sideToMove, enPassantTarget, endPiece, move.MoveFrom(), attackerPiece, move.MoveTo() - direction, Pawn);
+			accPair.addSubSub(sideToMove, enPassantTarget, endPiece, move.MoveFrom(), attackerPiece, move.MoveTo() - direction, Pawn);
 		}
 	} else {
 		if (move.GetFlags() != kingCastle && move.GetFlags() != queenCastle) {
-			//accPair.addSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece);
+			accPair.addSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece);
 		}
 	}
 
@@ -431,7 +431,7 @@ bool Board::MakeMove(Move move) {
 
 			SetPiece(attackerPiece, move.MoveTo(), attackerColor);
 
-			//accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare - 2, Rook, move.MoveFrom(), King, rookSquare, Rook);
+			accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare - 2, Rook, move.MoveFrom(), King, rookSquare, Rook);
 			break;
 		}
 	case queenCastle:
@@ -445,15 +445,12 @@ bool Board::MakeMove(Move move) {
 			SetPiece(Rook, rookSquare + 3, attackerColor);
 
 			SetPiece(attackerPiece, move.MoveTo(), attackerColor);
-			//accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare + 3, Rook, move.MoveFrom(), King, rookSquare, Rook);
+			accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare + 3, Rook, move.MoveFrom(), King, rookSquare, Rook);
 			break;
 		}
 	default:
 		break;
 	}
-
-	// Removing the right to castle on king and rook movement
-	UpdateCastlingRights(*this, move.MoveFrom(), attackerPiece, attackerColor);
 
 	if (attackerPiece == King) {
 	    const int toFile = move.MoveTo() % 8;
@@ -461,17 +458,19 @@ bool Board::MakeMove(Move move) {
 	    if (attackerColor == White) {
 	    	if ((toFile > 3) != accPair.mirroredWhite) {
 		        accPair.mirroredWhite = !accPair.mirroredWhite;
+                ResetAccPair();
 		    }
 	    } else {
 	    	if ((toFile > 3) != accPair.mirroredBlack) {
 		        accPair.mirroredBlack = !accPair.mirroredBlack;
+                ResetAccPair();
 		    }
 	    }
-
-	    
 	}
 
-	ResetAccPair();
+	// Removing the right to castle on king and rook movement
+	UpdateCastlingRights(*this, move.MoveFrom(), attackerPiece, attackerColor);
+
 
 	sideToMove = !attackerColor;
     hashKey ^= UTILS::zSide;
