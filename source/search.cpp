@@ -855,7 +855,7 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* c
 
     SearchResults results = ID<mode>(board, params, ctx);
 
-    if constexpr (mode != normal) return results;
+    if constexpr (mode != normal && mode != nodesMode) return results;
 
     std::cout << "bestmove ";
     results.bestMove.PrintMove();
