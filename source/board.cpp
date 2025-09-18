@@ -85,6 +85,17 @@ void Board::SetByFen(std::string_view fen) {
     hashKey = UTILS::GetHashKey(*this);
 	MOVEGEN::GenThreatMaps(*this);
 	MOVEGEN::GenerateMoves<All>(*this);
+
+	int whiteKingFile = (pieces[King] & colors[White]).getLS1BIndex() % 8;
+	int blackKingFile = (pieces[King] & colors[Black]).getLS1BIndex() % 8;
+
+    if (whiteKingFile > 3) {
+    	accPair.mirroredWhite = true;
+    }
+    if (blackKingFile > 3) {
+    	accPair.mirroredBlack = true;
+    }
+
 	ResetAccPair();
 }
 
