@@ -475,8 +475,12 @@ bool Board::MakeMove(Move move) {
 
     positionIndex++;
 
-    if (attackerPiece == King && (move.MoveFrom() % 8) > 3) {
-		accPair.mirrored = !accPair.mirrored;
+    if (attackerPiece == King) {
+	    const int toFile = move.MoveTo() % 8;
+
+	    if ((toFile > 3) != accPair.mirrored) {
+	        accPair.mirrored = !accPair.mirrored;
+	    }
 	}
 
 	ResetAccPair();
