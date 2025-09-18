@@ -447,9 +447,17 @@ bool Board::MakeMove(Move move) {
 	if (attackerPiece == King) {
 	    const int toFile = move.MoveTo() % 8;
 
-	    if ((toFile > 3) != accPair.mirrored) {
-	        accPair.mirrored = !accPair.mirrored;
+	    if (attackerColor == White) {
+	    	if ((toFile > 3) != accPair.mirroredWhite) {
+		        accPair.mirroredWhite = !accPair.mirroredWhite;
+		    }
+	    } else {
+	    	if ((toFile > 3) != accPair.mirroredBlack) {
+		        accPair.mirroredBlack = !accPair.mirroredBlack;
+		    }
 	    }
+
+	    
 	}
 
 	ResetAccPair();
@@ -509,8 +517,8 @@ void Board::ResetAccPair() {
 	while (whitePieces) {
 		int square = whitePieces.getLS1BIndex();
 
-		int wInput = ACC::CalculateIndex(White, White, GetPieceType(square), square, accPair.mirrored);
-		int bInput = ACC::CalculateIndex(Black, White, GetPieceType(square), square, accPair.mirrored);
+		int wInput = ACC::CalculateIndex(White, White, GetPieceType(square), square, accPair.mirroredWhite);
+		int bInput = ACC::CalculateIndex(Black, White, GetPieceType(square), square, accPair.mirroredBlack);
 
 		for (int i = 0; i < NNUE::HL_SIZE; i++) {
 			accPair.white[i] += NNUE::net.accumulator_weights[wInput * NNUE::HL_SIZE + i];
@@ -523,8 +531,8 @@ void Board::ResetAccPair() {
 	while (blackPieces) {
 		int square = blackPieces.getLS1BIndex();
 
-		int wInput = ACC::CalculateIndex(White, Black, GetPieceType(square), square, accPair.mirrored);
-		int bInput = ACC::CalculateIndex(Black, Black, GetPieceType(square), square, accPair.mirrored);
+		int wInput = ACC::CalculateIndex(White, Black, GetPieceType(square), square, accPair.mirroredWhite);
+		int bInput = ACC::CalculateIndex(Black, Black, GetPieceType(square), square, accPair.mirroredBlack);
 
 		for (int i = 0; i < NNUE::HL_SIZE; i++) {
 			accPair.white[i] += NNUE::net.accumulator_weights[wInput * NNUE::HL_SIZE + i];

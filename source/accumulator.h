@@ -9,7 +9,8 @@ struct AccumulatorPair {
     alignas(32) Accumulator white;
     alignas(32) Accumulator black;
 
-    bool mirrored = false;
+    bool mirroredWhite = false;
+    bool mirroredBlack = false;
 
     // yoinked from Quinniboi - Prelude
     void addSub(bool stm, int add, int addPT, int sub, int subPT);
