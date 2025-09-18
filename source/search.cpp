@@ -28,7 +28,10 @@ int16_t ContHistory::GetOnePly(Board& board, Move& move, SearchContext* ctx, int
     int to = move.MoveTo();
     bool otherColor = ctx->ss[ply-1].side;
 
-    return ctx->conthist[otherColor][prevType][prevTo][board.sideToMove][pieceType][to];
+    bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
+    bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
+
+    return ctx->conthist[otherColor][prevType][prevTo][board.sideToMove][pieceType][to][sourceThreatened][targetThreatened];
 }
 
 int16_t ContHistory::GetTwoPly(Board& board, Move& move, SearchContext* ctx, int ply) {
@@ -38,7 +41,11 @@ int16_t ContHistory::GetTwoPly(Board& board, Move& move, SearchContext* ctx, int
     int to = move.MoveTo();
     bool otherColor = ctx->ss[ply-2].side;
 
-    return ctx->conthist[otherColor][prevType][prevTo][board.sideToMove][pieceType][to];
+
+    bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
+    bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
+
+    return ctx->conthist[otherColor][prevType][prevTo][board.sideToMove][pieceType][to][sourceThreatened][targetThreatened];
 }
 
 static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
@@ -633,14 +640,20 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     int to = ctx->ss[ply].moveTo;
                     bool otherColor = ctx->ss[ply-1].side;
 
-                    ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, bonus);
+                    bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveFrom());
+                    bool targetThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveTo());
+
+                    ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, sourceThreatened, targetThreatened, bonus);
 
                     // Malus
                     for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
                         int pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
                         int to = seenQuiets[moveIndex].MoveTo();
 
-                        ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, -bonus);
+                        sourceThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[moveIndex].MoveFrom());
+                        targetThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[moveIndex].MoveTo());
+
+                        ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, sourceThreatened, targetThreatened, -bonus);
                     }
 
                     if (ply > 1) {
@@ -648,14 +661,20 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                         prevTo = ctx->ss[ply-2].moveTo;
                         otherColor = ctx->ss[ply-2].side;
 
-                        ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, bonus);
+                        sourceThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveFrom());
+                        targetThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveTo());
+
+                        ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, sourceThreatened, targetThreatened, bonus);
 
                         // Malus
                         for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
                             int pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
                             int to = seenQuiets[moveIndex].MoveTo();
 
-                            ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, -bonus);
+                            sourceThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[moveIndex].MoveFrom());
+                            targetThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[moveIndex].MoveTo());
+
+                            ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, sourceThreatened, targetThreatened, -bonus);
                         }
 
                     }
