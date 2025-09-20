@@ -312,6 +312,8 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         alpha = bestScore;
     }
 
+    const int fpScore = bestScore + 100;
+
     MOVEGEN::GenerateMoves<Noisy>(board);
 
     SortMoves(board, ply, ctx);
@@ -319,6 +321,14 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     SearchResults results;
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
+        // QS FP
+        if (!board.InCheck() && board.moveList[i].IsCapture() &&
+            fpScore <= alpha && !SEE(board, board.moveList[i], 1)) {
+
+            bestScore = std::max(bestScore, fpScore);
+            continue;
+        }
+
         Board copy = board;
         int isLegal = copy.MakeMove(board.moveList[i]);
         if (!isLegal) continue;
