@@ -267,7 +267,7 @@ bool SEE(Board& board, Move& move, int threshold) {
     return board.sideToMove != color;
 }
 
-template <searchMode mode>
+template <bool isPV, searchMode mode>
 static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext* ctx) {
     if constexpr (mode != nodesMode)  {
         if constexpr (mode != bench) {
@@ -298,7 +298,22 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     if (!ctx->excluded) {
         TTEntry entry = ctx->TT.GetRawEntry(board.hashKey);
-        if (entry.hashKey == board.hashKey) {
+
+        const bool ttHit = entry.hashKey == board.hashKey;
+
+        // TT cutoff
+        if constexpr (!isPV) {
+            if (ttHit) {
+                if ((entry.nodeType == PV) ||
+                         (entry.nodeType == AllNode && entry.score <= alpha) ||
+                         (entry.nodeType == CutNode && entry.score >= beta)) {
+
+                    return SearchResults(entry.score, entry.bestMove);
+                }
+            }
+        }
+
+        if (ttHit) {
             bestScore = entry.score;
         }
     }
@@ -350,7 +365,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
         ctx->TT.PrefetchEntry(copy.hashKey);
 
-        int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1, ctx).score;
+        int score = -Quiescence<isPV, mode>(copy, -beta, -alpha, ply + 1, ctx).score;
 
         if (score >= beta) {
             if (!ctx->excluded) {
@@ -425,7 +440,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
     }
 
-    if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
+    if (depth <= 0) return Quiescence<isPV, mode>(board, alpha, beta, ply, ctx);
 
     const int staticEval = AdjustEval(board, ctx, NNUE::net.Evaluate(board));
     ctx->ss[ply].eval = staticEval;
