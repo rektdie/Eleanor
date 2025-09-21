@@ -320,6 +320,8 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     SearchResults results;
 
+    int nodeType = AllNode;
+
     for (int i = 0; i < board.currentMoveIndex; i++) {
         // QS FP
         if (!board.InCheck() && board.moveList[i].IsCapture() &&
@@ -351,12 +353,16 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1, ctx).score;
 
         if (score >= beta) {
+            if (!ctx->excluded) {
+                ctx->TT.WriteEntry(board.hashKey, 0, score, CutNode, board.moveList[i]);
+            }
             return score;
         }
 
         bestScore = std::max(score, bestScore);
 
         if (score > alpha) {
+            nodeType = PV;
             alpha = score;
             results.bestMove = board.moveList[i];
         }
@@ -364,6 +370,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     results.score = bestScore;
     if (ctx->searchStopped) return 0;
+    if (!ctx->excluded) {
+        ctx->TT.WriteEntry(board.hashKey, 0, results.score, nodeType, results.bestMove);
+    }
     return results;
 }
 
