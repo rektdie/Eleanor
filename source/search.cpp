@@ -156,7 +156,7 @@ bool IsDraw(Board &board, SearchContext* ctx) {
 }
 
 template <bool isPV>
-static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, bool improving, SearchContext* ctx) {
+static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, bool improving, bool ttPV, SearchContext* ctx) {
     int reduction = 0;
 
     // Late Move Reduction
@@ -168,6 +168,9 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
 
         if constexpr (isPV)
             reduction -= lmrIsPV;
+
+        if (ttPV)
+            reduction -= lmrTTPV;
     
         if (!improving)
             reduction += lmrImproving;
@@ -267,7 +270,7 @@ bool SEE(Board& board, Move& move, int threshold) {
     return board.sideToMove != color;
 }
 
-template <searchMode mode>
+template <bool isPV, searchMode mode>
 static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext* ctx) {
     if constexpr (mode != nodesMode)  {
         if constexpr (mode != bench) {
@@ -296,13 +299,13 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     int bestScore = AdjustEval(board, ctx, NNUE::net.Evaluate(board));
     ctx->ss[ply].eval = bestScore;
 
-    if (!ctx->excluded) {
-        TTEntry entry = ctx->TT.GetRawEntry(board.hashKey);
-        if (entry.hashKey == board.hashKey) {
-            bestScore = entry.score;
-        }
-    }
+    TTEntry entry;
+    if (!ctx->excluded)
+        entry = ctx->TT.GetRawEntry(board.hashKey);
 
+    const bool ttHit = entry.hashKey == board.hashKey;
+
+    const bool ttPV = isPV || (ttHit && entry.ttPV);
 
     if (bestScore >= beta) {
         return bestScore;
@@ -350,11 +353,11 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
         ctx->TT.PrefetchEntry(copy.hashKey);
 
-        int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1, ctx).score;
+        int score = -Quiescence<isPV, mode>(copy, -beta, -alpha, ply + 1, ctx).score;
 
         if (score >= beta) {
             if (!ctx->excluded) {
-                ctx->TT.WriteEntry(board.hashKey, 0, score, CutNode, board.moveList[i]);
+                ctx->TT.WriteEntry(board.hashKey, 0, score, CutNode, ttPV, board.moveList[i]);
             }
             return score;
         }
@@ -371,7 +374,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     results.score = bestScore;
     if (ctx->searchStopped) return 0;
     if (!ctx->excluded) {
-        ctx->TT.WriteEntry(board.hashKey, 0, results.score, nodeType, results.bestMove);
+        ctx->TT.WriteEntry(board.hashKey, 0, results.score, nodeType, ttPV, results.bestMove);
     }
     return results;
 }
@@ -413,6 +416,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     const bool ttHit = entry.hashKey == board.hashKey;
 
+    const bool ttPV = isPV || (ttHit && entry.ttPV);
+
     if constexpr (!isPV) {
         if (ttHit) {
             if (entry.depth >= depth &&
@@ -425,7 +430,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
     }
 
-    if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
+    if (depth <= 0) return Quiescence<isPV, mode>(board, alpha, beta, ply, ctx);
 
     const int staticEval = AdjustEval(board, ctx, NNUE::net.Evaluate(board));
     ctx->ss[ply].eval = staticEval;
@@ -589,7 +594,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
             continue;
 
-        int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, ctx);
+        int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, ttPV, ctx);
 
         int newDepth = depth + copy.InCheck() - 1 + extension;
 
@@ -691,7 +696,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
 
             if (!ctx->excluded)
-                ctx->TT.WriteEntry(board.hashKey, depth, score, CutNode, currMove);
+                ctx->TT.WriteEntry(board.hashKey, depth, score, CutNode, ttPV, currMove);
             return score;
         }
 
@@ -724,7 +729,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             ctx->corrhist.UpdateAll(board, depth, corrHistBonus);
         }
 
-        ctx->TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);
+        ctx->TT.WriteEntry(board.hashKey, depth, results.score, nodeType, ttPV, results.bestMove);
     }
     return results;
 }
