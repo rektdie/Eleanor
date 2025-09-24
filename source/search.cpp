@@ -472,7 +472,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     }
 
     // small probcut
-    const int probcutBeta = beta + 300;
+    const int probcutBeta = beta + 400;
 
     if (!ctx->excluded && !isPV
         && entry.nodeType == CutNode && entry.depth >= depth - 4
