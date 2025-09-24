@@ -472,10 +472,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     }
 
     // small probcut
-    const int probcutBeta = beta + 400;
+    const int probcutBeta = beta + 300;
 
     if (!ctx->excluded && !isPV
-        && entry.nodeType == CutNode && entry.depth >= depth - 4
+        && entry.nodeType == AllNode && entry.depth >= depth - 4
         && entry.score >= probcutBeta &&
         std::abs(entry.score) < MATE_SCORE && std::abs(beta) < MATE_SCORE) {
         return probcutBeta;
