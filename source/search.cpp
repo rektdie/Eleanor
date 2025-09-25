@@ -52,7 +52,7 @@ static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
     TTEntry current = ctx->TT.GetRawEntry(board.hashKey);
     if (current.hashKey == board.hashKey && current.bestMove == move) {
-        return 100000;
+        return 1000000;
     }
 
     if (move.IsCapture()) {
@@ -63,7 +63,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             targetType = Pawn;
         }
 
-        return 50000 * ((SEE(board, move, seeOrderingThreshold))) + (100 * targetType - attackerType + 105);
+        return 500000 * ((SEE(board, move, seeOrderingThreshold))) + (100 * targetType - attackerType + 105);
     } else {
         if (ctx->killerMoves[0][ply] == move) {
             return 41000;
@@ -85,7 +85,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
                 */
             }
 
-            return 20000 + historyScore + conthistScore;
+            return MAX_HISTORY * 2 + historyScore + conthistScore;
         }
     }
 
