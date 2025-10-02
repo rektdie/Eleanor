@@ -52,7 +52,7 @@ static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
     TTEntry current = ctx->TT.GetRawEntry(board.hashKey);
     if (current.hashKey == board.hashKey && current.bestMove == move) {
-        return 1000000;
+        return 100000;
     }
 
     if (move.IsCapture()) {
@@ -65,12 +65,12 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
 
         const int capthistScore = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
 
-        return 500000 * ((SEE(board, move, seeOrderingThreshold))) + (100 * targetType - attackerType + 105) + capthistScore;
+        return 50000 * ((SEE(board, move, seeOrderingThreshold))) + (100 * targetType - attackerType + 105) + capthistScore;
     } else {
         if (ctx->killerMoves[0][ply] == move) {
-            return 410000;
+            return 41000;
         } else if (ctx->killerMoves[1][ply] == move) {
-            return 400000;
+            return 40000;
         } else {
             bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
             bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
@@ -87,7 +87,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
                 */
             }
 
-            return 200000 + historyScore + conthistScore;
+            return 20000 + historyScore + conthistScore;
         }
     }
 
