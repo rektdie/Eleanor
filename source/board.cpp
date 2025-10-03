@@ -33,6 +33,7 @@ void Board::Reset() {
     hashKey = 0ULL;
     pawnKey = 0ULL;
     nonPawnKey = 0ULL;
+    majorKey = 0ULL;
 }
 
 void Board::SetByFen(std::string_view fen) {
@@ -289,6 +290,10 @@ void Board::SetPiece(int piece, int square, bool color) {
         pawnKey ^= UTILS::zKeys[color][Pawn][square];
     } else {
     	nonPawnKey ^= UTILS::zKeys[color][piece][square];
+
+    	if (piece >= Rook) {
+            majorKey ^= UTILS::zKeys[color][piece][square];
+        }
     }
 }
 
@@ -303,6 +308,10 @@ void Board::RemovePiece(int piece, int square, bool color) {
         pawnKey ^= UTILS::zKeys[color][Pawn][square];
     } else {
     	nonPawnKey ^= UTILS::zKeys[color][piece][square];
+
+        if (piece >= Rook) {
+            majorKey ^= UTILS::zKeys[color][piece][square];
+        }
     }
 }
 
