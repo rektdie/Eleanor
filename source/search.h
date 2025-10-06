@@ -148,6 +148,16 @@ public:
         }
     }
 
+    std::string GetLine(int n) {
+        std::string result = "";
+        for (int i = 0; i < length[n]; i++) {
+            result += table[n][i].GetMoveString();
+            result += ' ';
+        }
+
+        return result;
+    }
+
     void Clear() {
         length[MAX_DEPTH - 1] = {};
         table[MAX_DEPTH - 1][MAX_DEPTH - 1] = {};
@@ -217,6 +227,8 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* c
 bool IsDraw(Board &board, SearchContext* ctx);
 
 void ListScores(Board &board, SearchContext* ctx);
+
+void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int elapsed);
 
 int MoveEstimatedValue(Board& board, Move& move);
 }

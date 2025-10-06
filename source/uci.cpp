@@ -278,6 +278,7 @@ void UCILoop(Board &board) {
 
         // parse UCI "uci" command
         if (input.find("uci") != std::string::npos) {
+            UCIEnabled = true;
             // print engine info
             PrintEngineInfo();
             continue;

@@ -6,6 +6,7 @@
 #include "benchmark.h"
 #include "types.h"
 #include "tunables.h"
+#include <iomanip>
 
 namespace SEARCH {
 
@@ -819,26 +820,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
             }
 
             if constexpr (mode == normal || mode == nodesMode) {
-                std::cout << "info ";
-                std::cout << "depth " << depth;
-                std::cout << " seldepth " << ctx->seldepth;
-                std::cout << " time " << elapsed;
-                std::cout << " score ";
-
-                if (std::abs(safeResults.score) + MAX_PLY >= MATE_SCORE) {
-                    int mateIn = (MATE_SCORE - (std::abs(safeResults.score) - 1)) / 2;
-                    mateIn  = safeResults.score < 0 ? mateIn * -1 : mateIn;
-
-                    std::cout << "mate " << mateIn;
-                } else {
-                    std::cout << "cp " << safeResults.score;
-                }
-
-                std::cout << " nodes " << ctx->nodes << " nps " << int(ctx->nodes/ctx->sw.GetElapsedSec());
-                std::cout << " hashfull " << ctx->TT.GetUsedPercentage();
-                std::cout << " pv ";
-                ctx->pvLine.Print(0);
-                std::cout << std::endl;
+                PrintSearchInfo(ctx, safeResults, depth, elapsed);
 
                 if constexpr (mode == normal) {
                     if (ctx->sw.GetElapsedMS() >= softTime) {
@@ -903,6 +885,33 @@ int MoveEstimatedValue(Board& board, Move& move) {
     }
 
     return value;
+}
+
+void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int elapsed) {
+    if (UCIEnabled) {
+        std::cout << "info ";
+        std::cout << "depth " << depth;
+        std::cout << " seldepth " << ctx->seldepth;
+        std::cout << " time " << elapsed;
+        std::cout << " score ";
+
+        if (std::abs(results.score) + MAX_PLY >= MATE_SCORE) {
+            int mateIn = (MATE_SCORE - (std::abs(results.score) - 1)) / 2;
+            mateIn  = results.score < 0 ? mateIn * -1 : mateIn;
+
+            std::cout << "mate " << mateIn;
+        } else {
+            std::cout << "cp " << results.score;
+        }
+
+        std::cout << " nodes " << ctx->nodes << " nps " << int(ctx->nodes/ctx->sw.GetElapsedSec());
+        std::cout << " hashfull " << ctx->TT.GetUsedPercentage();
+        std::cout << " pv ";
+        ctx->pvLine.Print(0);
+        std::cout << std::endl;
+    } else {
+        // TODO
+    }
 }
 
 template SearchResults PVS<true, searchMode::bench>(Board&, int, int, int, int, SearchContext* ctx, bool cutnode);
