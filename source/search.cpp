@@ -6,6 +6,7 @@
 #include "benchmark.h"
 #include "types.h"
 #include "tunables.h"
+#include "termcolor.hpp"
 #include <iomanip>
 
 namespace SEARCH {
@@ -784,6 +785,18 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 
     double nodeScaling = 1;
 
+    if (!UCIEnabled && (mode == normal || mode == nodesMode)) {
+        std::cout << termcolor::bold;
+        std::cout << std::setw(6) << std::left << "Depth" 
+                  << std::setw(10) << std::right << "Time"
+                  << std::setw(9) << std::right << "Score"
+                  << std::setw(11) << std::right << "Nodes"
+                  << std::setw(12) << std::right << "NPS"
+                  << "  PV" << std::endl;
+        std::cout << termcolor::reset;
+        std::cout << std::string(70, '-') << std::endl;
+    }
+
     ctx->sw.Restart();
 
     for (int depth = 1; depth <= toDepth; depth++) {
@@ -907,10 +920,92 @@ void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int 
         std::cout << " nodes " << ctx->nodes << " nps " << int(ctx->nodes/ctx->sw.GetElapsedSec());
         std::cout << " hashfull " << ctx->TT.GetUsedPercentage();
         std::cout << " pv ";
-        ctx->pvLine.Print(0);
+        ctx->pvLine.Print(0, depth % 2 == 0);
         std::cout << std::endl;
     } else {
-        // TODO
+        if (depth % 2 == 0) {
+            std::cout << termcolor::color<247>;
+        } else {
+            std::cout << termcolor::color<251>;
+        }
+        
+        std::stringstream depthStr;
+        depthStr << depth << '/' << ctx->seldepth;
+        std::cout << std::setw(6) << std::left << depthStr.str();
+        
+        std::stringstream timeStr;
+        if (elapsed >= 1000) {
+            timeStr << std::fixed << std::setprecision(1) << (elapsed / 1000.0) << "s";
+        } else {
+            timeStr << elapsed << "ms";
+        }
+        std::cout << std::setw(10) << std::right << timeStr.str();
+        
+        std::stringstream scoreStr;
+        bool isMate = false;
+        int mateIn = 0;
+
+        if (std::abs(results.score) + MAX_PLY >= MATE_SCORE) {
+            isMate = true;
+            mateIn = (MATE_SCORE - (std::abs(results.score) - 1)) / 2;
+            mateIn = results.score < 0 ? mateIn * -1 : mateIn;
+            if (mateIn < 0) {
+                scoreStr << "-M" << std::abs(mateIn);
+            } else {
+                scoreStr << "+M" << mateIn;
+            }
+        } else {
+            scoreStr << std::showpos << std::fixed << std::setprecision(2) 
+                     << (results.score / 100.0) << std::noshowpos;
+        }
+
+        if (isMate) {
+            if (mateIn > 0) {
+                std::cout << termcolor::bright_green;
+            } else {
+                std::cout << termcolor::bright_red;
+            }
+        } else {
+            if (results.score > 0) {
+                std::cout << termcolor::green;
+            } else if (results.score < 0) {
+                std::cout << termcolor::red;
+            }
+        }
+        
+        std::cout << std::setw(9) << std::right << scoreStr.str();
+        std::cout << termcolor::reset;
+        if (depth % 2 == 0) {
+            std::cout << termcolor::color<247>;
+        } else {
+            std::cout << termcolor::color<251>;
+        }
+        
+        std::stringstream nodesStr;
+        if (ctx->nodes >= 1000000) {
+            nodesStr << std::fixed << std::setprecision(1) << (ctx->nodes / 1000000.0) << "M";
+        } else if (ctx->nodes >= 1000) {
+            nodesStr << std::fixed << std::setprecision(1) << (ctx->nodes / 1000.0) << "k";
+        } else {
+            nodesStr << ctx->nodes;
+        }
+        std::cout << std::setw(11) << std::right << nodesStr.str();
+        
+        int nps = int(ctx->nodes/ctx->sw.GetElapsedSec());
+        std::stringstream npsStr;
+        if (nps >= 1000000) {
+            npsStr << std::fixed << std::setprecision(1) << (nps / 1000000.0) << "M/s";
+        } else if (nps >= 1000) {
+            npsStr << std::fixed << std::setprecision(1) << (nps / 1000.0) << "k/s";
+        } else {
+            npsStr << nps << "/s";
+        }
+        std::cout << std::setw(12) << std::right << npsStr.str();
+        
+        std::cout << "  ";
+        ctx->pvLine.Print(0, depth % 2 == 0);
+        
+        std::cout << termcolor::reset << std::endl;
     }
 }
 
