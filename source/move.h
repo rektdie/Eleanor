@@ -80,6 +80,25 @@ public:
         }
     }
 
+    std::string GetMoveString() { 
+        std::string result = squareCoords[MoveFrom()];
+        result += squareCoords[MoveTo()];
+
+        int flags = GetFlags();
+
+        if (flags == knightPromotion || flags == knightPromoCapture) {
+            result += 'n';
+        } else if (flags == bishopPromotion || flags == bishopPromoCapture) {
+            result += 'b';
+        } else if (flags == rookPromotion || flags == rookPromoCapture) {
+            result += 'r';
+        } else if (flags == queenPromotion || flags == queenPromoCapture) {
+            result += 'q';
+        }
+
+        return result;
+    }
+
     uint16_t ConvertToViriMoveFormat() {
         uint16_t viriMove = 0;
         int flags = GetFlags();

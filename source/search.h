@@ -6,6 +6,7 @@
 #include <algorithm>
 #include "stopwatch.h"
 #include "tunables.h"
+#include "termcolor.hpp"
 #include "tt.h"
 
 #include "../external/multi_array.h"
@@ -141,11 +142,33 @@ public:
         length[ply] = length[ply + 1];
     }
 
-    void Print(int n) {
+    void Print(int n, bool isEven = false) {
         for (int i = 0; i < length[n]; i++) {
-            table[n][i].PrintMove();
+            if (i == 0 && !UCIEnabled) {
+                std::cout << termcolor::bright_cyan;
+                table[n][i].PrintMove();
+                std::cout << termcolor::reset;
+                
+                if (isEven) {
+                    std::cout << termcolor::color<247>;
+                } else {
+                    std::cout << termcolor::color<251>;
+                }
+            } else {
+                table[n][i].PrintMove();
+            }
             std::cout << ' ';
         }
+    }
+
+    std::string GetLine(int n) {
+        std::string result = "";
+        for (int i = 0; i < length[n]; i++) {
+            result += table[n][i].GetMoveString();
+            result += ' ';
+        }
+
+        return result;
     }
 
     void Clear() {
@@ -217,6 +240,8 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* c
 bool IsDraw(Board &board, SearchContext* ctx);
 
 void ListScores(Board &board, SearchContext* ctx);
+
+void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int elapsed);
 
 int MoveEstimatedValue(Board& board, Move& move);
 }

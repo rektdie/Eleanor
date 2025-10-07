@@ -2,6 +2,8 @@
 #include "move.h"
 #include "board.h"
 
+inline bool UCIEnabled = false;
+
 class SearchParams {
 public:
     int wtime = 0;
