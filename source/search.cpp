@@ -13,15 +13,14 @@ namespace SEARCH {
 
 void InitLMRTable() {
     for (int i = 0; i < 2; i++) {
-        const bool base = i ? lmrBaseQuiet : lmrBaseNoisy;
-        const bool divisor = i ? lmrDivisorQuiet : lmrDivisorNoisy;
+        const double base = i ? lmrBaseQuiet : lmrBaseNoisy;
+        const double divisor = i ? lmrDivisorQuiet : lmrDivisorNoisy;
 
         for (int depth = 0; depth <= MAX_DEPTH; depth++) {
             for (int move = 0; move < MAX_MOVES; move++) {
                 if (depth == 0 || move == 0) {
                     lmrTable[i][depth][move] = 0;
                 } else {
-
                     lmrTable[i][depth][move] = std::floor(base + std::log(depth) * std::log(move) / divisor);
                 }
             }
