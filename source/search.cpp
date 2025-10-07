@@ -12,12 +12,18 @@
 namespace SEARCH {
 
 void InitLMRTable() {
-    for (int depth = 0; depth <= MAX_DEPTH; depth++) {
-        for (int move = 0; move < MAX_MOVES; move++) {
-            if (depth == 0 || move == 0) {
-                lmrTable[depth][move] = 0;
-            } else {
-                lmrTable[depth][move] = std::floor(lmrBase + std::log(depth) * std::log(move) / lmrDivisor);
+    for (int i = 0; i < 2; i++) {
+        const bool base = i ? lmrBaseQuiet : lmrBaseNoisy;
+        const bool divisor = i ? lmrDivisorQuiet : lmrDivisorNoisy;
+
+        for (int depth = 0; depth <= MAX_DEPTH; depth++) {
+            for (int move = 0; move < MAX_MOVES; move++) {
+                if (depth == 0 || move == 0) {
+                    lmrTable[i][depth][move] = 0;
+                } else {
+
+                    lmrTable[i][depth][move] = std::floor(base + std::log(depth) * std::log(move) / divisor);
+                }
             }
         }
     }
@@ -163,7 +169,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
 
     // Late Move Reduction
     if (depth >= 2 && moveSeen >= 2 + (2 * isPV) && !move.IsCapture()) {
-        reduction = lmrTable[depth][moveSeen] * 1024;
+        reduction = lmrTable[move.IsQuiet()][depth][moveSeen] * 1024;
 
         if (cutnode)
             reduction += lmrCutnode;
