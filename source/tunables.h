@@ -6,8 +6,10 @@
 #define AUTO_STEP(min_val, max_val) ((max_val - min_val) / 20.0)
 
 #define TUNABLE_LIST \
-    X_DOUBLE(lmrBase, 0.77, 0.5, 1.5) \
-    X_DOUBLE(lmrDivisor, 2.36, 1.5, 3.5) \
+    X_DOUBLE(lmrBaseQuiet, 1.1, 0.5, 1.5) \
+    X_DOUBLE(lmrDivisorQuiet, 2.33, 1.5, 3.5) \
+    X_DOUBLE(lmrBaseNoisy, 0.41, 0.5, 1.5) \
+    X_DOUBLE(lmrDivisorNoisy, 3.20, 1.5, 3.5) \
     X_INT(lmrCutnode, 2048, 1024, 3072) \
     X_INT(lmrIsPV, 1024, 512, 2048) \
     X_INT(lmrHistoryDivisor, 8192, 6000, 10000) \
