@@ -321,7 +321,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     const int fpScore = bestScore + 100;
 
-    MOVEGEN::GenerateMoves<Noisy>(board);
+    MOVEGEN::GenerateMoves<Noisy>(board, true);
 
     SortMoves(board, ply, ctx);
 
@@ -486,7 +486,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         && (!entry.bestMove || !entry.bestMove.IsQuiet())
         && !(ttHit && entry.depth >= probcutDepth && entry.score < probcutBeta)) {
 
-        MOVEGEN::GenerateMoves<Noisy>(board);
+        MOVEGEN::GenerateMoves<Noisy>(board, true);
         SortMoves(board, ply, ctx);
 
         const int seeThreshold = (probcutBeta - staticEval) * 15 / 16;
@@ -526,9 +526,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 return score;
             }
         }
+        MOVEGEN::GenerateMoves<Quiet>(board, false);
+    } else {
+        MOVEGEN::GenerateMoves<All>(board, true);
     }
-
-    MOVEGEN::GenerateMoves<All>(board);
 
     SortMoves(board, ply, ctx);
 

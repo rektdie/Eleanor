@@ -4,8 +4,9 @@
 #include "board.h"
 
 enum MovegenMode {
-    All,
-    Noisy
+    Quiet,
+    Noisy,
+    All
 };
 
 namespace MOVEGEN {
@@ -37,7 +38,7 @@ template <MovegenMode mode>
 void GenKingMoves(Board &board);
 
 template <MovegenMode mode>
-void GenerateMoves(Board &board);
+void GenerateMoves(Board &board, bool clear);
 
 void GenThreatMaps(Board &board);
 

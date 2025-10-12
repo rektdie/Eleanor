@@ -72,7 +72,7 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext* ctx) {
     bool plusOne = moveDist(rng);
 
     for (int count = 0; count < RAND_MOVES + plusOne; count++) {
-        MOVEGEN::GenerateMoves<All>(board);
+        MOVEGEN::GenerateMoves<All>(board, true);
 
         std::uniform_int_distribution<int> dist(0, board.currentMoveIndex - 1);
         bool isLegal = board.MakeMove(board.moveList[dist(rng)]);
@@ -82,7 +82,7 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext* ctx) {
             continue;
         }
         ctx->positionHistory[board.positionIndex] = board.hashKey;
-        MOVEGEN::GenerateMoves<All>(board);
+        MOVEGEN::GenerateMoves<All>(board, true);
         if (IsGameOver(board, ctx)) break;
     }
 }
@@ -179,7 +179,7 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
             positions++;
 
 
-            MOVEGEN::GenerateMoves<All>(board);
+            MOVEGEN::GenerateMoves<All>(board, true);
         }
 
         if (!SEARCH::IsDraw(board, ctx.get())) {

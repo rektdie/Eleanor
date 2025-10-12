@@ -84,7 +84,7 @@ void Board::SetByFen(std::string_view fen) {
     occupied = colors[White] | colors[Black];
     hashKey = UTILS::GetHashKey(*this);
 	MOVEGEN::GenThreatMaps(*this);
-	MOVEGEN::GenerateMoves<All>(*this);
+	MOVEGEN::GenerateMoves<All>(*this, true);
 
     int whiteKingFile = (pieces[King] & colors[White]).getLS1BIndex() % 8;
     int blackKingFile = (pieces[King] & colors[Black]).getLS1BIndex() % 8;
