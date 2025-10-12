@@ -355,10 +355,6 @@ bool Board::MakeMove(Move move) {
 			hashKey ^= UTILS::zEnPassant[enPassantTarget % 8];
         }
 
-        if (newEpTarget != noEPTarget) {
-			hashKey ^= UTILS::zEnPassant[newEpTarget % 8];
-        }
-
         enPassantTarget = newEpTarget;
 
         return true;
