@@ -11,8 +11,8 @@ void GenPawnMoves(Board &board) {
 
 		Bitboard lastRank = board.sideToMove ? ranks[r_1] : ranks[r_8];
 
-		if constexpr (mode == Noisy) {
-			pushes &= lastRank;
+		if constexpr (mode == Noisy || mode == All) {
+			Bitboard noisyPushes = pushes & lastRank;
 
 			if (board.enPassantTarget != noEPTarget) {
 				if (attacks.IsSet(board.enPassantTarget)) {
@@ -35,8 +35,8 @@ void GenPawnMoves(Board &board) {
 				captures.PopBit(targetSquare);
 			}
 
-			while (pushes) {
-				int pushSquare = pushes.getLS1BIndex();
+			while (noisyPushes) {
+				int pushSquare = noisyPushes.getLS1BIndex();
 
 				// Only promotions because NOISY
 				board.AddMove(Move(square, pushSquare, knightPromotion));
@@ -44,29 +44,17 @@ void GenPawnMoves(Board &board) {
 				board.AddMove(Move(square, pushSquare, rookPromotion));
 				board.AddMove(Move(square, pushSquare, queenPromotion));
 
-				pushes.PopBit(pushSquare);
+				noisyPushes.PopBit(pushSquare);
 			}
 
 			pawns.PopBit(square);
-			continue;
-		} else {
-			// Checking for en passant
-			if (board.enPassantTarget != noEPTarget) {
-				if (attacks.IsSet(board.enPassantTarget)) {
-					board.AddMove(Move(square, board.enPassantTarget, epCapture));
-				}
-			}
+		} 
 
+        if constexpr (mode == Quiet || mode == All) {
 			while (pushes) {
 				int pushSquare = pushes.getLS1BIndex();
 	
-				// Checking for promotion
-				if (lastRank.IsSet(pushSquare)) {
-					board.AddMove(Move(square, pushSquare, knightPromotion));
-					board.AddMove(Move(square, pushSquare, bishopPromotion));
-					board.AddMove(Move(square, pushSquare, rookPromotion));
-					board.AddMove(Move(square, pushSquare, queenPromotion));
-				} else {
+				if (!lastRank.IsSet(pushSquare)) {
 					if (std::abs(square - pushSquare) == 16) {
 						board.AddMove(Move(square, pushSquare, doublePawnPush));
 					} else {
@@ -75,22 +63,6 @@ void GenPawnMoves(Board &board) {
 				}
 	
 				pushes.PopBit(pushSquare);
-			}
-	
-			while (captures) {
-				int targetSquare = captures.getLS1BIndex();
-	
-				// Checking for promotion
-				if (lastRank.IsSet(targetSquare)) {
-					board.AddMove(Move(square, targetSquare, knightPromoCapture));
-					board.AddMove(Move(square, targetSquare, bishopPromoCapture));
-					board.AddMove(Move(square, targetSquare, rookPromoCapture));
-					board.AddMove(Move(square, targetSquare, queenPromoCapture));
-				} else {
-					board.AddMove(Move(square, targetSquare, capture));
-				}
-	
-				captures.PopBit(targetSquare);
 			}
 		}
 
@@ -108,7 +80,7 @@ void GenKnightMoves(Board &board) {
 		Bitboard captures = moves & board.colors[!board.sideToMove];
 		moves &= ~captures;
 
-		if constexpr (mode == Noisy) {
+		if constexpr (mode == Noisy || mode == All) {
 			while (captures) {
 				int targetSquare = captures.getLS1BIndex();
 	
@@ -118,25 +90,18 @@ void GenKnightMoves(Board &board) {
 			}
 
 			knights.PopBit(square);
-			continue;
-		} else {
-			while (moves) {
-				int targetSquare = moves.getLS1BIndex();
-	
-				board.AddMove(Move(square, targetSquare, quiet));
-	
-				moves.PopBit(targetSquare);
-			}
-	
-			while (captures) {
-				int targetSquare = captures.getLS1BIndex();
-	
-				board.AddMove(Move(square, targetSquare, capture));
-	
-				captures.PopBit(targetSquare);
-			}
-	
 		}
+
+        if constexpr (mode == Quiet || mode == All) {
+            while (moves) {
+                int targetSquare = moves.getLS1BIndex();
+
+                board.AddMove(Move(square, targetSquare, quiet));
+
+                moves.PopBit(targetSquare);
+            }
+        }
+
 		knights.PopBit(square);
 	}
 }
@@ -151,7 +116,7 @@ void GenRookMoves(Board &board) {
 		Bitboard captures = moves & board.colors[!board.sideToMove];
 		moves &= ~captures;
 
-		if constexpr (mode == Noisy) {
+		if constexpr (mode == Noisy || mode == All) {
 			while (captures) {
 				int targetSquare = captures.getLS1BIndex();
 	
@@ -161,24 +126,17 @@ void GenRookMoves(Board &board) {
 			}
 
 			rooks.PopBit(square);
-			continue;
 		}
 
-		while (moves) {
-			int targetSquare = moves.getLS1BIndex();
+        if constexpr (mode == Quiet || mode == All) {
+            while (moves) {
+                int targetSquare = moves.getLS1BIndex();
 
-			board.AddMove(Move(square, targetSquare, quiet));
+                board.AddMove(Move(square, targetSquare, quiet));
 
-			moves.PopBit(targetSquare);
-		}
-
-		while (captures) {
-			int targetSquare = captures.getLS1BIndex();
-
-			board.AddMove(Move(square, targetSquare, capture));
-
-			captures.PopBit(targetSquare);
-		}
+                moves.PopBit(targetSquare);
+            }
+        }
 
 		rooks.PopBit(square);
 	}
@@ -194,7 +152,7 @@ void GenBishopMoves(Board &board) {
 		Bitboard captures = moves & board.colors[!board.sideToMove];
 		moves &= ~captures;
 
-		if constexpr (mode == Noisy) {
+		if constexpr (mode == Noisy || mode == All) {
 			while (captures) {
 				int targetSquare = captures.getLS1BIndex();
 	
@@ -204,24 +162,17 @@ void GenBishopMoves(Board &board) {
 			}
 
 			bishops.PopBit(square);
-			continue;
 		}
 
-		while (moves) {
-			int targetSquare = moves.getLS1BIndex();
+        if constexpr (mode == Quiet || mode == All) {
+            while (moves) {
+                int targetSquare = moves.getLS1BIndex();
 
-			board.AddMove(Move(square, targetSquare, quiet));
+                board.AddMove(Move(square, targetSquare, quiet));
 
-			moves.PopBit(targetSquare);
-		}
-
-		while (captures) {
-			int targetSquare = captures.getLS1BIndex();
-
-			board.AddMove(Move(square, targetSquare, capture));
-
-			captures.PopBit(targetSquare);
-		}
+                moves.PopBit(targetSquare);
+            }
+        }
 
 		bishops.PopBit(square);
 	}
@@ -237,7 +188,7 @@ void GenQueenMoves(Board &board) {
 		Bitboard captures = moves & board.colors[!board.sideToMove];
 		moves &= ~captures;
 
-		if constexpr (mode == Noisy) {
+		if constexpr (mode == Noisy || mode == All) {
 			while (captures) {
 				int targetSquare = captures.getLS1BIndex();
 	
@@ -247,24 +198,17 @@ void GenQueenMoves(Board &board) {
 			}
 
 			queens.PopBit(square);
-			continue;
 		}
 
-		while (moves) {
-			int targetSquare = moves.getLS1BIndex();
+        if constexpr (mode == Quiet || mode == All) {
+            while (moves) {
+                int targetSquare = moves.getLS1BIndex();
 
-			board.AddMove(Move(square, targetSquare, quiet));
+                board.AddMove(Move(square, targetSquare, quiet));
 
-			moves.PopBit(targetSquare);
-		}
-
-		while (captures) {
-			int targetSquare = captures.getLS1BIndex();
-
-			board.AddMove(Move(square, targetSquare, capture));
-
-			captures.PopBit(targetSquare);
-		}
+                moves.PopBit(targetSquare);
+            }
+        }
 
 		queens.PopBit(square);
 	}
@@ -277,7 +221,7 @@ void GenKingMoves(Board &board) {
 	Bitboard captures = moves & board.colors[!board.sideToMove];
 	moves &= ~board.colors[!board.sideToMove];
 
-	if constexpr (mode == Noisy) {
+	if constexpr (mode == Noisy || mode == All) {
 		while (captures) {
 			int square = captures.getLS1BIndex();
 	
@@ -286,57 +230,53 @@ void GenKingMoves(Board &board) {
 	
 			captures.PopBit(square);
 		}
-		return;
 	}
 
-	while (moves) {
-		int square = moves.getLS1BIndex();
+    if constexpr (mode == Quiet || mode == All) {
+        while (moves) {
+            int square = moves.getLS1BIndex();
 
-		board.AddMove(Move(kingSquare, square, quiet));
+            board.AddMove(Move(kingSquare, square, quiet));
 
-		moves.PopBit(square);
-	}
-
-	while (captures) {
-		int square = captures.getLS1BIndex();
-
-		Move move(kingSquare, square, capture);
-		board.AddMove(move);
-
-		captures.PopBit(square);
-	}
-
-	// Generating castles
-    int kingRight = board.sideToMove ? blackKingRight : whiteKingRight;
-    int queenRight = board.sideToMove ? blackQueenRight : whiteQueenRight;
-
-    if (board.castlingRights & queenRight)  {
-        U64 QueenSide = board.sideToMove ? 0x1f00000000000000 : 0x1f;
-        U64 mask = board.sideToMove ? 0x1c00000000000000 : 0x1c;
-        int targetSquare = board.sideToMove ? c8 : c1;
-        if ((Bitboard(QueenSide) & board.occupied).PopCount() == 2
-                && !(mask & board.colorThreats[!board.sideToMove])) {
-            board.AddMove(Move(kingSquare, targetSquare, queenCastle));
-
+            moves.PopBit(square);
         }
-    }
 
-    if (board.castlingRights & kingRight) {
-        U64 KingSide = board.sideToMove ? 0xf000000000000000 : 0xf0;
-        U64 mask = board.sideToMove ? 0x7000000000000000 : 0x70;
-        int targetSquare = board.sideToMove ? g8 : g1;
-        if ((Bitboard(KingSide) & board.occupied).PopCount() == 2
-                && !(mask & board.colorThreats[!board.sideToMove])) {
-            board.AddMove(Move(kingSquare, targetSquare, kingCastle));
+        // Generating castles
+        int kingRight = board.sideToMove ? blackKingRight : whiteKingRight;
+        int queenRight = board.sideToMove ? blackQueenRight : whiteQueenRight;
+
+        if (board.castlingRights & queenRight)  {
+            U64 QueenSide = board.sideToMove ? 0x1f00000000000000 : 0x1f;
+            U64 mask = board.sideToMove ? 0x1c00000000000000 : 0x1c;
+            int targetSquare = board.sideToMove ? c8 : c1;
+            if ((Bitboard(QueenSide) & board.occupied).PopCount() == 2
+                    && !(mask & board.colorThreats[!board.sideToMove])) {
+                board.AddMove(Move(kingSquare, targetSquare, queenCastle));
+
+            }
         }
+
+        if (board.castlingRights & kingRight) {
+            U64 KingSide = board.sideToMove ? 0xf000000000000000 : 0xf0;
+            U64 mask = board.sideToMove ? 0x7000000000000000 : 0x70;
+            int targetSquare = board.sideToMove ? g8 : g1;
+            if ((Bitboard(KingSide) & board.occupied).PopCount() == 2
+                    && !(mask & board.colorThreats[!board.sideToMove])) {
+                board.AddMove(Move(kingSquare, targetSquare, kingCastle));
+            }
+        }
+
     }
 }
 
 template <MovegenMode mode>
-void GenerateMoves(Board &board) {
-    board.ResetMoves();
-    board.pieceThreats = std::array<Bitboard, 6>();
-	board.colorThreats = std::array<Bitboard, 2>();
+void GenerateMoves(Board &board, bool clear) {
+    if (clear) {
+        board.ResetMoves();
+        board.pieceThreats = {};
+        board.colorThreats = {};
+    }
+
     GenThreatMaps(board);
 
 	GenPawnMoves<mode>(board);

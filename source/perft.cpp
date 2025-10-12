@@ -3,7 +3,7 @@
 #include "movegen.h"
 
 static U64 HelperPerft(Board board, int depth) {
-    MOVEGEN::GenerateMoves<All>(board);
+    MOVEGEN::GenerateMoves<All>(board, true);
 
     if (depth == 0) return 1ULL;
 
@@ -19,7 +19,7 @@ static U64 HelperPerft(Board board, int depth) {
 }
 
 void Perft(Board &board, int depth) {
-    MOVEGEN::GenerateMoves<All>(board);
+    MOVEGEN::GenerateMoves<All>(board, true);
 
     U64 totalNodes = 0;
 
