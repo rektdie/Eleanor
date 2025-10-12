@@ -478,6 +478,56 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
     }
 
+    // Probcut
+    const int probcutBeta = beta + 200;
+    const int probcutDepth = std::max(depth - 3, 1);
+
+    if (depth >= 7 && std::abs(beta) < MATE_SCORE - MAX_PLY
+        && (!entry.bestMove || !entry.bestMove.IsQuiet())
+        && !(ttHit && entry.depth >= probcutDepth && entry.score < probcutBeta)) {
+
+        MOVEGEN::GenerateMoves<Noisy>(board);
+        SortMoves(board, ply, ctx);
+
+        const int seeThreshold = (probcutBeta - staticEval) * 15 / 16;
+
+        for (int i = 0; i < board.currentMoveIndex; i++) {
+            Move currMove = board.moveList[i];
+
+            if (ctx->excluded == currMove)
+                continue;
+
+            if (!SEE(board, currMove, seeThreshold))
+                continue;
+
+            Board copy = board;
+            bool isLegal = copy.MakeMove(currMove);
+
+            if (!isLegal) continue;
+
+            if (copy.positionIndex >= ctx->positionHistory.size()) {
+                ctx->positionHistory.resize(copy.positionIndex + 100);
+            }
+            ctx->positionHistory[copy.positionIndex] = copy.hashKey;
+            ctx->nodes++;
+
+            int score = -Quiescence<mode>(copy, -probcutBeta, -probcutBeta + 1, ply + 1, ctx).score;
+
+            if (score >= probcutBeta) {
+                score = -PVS<isPV, mode>(copy, probcutDepth - 1, -probcutBeta, -probcutBeta + 1,
+                    ply + 1, ctx, !cutnode).score;
+            }
+
+            if (ctx->searchStopped) return 0;
+
+            if (score >= probcutBeta) {
+                ctx->TT.WriteEntry(board.hashKey, probcutDepth, score, CutNode, currMove);
+
+                return score;
+            }
+        }
+    }
+
     MOVEGEN::GenerateMoves<All>(board);
 
     SortMoves(board, ply, ctx);
