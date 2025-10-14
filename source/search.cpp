@@ -541,6 +541,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     std::array<Move, MAX_MOVES> seenQuiets;
     int seenQuietsCount = 0;
 
+    int nonPawnMaterial = -1;
+
     // For all moves
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Move currMove = board.moveList[i];
@@ -642,8 +644,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
 
         cutnode |= extension < 0;
-
-        int nonPawnMaterial = -1;
 
         // Last captures extension
         if (extension == 0 && currMove.IsCapture()
