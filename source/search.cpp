@@ -449,10 +449,19 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         return true;
     }();
 
+    const bool oppWorsening = [&]
+    {
+        if (board.InCheck() || ply <= 0)
+            return false;
+        
+        return ctx->ss[ply].eval + ctx->ss[ply - 1].eval > 1;
+    }();
+
+
     if (!board.InCheck() && !ctx->excluded) {
         if (ply) {
             // Reverse Futility Pruning
-            int margin = rfpBase + rfpMargin * (depth - improving);
+            int margin = rfpBase + rfpMargin * (depth - improving) - 13 * oppWorsening;
             if (!ttHit && staticEval - margin >= beta && depth < 7) {
                 return (beta + (staticEval - beta) / 3);
             }
