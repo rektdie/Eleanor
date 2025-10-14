@@ -643,6 +643,29 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         cutnode |= extension < 0;
 
+        int nonPawnMaterial = -1;
+
+        // Last captures extension
+        if (extension == 0 && currMove.IsCapture()
+            && currMove.GetFlags() != epCapture) {
+            const int capturedType = board.GetPieceType(currMove.MoveTo());
+
+            if (SEEPieceValues[capturedType] > SEEPieceValues[Pawn]) {
+                if (nonPawnMaterial < 0) {
+                    nonPawnMaterial = (
+                        board.pieces[Queen].PopCount() * SEEPieceValues[Queen] +
+                        board.pieces[Rook].PopCount() * SEEPieceValues[Rook] +
+                        board.pieces[Bishop].PopCount() * SEEPieceValues[Bishop] +
+                        board.pieces[Knight].PopCount() * SEEPieceValues[Knight]
+                    );
+                }
+
+                if (nonPawnMaterial <= 2 * SEEPieceValues[Rook]) {
+                    extension = 1;
+                }
+            }
+        }
+
         // PVS SEE
         int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
 
