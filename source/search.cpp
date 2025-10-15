@@ -457,6 +457,17 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 return (beta + (staticEval - beta) / 3);
             }
 
+            // History reduction
+            if ((isPV || cutnode) && depth <= 3 && ttHit && entry.bestMove && entry.bestMove.IsQuiet()) {
+                bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, entry.bestMove.MoveFrom());
+                bool targetThreatened = board.IsSquareThreatened(board.sideToMove, entry.bestMove.MoveTo());
+
+                int historyScore = ctx->history[board.sideToMove][entry.bestMove.MoveFrom()][entry.bestMove.MoveTo()][sourceThreatened][targetThreatened];
+
+                if (historyScore <= -8192)
+                    depth--;
+            }
+
             // Null Move Pruning
             if (!ctx->doingNullMove && staticEval >= beta) {
                 if (depth > 1 && !board.InPossibleZug()) {
@@ -474,17 +485,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     if (ctx->searchStopped) return 0;
                     if (score >= beta) return score;
                 }
-            }
-
-            // History reduction
-            if ((isPV || cutnode) && depth <= 3 && ttHit && entry.bestMove && entry.bestMove.IsQuiet()) {
-                bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, entry.bestMove.MoveFrom());
-                bool targetThreatened = board.IsSquareThreatened(board.sideToMove, entry.bestMove.MoveTo());
-
-                int historyScore = ctx->history[board.sideToMove][entry.bestMove.MoveFrom()][entry.bestMove.MoveTo()][sourceThreatened][targetThreatened];
-
-                if (historyScore <= -2048 - 2048 * depth)
-                    depth--;
             }
         }
     }
