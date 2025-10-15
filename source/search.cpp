@@ -483,7 +483,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                 int historyScore = ctx->history[board.sideToMove][entry.bestMove.MoveFrom()][entry.bestMove.MoveTo()][sourceThreatened][targetThreatened];
 
-                if (historyScore <= -1024)
+                if (historyScore <= -2048 - 2048 * depth)
                     depth--;
             }
         }
