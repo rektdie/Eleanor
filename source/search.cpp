@@ -475,6 +475,17 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     if (score >= beta) return score;
                 }
             }
+
+            // History reduction
+            if ((isPV || cutnode) && depth <= 2 && ttHit && entry.bestMove) {
+                bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, entry.bestMove.MoveFrom());
+                bool targetThreatened = board.IsSquareThreatened(board.sideToMove, entry.bestMove.MoveTo());
+
+                int historyScore = ctx->history[board.sideToMove][entry.bestMove.MoveFrom()][entry.bestMove.MoveTo()][sourceThreatened][targetThreatened];
+
+                if (historyScore <= -8192)
+                    depth--;
+            }
         }
     }
 
