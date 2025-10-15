@@ -477,7 +477,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
 
             // History reduction
-            if ((isPV || cutnode) && depth <= 2 && ttHit && entry.bestMove) {
+            if ((isPV || cutnode) && depth <= 3 && ttHit && entry.bestMove && entry.bestMove.IsQuiet()) {
                 bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, entry.bestMove.MoveFrom());
                 bool targetThreatened = board.IsSquareThreatened(board.sideToMove, entry.bestMove.MoveTo());
 
