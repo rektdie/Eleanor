@@ -477,7 +477,15 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
 
             // TT History Reduction
-            if ((isPV || cutnode) && depth <= 4 && ttHit && entry.bestMove && entry.bestMove.IsQuiet()) {
+            // If the current node is a pv or an expected cutnode
+            // and the hash move's history is bad, we reduce depth
+            if ((isPV || cutnode)
+                    && depth <= 4
+                    && ttHit
+                    && entry.depth >= depth
+                    && entry.bestMove
+                    && entry.bestMove.IsQuiet())
+            {
                 bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, entry.bestMove.MoveFrom());
                 bool targetThreatened = board.IsSquareThreatened(board.sideToMove, entry.bestMove.MoveTo());
 
