@@ -480,9 +480,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             // If the current node is a pv or an expected cutnode
             // and the hash move's history is bad, we reduce depth
             if ((isPV || cutnode)
-                    && depth <= 4
+                    && depth <= 8
                     && ttHit
-                    && entry.depth >= depth
+                    && entry.depth <= depth - 4
                     && entry.bestMove
                     && entry.bestMove.IsQuiet())
             {
