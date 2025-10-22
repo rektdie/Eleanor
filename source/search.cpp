@@ -28,22 +28,12 @@ void InitLMRTable() {
     }
 }
 
-int16_t ContHistory::GetOnePly(Board& board, Move& move, SearchContext* ctx, int ply) {
-    int prevType = ctx->ss[ply-1].pieceType;
-    int prevTo = ctx->ss[ply-1].moveTo;
+int16_t ContHistory::GetNPly(Board& board, Move& move, SearchContext* ctx, int ply, int n) {
+    int prevType = ctx->ss[ply-n].pieceType;
+    int prevTo = ctx->ss[ply-n].moveTo;
     int pieceType = board.GetPieceType(move.MoveFrom());
     int to = move.MoveTo();
-    bool otherColor = ctx->ss[ply-1].side;
-
-    return ctx->conthist[otherColor][prevType][prevTo][board.sideToMove][pieceType][to];
-}
-
-int16_t ContHistory::GetTwoPly(Board& board, Move& move, SearchContext* ctx, int ply) {
-    int prevType = ctx->ss[ply-2].pieceType;
-    int prevTo = ctx->ss[ply-2].moveTo;
-    int pieceType = board.GetPieceType(move.MoveFrom());
-    int to = move.MoveTo();
-    bool otherColor = ctx->ss[ply-2].side;
+    bool otherColor = ctx->ss[ply-n].side;
 
     return ctx->conthist[otherColor][prevType][prevTo][board.sideToMove][pieceType][to];
 }
@@ -84,7 +74,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             int conthistScore = 0;
 
             if (ply > 0) {
-                conthistScore = ctx->conthist.GetOnePly(board, move, ctx, ply);
+                conthistScore = ctx->conthist.GetNPly(board, move, ctx, ply, 1);
                 /*
                 if (ply > 1) {
                     conthistScore += ctx->conthist.GetTwoPly(board, move, ctx, ply);
@@ -185,10 +175,10 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
         // History LMR
         int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
         if (ply > 0) {
-            historyReduction += ctx->conthist.GetOnePly(board, move, ctx, ply);
+            historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 1);
 
             if (ply > 1)
-                historyReduction += ctx->conthist.GetTwoPly(board, move, ctx, ply);
+                historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 2);
         }
 
         reduction /= 1024;
@@ -571,10 +561,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()][sourceThreatened][targetThreatened];
         
         if (ply > 0) {
-            historyScore += ctx->conthist.GetOnePly(board, currMove, ctx, ply);
+            historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 1);
             
             if (ply > 1)
-                historyScore += ctx->conthist.GetTwoPly(board, currMove, ctx, ply);
+                historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
         }
         
         int margin = fpMargin * (depth + improving) + historyScore / 32;
