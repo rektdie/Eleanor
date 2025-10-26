@@ -96,8 +96,7 @@ public:
         std::fill(&contHistMoves[0][0][0][0][0][0], &contHistMoves[0][0][0][0][0][0] + sizeof(contHistMoves) / sizeof(int16_t), 0);
     }
 
-    int16_t GetOnePly(Board& board, Move& move, SearchContext* ctx, int ply);
-    int16_t GetTwoPly(Board& board, Move& move, SearchContext* ctx, int ply);
+    int16_t GetNPly(Board& board, Move& move, SearchContext* ctx, int ply, int n);
 
     auto& operator[](int index) {
         return contHistMoves[index];
