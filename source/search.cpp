@@ -157,7 +157,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     int reduction = 0;
 
     // Late Move Reduction
-    if (depth >= 2 && moveSeen >= 2 + (2 * isPV) && !move.IsCapture()) {
+    if (depth >= 2 && moveSeen >= 2 + (2 * isPV)) {
         reduction = lmrTable[move.IsQuiet()][depth][moveSeen] * 1024;
 
         if (cutnode)
@@ -169,24 +169,27 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
         if (!improving)
             reduction += lmrImproving;
 
-        bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
-        bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
+        if (move.IsQuiet()) {
+            // History LMR
 
-        // History LMR
-        int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
-        if (ply > 0) {
-            historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 1);
+            bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
+            bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
 
-            if (ply > 1)
-                historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 2);
+            int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
+            if (ply > 0) {
+                historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 1);
+
+                if (ply > 1)
+                    historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 2);
+            }
+
+            historyReduction = historyReduction / lmrHistoryDivisor;
+
+            reduction -= historyReduction * 1024;
         }
-
-        reduction /= 1024;
-
-        historyReduction = historyReduction / lmrHistoryDivisor;
-
-        reduction -= historyReduction;
     }
+
+    reduction /= 1024;
 
     return std::clamp(reduction, -1, depth - 1);
 }
