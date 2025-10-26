@@ -157,36 +157,37 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     int reduction = 0;
 
     // Late Move Reduction
-    if (depth >= 2 && moveSeen >= 2 + (2 * isPV) && !move.IsCapture()) {
+    if (depth >= 2 && moveSeen >= 2 + (2 * isPV)) {
         reduction = lmrTable[move.IsQuiet()][depth][moveSeen] * 1024;
 
         if (cutnode)
-            reduction += lmrCutnode;
+                reduction += lmrCutnode;
 
         if constexpr (isPV)
-            reduction -= lmrIsPV;
-    
+                reduction -= lmrIsPV;
+        
         if (!improving)
             reduction += lmrImproving;
+            
+        if (move.IsQuiet()) {
+            bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
+            bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
 
-        bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
-        bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
+            // History LMR
+            int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
+            if (ply > 0) {
+                historyReduction += ctx->conthist.GetOnePly(board, move, ctx, ply);
+                if (ply > 1)
+                    historyReduction += ctx->conthist.GetTwoPly(board, move, ctx, ply);
+            }
 
-        // History LMR
-        int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
-        if (ply > 0) {
-            historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 1);
+            historyReduction = historyReduction / lmrHistoryDivisor;
 
-            if (ply > 1)
-                historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 2);
+            reduction -= historyReduction * 1024;
         }
-
-        reduction /= 1024;
-
-        historyReduction = historyReduction / lmrHistoryDivisor;
-
-        reduction -= historyReduction;
     }
+
+    reduction /= 1024;
 
     return std::clamp(reduction, -1, depth - 1);
 }
