@@ -173,13 +173,13 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
         if (cutnode)
                 reduction += lmrCutnode;
 
-        if (!move.IsCapture()) {
-            if constexpr (isPV)
+        if constexpr (isPV)
                 reduction -= lmrIsPV;
         
-            if (!improving)
-                reduction += lmrImproving;
+        if (!improving)
+            reduction += lmrImproving;
 
+        if (move.IsQuiet()) {
             bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
             bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
 
