@@ -153,7 +153,7 @@ bool IsDraw(Board &board, SearchContext* ctx) {
 }
 
 template <bool isPV>
-static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, bool improving, SearchContext* ctx) {
+static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, bool improving, bool corrplexity, SearchContext* ctx) {
     int reduction = 0;
 
     // Late Move Reduction
@@ -168,6 +168,9 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     
         if (!improving)
             reduction += lmrImproving;
+
+        if (corrplexity)
+            reduction -= lmrCorrplexity;
 
         if (move.IsQuiet()) {
             // History LMR
@@ -427,8 +430,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
 
-    const int staticEval = AdjustEval(board, ctx, NNUE::net.Evaluate(board));
+    int rawEval = NNUE::net.Evaluate(board);
+    const int staticEval = AdjustEval(board, ctx, rawEval);
     ctx->ss[ply].eval = staticEval;
+
+    bool corrplexity = std::abs(rawEval - staticEval) > 70;
 
     const bool improving = [&]
     {
@@ -643,7 +649,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
             continue;
 
-        int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, ctx);
+        int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ctx);
 
         int newDepth = depth + copy.InCheck() - 1 + extension;
 
