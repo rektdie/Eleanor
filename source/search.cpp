@@ -542,6 +542,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             continue;
 
         bool notMated = results.score > (-MATE_SCORE + MAX_PLY);
+        int lmrDepth = depth - lmrTable[currMove.IsQuiet()][depth][moveSeen];
 
         // Late move pruning
         // If we are near a leaf node we prune moves
@@ -570,10 +571,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
         }
         
-        int margin = fpMargin * (depth + improving) + historyScore / 32;
+        int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
 
         if (!isPV && ply && currMove.IsQuiet()
-                && depth <= 5 && staticEval + margin < alpha && notMated) {
+                && lmrDepth <= 5 && staticEval + margin < alpha && notMated) {
             continue;
         }
 
