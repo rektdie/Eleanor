@@ -153,7 +153,7 @@ bool IsDraw(Board &board, SearchContext* ctx) {
 }
 
 template <bool isPV>
-static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, bool improving, bool corrplexity, SearchContext* ctx) {
+static int GetReductions(Board &board, int alpha, Move &move, int depth, int moveSeen, int ply, bool cutnode, bool improving, bool corrplexity, SearchContext* ctx) {
     int reduction = 0;
 
     // Late Move Reduction
@@ -173,6 +173,11 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
             reduction -= lmrCorrplexity;
 
         if (move.IsQuiet()) {
+
+            // Futility LMR
+            if (!board.InCheck() && ctx->ss[ply].eval + 150 + 70 * depth <= alpha)
+                reduction += lmrFutility;
+            
             // History LMR
 
             bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
@@ -649,7 +654,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
             continue;
 
-        int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ctx);
+        int reductions = GetReductions<isPV>(board, alpha, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ctx);
 
         int newDepth = depth + copy.InCheck() - 1 + extension;
 
