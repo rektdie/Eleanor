@@ -45,9 +45,9 @@ public:
 };
 
 // 1024 MB
-constexpr U64 maxHash = (1024 * 1000000) / sizeof(TTEntry);
+constexpr U64 maxHash = (1024 * 1000000) / sizeof(TTBucket);
 // 8 MB
-constexpr U64 defaultHash = (8 * 1000000) / sizeof(TTEntry);
+constexpr U64 defaultHash = (8 * 1000000) / sizeof(TTBucket);
 
 class TTable {
 private:
