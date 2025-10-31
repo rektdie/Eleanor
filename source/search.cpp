@@ -271,27 +271,34 @@ bool SEE(Board& board, Move& move, int threshold) {
 }
 
 template <searchMode mode>
-static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext* ctx) {
-    if constexpr (mode != nodesMode)  {
-        if constexpr (mode != bench) {
-            if (ctx->nodes % 1024 == 0) {
+static bool ShouldStop(SearchContext* ctx) {
+    if constexpr (mode != bench && mode != nodesMode) {
+        if (ctx->nodes % 1024 == 0) {
+            if constexpr (mode == normal) {
                 if (ctx->sw.GetElapsedMS() >= ctx->timeToSearch) {
                     ctx->searchStopped = true;
-                    return 0;
+                    return true;
                 }
             }
         }
     } else if constexpr (mode == nodesMode) {
         if (ctx->nodes > ctx->nodesToGo) {
             ctx->searchStopped = true;
-            return 0;
+            return true;
         }
     } else if constexpr (mode == datagen) {
         if (ctx->nodes > DATAGEN::HARD_NODES) {
             ctx->searchStopped = true;
-            return 0;
+            return true;
         }
     }
+
+    return false;
+}
+
+template <searchMode mode>
+static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext* ctx) {
+    if (ShouldStop<mode>(ctx)) return 0;
 
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
@@ -381,26 +388,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
 template <bool isPV, searchMode mode>
 SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchContext* ctx, bool cutnode) {
-    if constexpr (mode != bench && mode != nodesMode) {
-        if (ctx->nodes % 1024 == 0) {
-            if constexpr (mode == normal) {
-                if (ctx->sw.GetElapsedMS() >= ctx->timeToSearch) {
-                    ctx->searchStopped = true;
-                    return 0;
-                }
-            }
-        }
-    } else if constexpr (mode == nodesMode) {
-        if (ctx->nodes > ctx->nodesToGo) {
-            ctx->searchStopped = true;
-            return 0;
-        }
-    } else if constexpr (mode == datagen) {
-        if (ctx->nodes > DATAGEN::HARD_NODES) {
-            ctx->searchStopped = true;
-            return 0;
-        }
-    }
+    if (ShouldStop<mode>(ctx)) return 0;
 
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
