@@ -41,7 +41,7 @@ int16_t ContHistory::GetNPly(Board& board, Move& move, SearchContext* ctx, int p
 static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
     int corrhist = ctx->corrhist.GetAllHist(board);
 
-    int mateFound = MATE_SCORE - MAX_PLY;
+    int mateFound = MATE_SCORE - MAX_DEPTH;
 
     return std::clamp(eval + corrhist / CORRHIST_GRAIN, -mateFound + 1, mateFound - 1);
 }
@@ -272,13 +272,11 @@ bool SEE(Board& board, Move& move, int threshold) {
 
 template <searchMode mode>
 static bool ShouldStop(SearchContext* ctx) {
-    if constexpr (mode != bench && mode != nodesMode) {
+    if constexpr (mode == normal) {
         if (ctx->nodes % 1024 == 0) {
-            if constexpr (mode == normal) {
-                if (ctx->sw.GetElapsedMS() >= ctx->timeToSearch) {
-                    ctx->searchStopped = true;
-                    return true;
-                }
+            if (ctx->sw.GetElapsedMS() >= ctx->timeToSearch) {
+                ctx->searchStopped = true;
+                return true;
             }
         }
     } else if constexpr (mode == nodesMode) {
@@ -299,6 +297,9 @@ static bool ShouldStop(SearchContext* ctx) {
 template <searchMode mode>
 static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext* ctx) {
     if (ShouldStop<mode>(ctx)) return 0;
+
+    if (ply >= MAX_DEPTH)
+        return NNUE::net.Evaluate(board);
 
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
@@ -390,6 +391,9 @@ template <bool isPV, searchMode mode>
 SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchContext* ctx, bool cutnode) {
     if (ShouldStop<mode>(ctx)) return 0;
 
+    if (ply >= MAX_DEPTH)
+        return NNUE::net.Evaluate(board);
+
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
 
@@ -469,7 +473,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     const int probcutBeta = beta + 200;
     const int probcutDepth = std::max(depth - 3, 1);
 
-    if (depth >= 7 && std::abs(beta) < MATE_SCORE - MAX_PLY
+    if (depth >= 7 && std::abs(beta) < MATE_SCORE - MAX_DEPTH
         && (!entry.bestMove || !entry.bestMove.IsQuiet())
         && !(ttHit && entry.depth >= probcutDepth && entry.score < probcutBeta)) {
 
@@ -535,7 +539,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ctx->excluded == currMove)
             continue;
 
-        bool notMated = results.score > (-MATE_SCORE + MAX_PLY);
+        bool notMated = results.score > (-MATE_SCORE + MAX_DEPTH);
         int lmrDepth = depth - lmrTable[currMove.IsQuiet()][depth][moveSeen];
 
         // Late move pruning
@@ -954,7 +958,7 @@ void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int 
         std::cout << " time " << elapsed;
         std::cout << " score ";
 
-        if (std::abs(results.score) + MAX_PLY >= MATE_SCORE) {
+        if (std::abs(results.score) + MAX_DEPTH >= MATE_SCORE) {
             int mateIn = (MATE_SCORE - (std::abs(results.score) - 1)) / 2;
             mateIn  = results.score < 0 ? mateIn * -1 : mateIn;
 
@@ -991,7 +995,7 @@ void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int 
         bool isMate = false;
         int mateIn = 0;
 
-        if (std::abs(results.score) + MAX_PLY >= MATE_SCORE) {
+        if (std::abs(results.score) + MAX_DEPTH >= MATE_SCORE) {
             isMate = true;
             mateIn = (MATE_SCORE - (std::abs(results.score) - 1)) / 2;
             mateIn = results.score < 0 ? mateIn * -1 : mateIn;

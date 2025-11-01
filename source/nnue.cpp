@@ -186,8 +186,8 @@ int Forward(const Board& board, const Network& net) {
 }
 
 int16_t Network::Evaluate(const Board& board) {
-    return std::clamp(Forward(board, *this), (-SEARCH::MATE_SCORE + SEARCH::MAX_PLY),
-        (SEARCH::MATE_SCORE - SEARCH::MAX_PLY));
+    return std::clamp(Forward(board, *this), (-SEARCH::MATE_SCORE + SEARCH::MAX_DEPTH),
+        (SEARCH::MATE_SCORE - SEARCH::MAX_DEPTH));
 }
 
 }

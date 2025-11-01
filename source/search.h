@@ -21,8 +21,7 @@ enum searchMode {
 };
 
 constexpr int MATE_SCORE = 32767;
-constexpr int MAX_DEPTH = 128;
-constexpr int MAX_PLY = 512;
+constexpr int MAX_DEPTH = 256;
 constexpr int MAX_HISTORY = 16384;
 
 constexpr int CORRHIST_WEIGHT_SCALE = 256;
@@ -125,8 +124,8 @@ public:
 
 class PVLine {
 private:
-    int length[MAX_PLY] = {};
-    Move table[MAX_PLY][MAX_PLY] = {};
+    int length[MAX_DEPTH] = {};
+    Move table[MAX_DEPTH][MAX_DEPTH] = {};
 public:
     void SetLength(int ply) {
         length[ply] = ply;
@@ -206,13 +205,13 @@ public:
     ContHistory conthist;
     CorrHist corrhist;
 
-    std::array<std::array<int, MAX_PLY>, 2> killerMoves{};
+    std::array<std::array<int, MAX_DEPTH>, 2> killerMoves{};
 
     std::vector<U64> positionHistory;
 
     TTable TT;
 
-    std::array<Stack, MAX_PLY> ss{};
+    std::array<Stack, MAX_DEPTH> ss{};
 
     Stopwatch sw;
 
