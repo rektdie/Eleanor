@@ -153,7 +153,7 @@ bool IsDraw(Board &board, SearchContext* ctx) {
 }
 
 template <bool isPV>
-static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, bool improving, bool corrplexity, SearchContext* ctx) {
+static int GetReductions(Board &board, int alpha, Move &move, int depth, int moveSeen, int ply, bool cutnode, bool improving, bool corrplexity, SearchContext* ctx) {
     int reduction = 0;
 
     // Late Move Reduction
@@ -173,6 +173,11 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
             reduction -= lmrCorrplexity;
 
         if (move.IsQuiet()) {
+
+            // Futility LMR
+            if (!board.InCheck() && ctx->ss[ply].eval + 150 + 70 * depth <= alpha)
+                reduction += lmrFutility;
+
             // History LMR
 
             bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
@@ -294,7 +299,7 @@ static bool ShouldStop(SearchContext* ctx) {
     return false;
 }
 
-template <searchMode mode>
+template <bool isPV, searchMode mode>
 static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext* ctx) {
     if (ShouldStop<mode>(ctx)) return 0;
 
@@ -309,7 +314,21 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     if (!ctx->excluded) {
         TTEntry entry = ctx->TT.GetRawEntry(board.hashKey);
-        if (entry.hashKey == board.hashKey) {
+        const bool ttHit = entry.hashKey == board.hashKey;
+
+        // TT cutoff
+        if constexpr (!isPV) {
+            if (ttHit) {
+                if ((entry.nodeType == PV) ||
+                         (entry.nodeType == AllNode && entry.score <= alpha) ||
+                         (entry.nodeType == CutNode && entry.score >= beta)) {
+
+                    return SearchResults(entry.score, entry.bestMove);
+                }
+            }
+        }
+
+        if (ttHit) {
             bestScore = entry.score;
         }
     }
@@ -361,7 +380,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
         ctx->TT.PrefetchEntry(copy.hashKey);
 
-        int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1, ctx).score;
+        int score = -Quiescence<isPV, mode>(copy, -beta, -alpha, ply + 1, ctx).score;
 
         if (score >= beta) {
             if (!ctx->excluded) {
@@ -420,7 +439,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
     }
 
-    if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
+    if (depth <= 0) return Quiescence<isPV, mode>(board, alpha, beta, ply, ctx);
 
     int rawEval = NNUE::net.Evaluate(board);
     const int staticEval = AdjustEval(board, ctx, rawEval);
@@ -444,7 +463,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply) {
             // Reverse Futility Pruning
             int margin = rfpBase + rfpMargin * (depth - improving);
-            if (!ttHit && staticEval - margin >= beta && depth < 7) {
+            if (!ttHit && staticEval - margin >= beta && depth < 8) {
                 return (beta + (staticEval - beta) / 3);
             }
 
@@ -502,7 +521,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             ctx->positionHistory[copy.positionIndex] = copy.hashKey;
             ctx->nodes++;
 
-            int score = -Quiescence<mode>(copy, -probcutBeta, -probcutBeta + 1, ply + 1, ctx).score;
+            int score = -Quiescence<isPV, mode>(copy, -probcutBeta, -probcutBeta + 1, ply + 1, ctx).score;
 
             if (score >= probcutBeta) {
                 score = -PVS<isPV, mode>(copy, probcutDepth - 1, -probcutBeta, -probcutBeta + 1,
@@ -637,11 +656,12 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         // PVS SEE
         int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
+        SEEThreshold += historyScore / 8192;
 
-        if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
+        if (ply && depth <= 11 && !SEE(board, currMove, SEEThreshold))
             continue;
 
-        int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ctx);
+        int reductions = GetReductions<isPV>(board, alpha, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ctx);
 
         int newDepth = depth + copy.InCheck() - 1 + extension;
 
