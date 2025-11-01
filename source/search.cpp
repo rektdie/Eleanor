@@ -463,7 +463,15 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     ctx->doingNullMove = false;
 
                     if (ctx->searchStopped) return 0;
-                    if (score >= beta) return score;
+                    if (score >= beta) {
+
+                        // If the score is better than beta by a margin we can "safely" write to TT
+                        if (score >= beta + nmpTTMargin) {
+                            ctx->TT.WriteEntry(board.hashKey, depth, score, CutNode, Move());
+                        }
+
+                        return score;
+                    }
                 }
             }
         }
