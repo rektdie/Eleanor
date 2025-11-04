@@ -18,6 +18,7 @@
     X_INT(rfpBase, 25, 50, 200) \
     X_INT(rfpMargin, 100, 50, 200) \
     X_INT(fpMargin, 100, 50, 200) \
+    X_INT(razoringScalar, 200, 50, 200) \
     X_INT(doubleExtMargin, 30, 10, 60) \
     X_INT(seeQuietThreshold, -80, -150, -20) \
     X_INT(seeNoisyThreshold, -30, -80, 20) \

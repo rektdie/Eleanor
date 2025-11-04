@@ -466,6 +466,15 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     if (score >= beta) return score;
                 }
             }
+
+            // Razoring
+            if (!isPV && depth <= 3 && staticEval + razoringScalar * depth < alpha) {
+                int score = Quiescence<mode>(board, alpha, beta, ply, ctx).score;
+
+                if (score < alpha) {
+                    return score;
+                }
+            }
         }
     }
 
