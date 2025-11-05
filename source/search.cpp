@@ -448,6 +448,15 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 return (beta + (staticEval - beta) / 3);
             }
 
+            // Razoring
+            if (!isPV && depth <= 3 && staticEval + razoringScalar * depth < alpha) {
+                int score = Quiescence<mode>(board, alpha, beta, ply, ctx).score;
+
+                if (score < alpha) {
+                    return score;
+                }
+            }
+
             // Null Move Pruning
             if (!ctx->doingNullMove && staticEval >= beta + nmpBetaMargin) {
                 if (depth > 1 && !board.InPossibleZug()) {
@@ -464,15 +473,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                     if (ctx->searchStopped) return 0;
                     if (score >= beta) return score;
-                }
-            }
-
-            // Razoring
-            if (!isPV && depth <= 3 && staticEval + razoringScalar * depth < alpha) {
-                int score = Quiescence<mode>(board, alpha, beta, ply, ctx).score;
-
-                if (score < alpha) {
-                    return score;
                 }
             }
         }
