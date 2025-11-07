@@ -26,11 +26,11 @@ void AccumulatorPair::addSub(bool stm, int add, int addPT, int sub, int subPT) {
     int subB = CalculateIndex(Black, stm, subPT, sub, mirroredBlack);
 
     for (int i = 0; i < NNUE::HL_SIZE; i++) {
-        white[i] += NNUE::net.accumulator_weights[addW * NNUE::HL_SIZE + i];
-        black[i] += NNUE::net.accumulator_weights[addB * NNUE::HL_SIZE + i];
-
-        white[i] -= NNUE::net.accumulator_weights[subW * NNUE::HL_SIZE + i];
-        black[i] -= NNUE::net.accumulator_weights[subB * NNUE::HL_SIZE + i];
+        white[i] += NNUE::net.accumulator_weights[addW * NNUE::HL_SIZE + i]
+        - NNUE::net.accumulator_weights[subW * NNUE::HL_SIZE + i];
+        
+        black[i] += NNUE::net.accumulator_weights[addB * NNUE::HL_SIZE + i]
+        - NNUE::net.accumulator_weights[subB * NNUE::HL_SIZE + i];
     }
 }
 
@@ -46,14 +46,13 @@ void AccumulatorPair::addSubSub(bool stm, int add, int addPT, int sub1, int subP
     int subB2 = CalculateIndex(Black, !stm, subPT2, sub2, mirroredBlack);
 
     for (int i = 0; i < NNUE::HL_SIZE; i++) {
-        white[i] += NNUE::net.accumulator_weights[addW * NNUE::HL_SIZE + i];
-        black[i] += NNUE::net.accumulator_weights[addB * NNUE::HL_SIZE + i];
+        white[i] += NNUE::net.accumulator_weights[addW * NNUE::HL_SIZE + i]
+        - NNUE::net.accumulator_weights[subW1 * NNUE::HL_SIZE + i]
+        - NNUE::net.accumulator_weights[subW2 * NNUE::HL_SIZE + i];
 
-        white[i] -= NNUE::net.accumulator_weights[subW1 * NNUE::HL_SIZE + i];
-        black[i] -= NNUE::net.accumulator_weights[subB1 * NNUE::HL_SIZE + i];
-
-        white[i] -= NNUE::net.accumulator_weights[subW2 * NNUE::HL_SIZE + i];
-        black[i] -= NNUE::net.accumulator_weights[subB2 * NNUE::HL_SIZE + i];
+        black[i] += NNUE::net.accumulator_weights[addB * NNUE::HL_SIZE + i]
+        - NNUE::net.accumulator_weights[subB1 * NNUE::HL_SIZE + i]
+        - NNUE::net.accumulator_weights[subB2 * NNUE::HL_SIZE + i];
     }
 }
 
@@ -72,17 +71,15 @@ void AccumulatorPair::addAddSubSub(bool stm, int add1, int addPT1, int add2, int
     int subB2 = CalculateIndex(Black, stm, subPT2, sub2, mirroredBlack);
 
     for (int i = 0; i < NNUE::HL_SIZE; i++) {
-        white[i] += NNUE::net.accumulator_weights[addW1 * NNUE::HL_SIZE + i];
-        black[i] += NNUE::net.accumulator_weights[addB1 * NNUE::HL_SIZE + i];
+        white[i] += NNUE::net.accumulator_weights[addW1 * NNUE::HL_SIZE + i]
+        + NNUE::net.accumulator_weights[addW2 * NNUE::HL_SIZE + i]
+        - NNUE::net.accumulator_weights[subW1 * NNUE::HL_SIZE + i]
+        - NNUE::net.accumulator_weights[subW2 * NNUE::HL_SIZE + i];
 
-        white[i] += NNUE::net.accumulator_weights[addW2 * NNUE::HL_SIZE + i];
-        black[i] += NNUE::net.accumulator_weights[addB2 * NNUE::HL_SIZE + i];
-
-        white[i] -= NNUE::net.accumulator_weights[subW1 * NNUE::HL_SIZE + i];
-        black[i] -= NNUE::net.accumulator_weights[subB1 * NNUE::HL_SIZE + i];
-
-        white[i] -= NNUE::net.accumulator_weights[subW2 * NNUE::HL_SIZE + i];
-        black[i] -= NNUE::net.accumulator_weights[subB2 * NNUE::HL_SIZE + i];
+        black[i] += NNUE::net.accumulator_weights[addB1 * NNUE::HL_SIZE + i]
+        + NNUE::net.accumulator_weights[addB2 * NNUE::HL_SIZE + i]
+        - NNUE::net.accumulator_weights[subB1 * NNUE::HL_SIZE + i]
+        - NNUE::net.accumulator_weights[subB2 * NNUE::HL_SIZE + i];
     }
 }
 
