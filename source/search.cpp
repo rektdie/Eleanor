@@ -333,6 +333,8 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     int nodeType = AllNode;
 
+    int moveSeen = 0;
+
     for (int i = 0; i < board.currentMoveIndex; i++) {
         // QS FP
         if (!board.InCheck() && board.moveList[i].IsCapture() &&
@@ -345,6 +347,13 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         Board copy = board;
         int isLegal = copy.MakeMove(board.moveList[i]);
         if (!isLegal) continue;
+
+        bool notMated = results.score > (-MATE_SCORE + MAX_DEPTH);
+
+        // QS lmp
+        if (notMated && moveSeen >= 3) {
+            break;
+        }
 
         ctx->ss[ply].pieceType = board.GetPieceType(board.moveList[i].MoveFrom());
         ctx->ss[ply].moveTo = board.moveList[i].MoveTo();
@@ -362,6 +371,8 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         ctx->TT.PrefetchEntry(copy.hashKey);
 
         int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1, ctx).score;
+
+        moveSeen++;
 
         if (score >= beta) {
             if (!ctx->excluded) {
