@@ -173,6 +173,9 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
             reduction -= lmrCorrplexity;
 
         if (move.IsQuiet()) {
+            if (ctx->killerMoves[0][ply] == move || ctx->killerMoves[1][ply] == move)
+                reduction -= lmrKiller;
+
             // History LMR
 
             bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
