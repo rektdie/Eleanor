@@ -12,6 +12,7 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
+#include <csignal>
 #include "datagen.h"
 #include "movegen.h"
 #include "search.h"
@@ -21,8 +22,10 @@
 // OS-dependent threading includes
 #ifdef _WIN32
     #include <windows.h>
+    #include <io.h>  // for _commit
 #else
     #include <pthread.h>
+    #include <unistd.h>  // for sync
 #endif
 
 #ifdef _WIN32
@@ -53,7 +56,26 @@ static void ShowCursor() {
 
 namespace DATAGEN {
 
-static std::mutex fileOpenMutex;
+// Signal handling globals
+static std::atomic<bool> g_shutdownRequested(false);
+
+// Signal handler for graceful shutdown
+static void SignalHandler(int signal) {
+    if (signal == SIGINT || signal == SIGTERM) {
+        std::cout << "\n\nShutdown signal received. Saving data safely...\n" << std::flush;
+        g_shutdownRequested.store(true);
+    }
+}
+
+// Setup signal handlers
+static void SetupSignalHandlers() {
+    std::signal(SIGINT, SignalHandler);
+    std::signal(SIGTERM, SignalHandler);
+    
+    #ifndef _WIN32
+    std::signal(SIGHUP, SignalHandler);
+    #endif
+}
 
 static bool IsGameOver(Board &board, SEARCH::SearchContext* ctx) {
     if (SEARCH::IsDraw(board, ctx)) return true;
@@ -94,7 +116,9 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext* ctx) {
     }
 }
 
-static void WriteToFile(std::vector<Game> &gamesBuffer, std::ofstream &file) {
+static void WriteToFile(std::vector<Game> &gamesBuffer, const std::string& basePath, int& fileCounter) {
+    if (gamesBuffer.empty()) return;
+    
     int32_t zeroes = 0;
     std::vector<char> buffer;
 
@@ -117,19 +141,56 @@ static void WriteToFile(std::vector<Game> &gamesBuffer, std::ofstream &file) {
         buffer.insert(buffer.end(), zeroesPtr, zeroesPtr + sizeof(zeroes));
     }
 
-    file.write(buffer.data(), buffer.size());
-    file.flush();
+    // Create temporary file name
+    std::string tmpFileName = basePath + std::to_string(fileCounter) + ".tmp";
+    std::string finalFileName = basePath + std::to_string(fileCounter) + ".binpack";
+    
+    // Write to temporary file
+    std::ofstream tmpFile(tmpFileName, std::ios::binary);
+    if (!tmpFile.is_open()) {
+        std::cerr << "Failed to create temporary file: " << tmpFileName << std::endl;
+        return;
+    }
+    
+    tmpFile.write(buffer.data(), buffer.size());
+    tmpFile.flush();
+    
+    // Ensure data is written to disk (OS-dependent)
+    #ifdef _WIN32
+    // Windows: flush and close
+    tmpFile.close();
+    #else
+    // Linux: sync before closing
+    tmpFile.close();
+    sync();
+    #endif
+    
+    // Atomically rename temp file to final file
+    std::error_code ec;
+    std::filesystem::rename(tmpFileName, finalFileName, ec);
+    if (ec) {
+        std::cerr << "Failed to rename " << tmpFileName << " to " << finalFileName 
+                  << ": " << ec.message() << std::endl;
+        // Try to clean up the temp file
+        std::filesystem::remove(tmpFileName, ec);
+        return;
+    }
+    
+    fileCounter++;
 }
 
 inline void MergeThreadFiles() {
     namespace fs = std::filesystem;
+
+    // Create data directory if it doesn't exist
+    fs::create_directories("data");
 
     auto now = std::chrono::system_clock::now();
     std::time_t now_time = std::chrono::system_clock::to_time_t(now);
     std::tm tm = *std::localtime(&now_time);
 
     std::ostringstream oss;
-    oss << "datagen_" 
+    oss << "data/datagen_" 
         << std::put_time(&tm, "%Y-%m-%d_%H-%M") 
         << ".binpack";
     std::string finalFileName = oss.str();
@@ -140,10 +201,12 @@ inline void MergeThreadFiles() {
         return;
     }
 
-    for (const auto& entry : fs::directory_iterator(fs::current_path())) {
+    fs::path dataDir("data");
+    for (const auto& entry : fs::directory_iterator(dataDir)) {
         if (!entry.is_regular_file()) continue;
         std::string filename = entry.path().filename().string();
 
+        // Only process .binpack files (not .tmp files)
         if (filename.find("thread") == 0 && filename.find(".binpack") != std::string::npos) {
             std::ifstream threadFile(entry.path(), std::ios::binary);
             if (!threadFile.is_open()) {
@@ -162,6 +225,20 @@ inline void MergeThreadFiles() {
         }
     }
 
+    // Clean up any remaining .tmp files
+    for (const auto& entry : fs::directory_iterator(dataDir)) {
+        if (!entry.is_regular_file()) continue;
+        std::string filename = entry.path().filename().string();
+        
+        if (filename.find("thread") == 0 && filename.find(".tmp") != std::string::npos) {
+            std::error_code ec;
+            fs::remove(entry.path(), ec);
+            if (ec) {
+                std::cerr << "Failed to delete incomplete temp file " << filename << ": " << ec.message() << std::endl;
+            }
+        }
+    }
+
     finalFile.close();
     std::cout << "Merged all thread files into: " << finalFileName << std::endl;
 }
@@ -170,86 +247,80 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
     std::vector<Game> gamesBuffer;
     gamesBuffer.reserve(GAME_BUFFER);
 
-    std::string fileName = "thread" + std::to_string(id) + ".binpack";
+    // Create data directory if it doesn't exist
+    std::filesystem::create_directories("data");
 
-    std::ofstream file;
-    {
-        std::lock_guard<std::mutex> lock(fileOpenMutex);
-        file.open(fileName, std::ios::app | std::ios::binary);
-    }
-
-    if (!file.is_open()) {
-        std::cerr << "Failed to open file: " << fileName << std::endl;
-        exit(-1);
-    }
+    std::string basePath = "data/thread" + std::to_string(id) + "_";
+    int fileCounter = 0;
 
     const int evenityMargin = 200;
 
-    /*
-    const int winAdjMoveCount = 3;
-    const int winAdjScore = 400;
+    try {
+        while (!stopFlag && !g_shutdownRequested) {
+            Board board;
+            auto ctx = std::make_unique<SEARCH::SearchContext>();
 
-    const int drawAdjMoveNumber = 40;
-    const int drawAdjMoveCount = 8;
-    const int drawAdjScore = 10;
-    */
+            PlayRandMoves(board, ctx.get());
+            if (IsGameOver(board, ctx.get())) continue;
 
-    while (!stopFlag) {
-        Board board;
-        auto ctx = std::make_unique<SEARCH::SearchContext>();
+            // Filter out games with a highly uneven starting position
+            const int startingScore = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx.get()).score;
 
-        PlayRandMoves(board, ctx.get());
-        if (IsGameOver(board, ctx.get())) continue;
+            if (std::abs(startingScore) >= evenityMargin) continue;
 
-        // Filter out games with a highly uneven starting position
-        const int startingScore = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx.get()).score;
+            ctx->nodes = 0;
 
-        if (std::abs(startingScore) >= evenityMargin) continue;
+            Game game;
+            Board startpos = board;
 
-        ctx->nodes = 0;
+            SearchResults safeResults;
 
-        Game game;
-        Board startpos = board;
+            int staticEval = UTILS::ConvertToWhiteRelative(board, NNUE::net.Evaluate(board));
+            int wdl = 1;
 
-        SearchResults safeResults;
+            while (!IsGameOver(board, ctx.get())) {
+                // Check for shutdown during game generation
+                if (g_shutdownRequested) break;
+                
+                SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx.get());
 
-        int staticEval = UTILS::ConvertToWhiteRelative(board, NNUE::net.Evaluate(board));
-        int wdl = 1;
+                if (!results.bestMove) break;
+                safeResults = results;
 
-        while (!IsGameOver(board, ctx.get())) {
-            SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx.get());
+                game.moves.emplace_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(),
+                        UTILS::ConvertToWhiteRelative(board, results.score)));
 
-            if (!results.bestMove) break;
-            safeResults = results;
+                board.MakeMove(results.bestMove);
+                ctx->positionHistory[board.positionIndex] = board.hashKey;
 
-            game.moves.emplace_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(),
-                    UTILS::ConvertToWhiteRelative(board, results.score)));
+                positions++;
 
-            board.MakeMove(results.bestMove);
-            ctx->positionHistory[board.positionIndex] = board.hashKey;
+                MOVEGEN::GenerateMoves<All>(board, true);
+            }
 
-            positions++;
+            if (!SEARCH::IsDraw(board, ctx.get())) {
+                wdl = board.sideToMove ? 2 : 0;
+            }
 
+            game.format.packFrom(startpos, staticEval, wdl);
+            gamesBuffer.emplace_back(game);
 
-            MOVEGEN::GenerateMoves<All>(board, true);
+            if (gamesBuffer.size() >= GAME_BUFFER) {
+                WriteToFile(gamesBuffer, basePath, fileCounter);
+                gamesBuffer.clear();
+            }
         }
-
-        if (!SEARCH::IsDraw(board, ctx.get())) {
-            wdl = board.sideToMove ? 2 : 0;
+    } catch (...) {
+        // Ensure we flush on any exception
+        if (!gamesBuffer.empty()) {
+            WriteToFile(gamesBuffer, basePath, fileCounter);
         }
-
-        game.format.packFrom(startpos, staticEval, wdl);
-        gamesBuffer.emplace_back(game);
-
-        if (gamesBuffer.size() >= GAME_BUFFER) {
-            WriteToFile(gamesBuffer, file);
-            gamesBuffer.clear();
-        }
+        throw;
     }
 
     // Write remaining games to file
     if (gamesBuffer.size() > 0) {
-        WriteToFile(gamesBuffer, file);
+        WriteToFile(gamesBuffer, basePath, fileCounter);
         gamesBuffer.clear();
     }
 }
@@ -270,6 +341,9 @@ static void* ThreadFunc(void* arg) {
 #endif
 
 void Run(int targetPositions, int threads) {
+    // Setup signal handlers first
+    SetupSignalHandlers();
+    
     #ifdef _WIN32
         system("cls");
         HideCursor();
@@ -312,7 +386,7 @@ void Run(int targetPositions, int threads) {
 #endif
 
     Stopwatch sw;
-    while (positions < targetPositions) {
+    while (positions < targetPositions && !g_shutdownRequested) {
         PrintProgress(positions, targetPositions, sw, threads);
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
@@ -320,6 +394,8 @@ void Run(int targetPositions, int threads) {
     PrintProgress(positions, targetPositions, sw, threads);
 
     stopFlag = true;
+
+    std::cout << "\n\nWaiting for threads to finish writing..." << std::endl;
 
 #ifdef _WIN32
     // Join Windows threads
@@ -335,6 +411,7 @@ void Run(int targetPositions, int threads) {
     }
 #endif
 
+    std::cout << "All threads completed. Merging files..." << std::endl;
     MergeThreadFiles();
 
     #ifdef _WIN32
@@ -342,6 +419,8 @@ void Run(int targetPositions, int threads) {
     #else
         ShowCursor();
     #endif
+    
+    std::cout << "\nShutdown complete. All data saved safely." << std::endl;
 }
 
 void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int threads) {
