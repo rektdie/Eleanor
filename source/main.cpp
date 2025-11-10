@@ -57,14 +57,24 @@ int main(int argc, char* argv[]) {
         } else if (std::string(argv[1]) == "datagen") {
             int positions = 1;
             int threads = 1;
+            std::string username = "";
+            
             if (argc > 2) {
                 positions = std::stoi(argv[2]) * 1000;
-
                 if (argc > 3) {
                     threads = std::stoi(argv[3]);
+                    if (argc > 4) {
+
+                        username = argv[4];
+                    }
                 }
             }
-            DATAGEN::Run(positions, threads);
+            
+            if (!username.empty()) {
+                DATAGEN::RunOnline(username, positions, threads);
+            } else {
+                DATAGEN::Run(positions, threads);
+            }
         }
     } else {
         UCILoop(board);

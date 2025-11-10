@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <sstream>
 #include <csignal>
+#include <cstdlib>
 #include "datagen.h"
 #include "movegen.h"
 #include "search.h"
@@ -56,10 +57,133 @@ static void ShowCursor() {
 
 namespace DATAGEN {
 
+// ============================================================================
+// HTTP CLIENT FUNCTIONS (using system curl commands)
+// ============================================================================
+
+static bool PostJSON(const std::string& url, const std::string& jsonBody, std::string& response) {
+    std::string tempFile = "/tmp/datagen_request.json";
+    std::ofstream out(tempFile);
+    if (!out) {
+        std::cerr << "Failed to create temp file for request" << std::endl;
+        return false;
+    }
+    out << jsonBody;
+    out.close();
+
+    std::string responseFile = "/tmp/datagen_response.txt";
+    std::ostringstream cmd;
+    cmd << "curl -s -X POST \"" << url << "\" "
+        << "-H \"Content-Type: application/json\" "
+        << "-d @" << tempFile << " "
+        << "-o " << responseFile << " "
+        << "2>/dev/null";
+
+    int result = system(cmd.str().c_str());
+    
+    std::ifstream responseIn(responseFile);
+    if (responseIn) {
+        std::stringstream buffer;
+        buffer << responseIn.rdbuf();
+        response = buffer.str();
+        responseIn.close();
+    }
+
+    std::remove(tempFile.c_str());
+    std::remove(responseFile.c_str());
+
+    return (result == 0);
+}
+
+static bool UploadFile(const std::string& url, const std::string& filepath, 
+                      const std::string& username, int positions) {
+    std::ostringstream cmd;
+    cmd << "curl -s -X POST \"" << url << "\" "
+        << "-F \"file=@" << filepath << "\" "
+        << "-F \"user=" << username << "\" "
+        << "-F \"positions=" << positions << "\" "
+        << "2>/dev/null";
+
+    int result = system(cmd.str().c_str());
+    return (result == 0);
+}
+
+static std::string BuildStartJSON(const std::string& username, int targetPositions) {
+    std::ostringstream json;
+    json << "{"
+         << "\"user\":\"" << username << "\","
+         << "\"target\":" << targetPositions
+         << "}";
+    return json.str();
+}
+
+static std::string BuildHeartbeatJSON(const std::string& username, int threads) {
+    std::ostringstream json;
+    json << "{"
+         << "\"user\":\"" << username << "\","
+         << "\"threads\":" << threads
+         << "}";
+    return json.str();
+}
+
+// Simple JSON value extractor
+static std::string ExtractJSONValue(const std::string& json, const std::string& key) {
+    // Look for "key":"value" or "key":value pattern
+    std::string searchKey = "\"" + key + "\":";
+    size_t pos = json.find(searchKey);
+    if (pos == std::string::npos) return "";
+    
+    pos += searchKey.length();
+    
+    // Skip whitespace
+    while (pos < json.length() && (json[pos] == ' ' || json[pos] == '\t' || json[pos] == '\n')) {
+        pos++;
+    }
+    
+    if (pos >= json.length()) return "";
+    
+    // Check if value is quoted
+    if (json[pos] == '"') {
+        pos++; // Skip opening quote
+        size_t endPos = json.find("\"", pos);
+        if (endPos == std::string::npos) return "";
+        return json.substr(pos, endPos - pos);
+    } else {
+        // Unquoted value (number, boolean, etc.)
+        size_t endPos = pos;
+        while (endPos < json.length() && json[endPos] != ',' && json[endPos] != '}' && json[endPos] != ']') {
+            endPos++;
+        }
+        return json.substr(pos, endPos - pos);
+    }
+}
+
+// ============================================================================
+// HEARTBEAT THREAD
+// ============================================================================
+
+static void HeartbeatThread(const std::string& username, int threads, 
+                           std::atomic<bool>& stopFlag, const std::string& serverUrl) {
+    while (!stopFlag) {
+        for (int i = 0; i < 15 && !stopFlag; ++i) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+        
+        if (stopFlag) break;
+        
+        std::string response;
+        std::string heartbeatJSON = BuildHeartbeatJSON(username, threads);
+        PostJSON(serverUrl + "/api/session/heartbeat", heartbeatJSON, response);
+    }
+}
+
+// ============================================================================
+// EXISTING DATAGEN FUNCTIONS
+// ============================================================================
+
 // Signal handling globals
 static std::atomic<bool> g_shutdownRequested(false);
 
-// Signal handler for graceful shutdown
 static void SignalHandler(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {
         std::cout << "\n\nShutdown signal received. Saving data safely...\n" << std::flush;
@@ -67,7 +191,6 @@ static void SignalHandler(int signal) {
     }
 }
 
-// Setup signal handlers
 static void SetupSignalHandlers() {
     std::signal(SIGINT, SignalHandler);
     std::signal(SIGTERM, SignalHandler);
@@ -141,11 +264,9 @@ static void WriteToFile(std::vector<Game> &gamesBuffer, const std::string& baseP
         buffer.insert(buffer.end(), zeroesPtr, zeroesPtr + sizeof(zeroes));
     }
 
-    // Create temporary file name
     std::string tmpFileName = basePath + std::to_string(fileCounter) + ".tmp";
     std::string finalFileName = basePath + std::to_string(fileCounter) + ".binpack";
     
-    // Write to temporary file
     std::ofstream tmpFile(tmpFileName, std::ios::binary);
     if (!tmpFile.is_open()) {
         std::cerr << "Failed to create temporary file: " << tmpFileName << std::endl;
@@ -155,23 +276,18 @@ static void WriteToFile(std::vector<Game> &gamesBuffer, const std::string& baseP
     tmpFile.write(buffer.data(), buffer.size());
     tmpFile.flush();
     
-    // Ensure data is written to disk (OS-dependent)
     #ifdef _WIN32
-    // Windows: flush and close
     tmpFile.close();
     #else
-    // Linux: sync before closing
     tmpFile.close();
     sync();
     #endif
     
-    // Atomically rename temp file to final file
     std::error_code ec;
     std::filesystem::rename(tmpFileName, finalFileName, ec);
     if (ec) {
         std::cerr << "Failed to rename " << tmpFileName << " to " << finalFileName 
                   << ": " << ec.message() << std::endl;
-        // Try to clean up the temp file
         std::filesystem::remove(tmpFileName, ec);
         return;
     }
@@ -179,10 +295,9 @@ static void WriteToFile(std::vector<Game> &gamesBuffer, const std::string& baseP
     fileCounter++;
 }
 
-inline void MergeThreadFiles() {
+static std::string MergeThreadFiles() {
     namespace fs = std::filesystem;
 
-    // Create data directory if it doesn't exist
     fs::create_directories("data");
 
     auto now = std::chrono::system_clock::now();
@@ -198,7 +313,7 @@ inline void MergeThreadFiles() {
     std::ofstream finalFile(finalFileName, std::ios::binary);
     if (!finalFile.is_open()) {
         std::cerr << "Failed to create final merged file: " << finalFileName << std::endl;
-        return;
+        return "";
     }
 
     fs::path dataDir("data");
@@ -206,7 +321,6 @@ inline void MergeThreadFiles() {
         if (!entry.is_regular_file()) continue;
         std::string filename = entry.path().filename().string();
 
-        // Only process .binpack files (not .tmp files)
         if (filename.find("thread") == 0 && filename.find(".binpack") != std::string::npos) {
             std::ifstream threadFile(entry.path(), std::ios::binary);
             if (!threadFile.is_open()) {
@@ -225,7 +339,6 @@ inline void MergeThreadFiles() {
         }
     }
 
-    // Clean up any remaining .tmp files
     for (const auto& entry : fs::directory_iterator(dataDir)) {
         if (!entry.is_regular_file()) continue;
         std::string filename = entry.path().filename().string();
@@ -241,13 +354,13 @@ inline void MergeThreadFiles() {
 
     finalFile.close();
     std::cout << "Merged all thread files into: " << finalFileName << std::endl;
+    return finalFileName;
 }
 
 static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& stopFlag) {
     std::vector<Game> gamesBuffer;
     gamesBuffer.reserve(GAME_BUFFER);
 
-    // Create data directory if it doesn't exist
     std::filesystem::create_directories("data");
 
     std::string basePath = "data/thread" + std::to_string(id) + "_";
@@ -263,7 +376,6 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
             PlayRandMoves(board, ctx.get());
             if (IsGameOver(board, ctx.get())) continue;
 
-            // Filter out games with a highly uneven starting position
             const int startingScore = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx.get()).score;
 
             if (std::abs(startingScore) >= evenityMargin) continue;
@@ -279,7 +391,6 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
             int wdl = 1;
 
             while (!IsGameOver(board, ctx.get())) {
-                // Check for shutdown during game generation
                 if (g_shutdownRequested) break;
                 
                 SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx.get());
@@ -311,14 +422,12 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
             }
         }
     } catch (...) {
-        // Ensure we flush on any exception
         if (!gamesBuffer.empty()) {
             WriteToFile(gamesBuffer, basePath, fileCounter);
         }
         throw;
     }
 
-    // Write remaining games to file
     if (gamesBuffer.size() > 0) {
         WriteToFile(gamesBuffer, basePath, fileCounter);
         gamesBuffer.clear();
@@ -326,12 +435,10 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
 }
 
 #ifdef _WIN32
-// Windows implementation using std::thread
 static void CreateWorkerThread(int id, std::atomic<int>& positions, std::atomic<bool>& stopFlag, std::vector<std::thread>& threads) {
     threads.emplace_back(PlayGames, id, std::ref(positions), std::ref(stopFlag));
 }
 #else
-// Unix/Linux implementation using pthread
 static void* ThreadFunc(void* arg) {
     auto* tup = static_cast<std::tuple<int, std::atomic<int>*, std::atomic<bool>*>*>(arg);
     PlayGames(std::get<0>(*tup), *std::get<1>(*tup), *std::get<2>(*tup));
@@ -340,8 +447,11 @@ static void* ThreadFunc(void* arg) {
 }
 #endif
 
+// ============================================================================
+// MAIN RUN FUNCTIONS
+// ============================================================================
+
 void Run(int targetPositions, int threads) {
-    // Setup signal handlers first
     SetupSignalHandlers();
     
     #ifdef _WIN32
@@ -356,20 +466,18 @@ void Run(int targetPositions, int threads) {
     std::atomic<bool> stopFlag = false;
 
 #ifdef _WIN32
-    // Windows implementation using std::thread
     std::vector<std::thread> workerThreads;
     
     for (int i = 0; i < threads - 1; ++i) {
         CreateWorkerThread(i, positions, stopFlag, workerThreads);
     }
 #else
-    // Unix/Linux implementation using pthread
     std::vector<pthread_t> workerThreads;
 
     for (int i = 0; i < threads - 1; ++i) {
         pthread_attr_t attr;
         pthread_attr_init(&attr);
-        pthread_attr_setstacksize(&attr, 8 * 1024 * 1024); // 8 MB stack
+        pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
 
         auto* args = new std::tuple<int, std::atomic<int>*, std::atomic<bool>*>(i, &positions, &stopFlag);
 
@@ -398,14 +506,12 @@ void Run(int targetPositions, int threads) {
     std::cout << "\n\nWaiting for threads to finish writing..." << std::endl;
 
 #ifdef _WIN32
-    // Join Windows threads
     for (std::thread& thread : workerThreads) {
         if (thread.joinable()) {
             thread.join();
         }
     }
 #else
-    // Join pthread threads
     for (pthread_t& thread : workerThreads) {
         pthread_join(thread, nullptr);
     }
@@ -423,13 +529,171 @@ void Run(int targetPositions, int threads) {
     std::cout << "\nShutdown complete. All data saved safely." << std::endl;
 }
 
+void RunOnline(const std::string& username, int targetPositions, int threads) {
+    const std::string SERVER_URL = "http://13.60.26.163:3000";
+    
+    SetupSignalHandlers();
+    
+    std::cout << "=== ONLINE MODE ===" << std::endl;
+    std::cout << "User: " << username << std::endl;
+    std::cout << "Target positions per cycle: " << targetPositions << std::endl;
+    std::cout << "Threads: " << threads << std::endl;
+    std::cout << "===================" << std::endl << std::endl;
+    
+    while (!g_shutdownRequested) {
+        // Send initial heartbeat
+        std::cout << "Sending heartbeat..." << std::endl;
+        std::string heartbeatResponse;
+        std::string heartbeatJSON = BuildHeartbeatJSON(username, threads);
+        
+        if (!PostJSON(SERVER_URL + "/api/session/heartbeat", heartbeatJSON, heartbeatResponse)) {
+            std::cerr << "Failed to send heartbeat. Retrying in 10 seconds..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(10));
+            continue;
+        }
+        
+        std::cout << "Heartbeat response: " << heartbeatResponse << std::endl;
+        
+        // Start session
+        std::string startResponse;
+        std::string startJSON = BuildStartJSON(username, targetPositions);
+        
+        std::cout << "Starting new session..." << std::endl;
+        if (!PostJSON(SERVER_URL + "/api/session/start", startJSON, startResponse)) {
+            std::cerr << "Failed to start session. Retrying in 10 seconds..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(10));
+            continue;
+        }
+        
+        std::cout << "Server response: " << startResponse << std::endl;
+        
+        std::string sessionId = ExtractJSONValue(startResponse, "session_id");
+        if (sessionId.empty()) {
+            std::cerr << "Failed to parse session ID. Retrying..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(10));
+            continue;
+        }
+        
+        std::cout << "Session ID: " << sessionId << std::endl;
+        
+        // Start heartbeat thread
+        std::atomic<bool> heartbeatStop(false);
+        std::thread heartbeat(HeartbeatThread, username, threads, std::ref(heartbeatStop), SERVER_URL);
+        
+        // Run datagen
+        #ifdef _WIN32
+            system("cls");
+            HideCursor();
+        #else
+            std::cout << "\033[2J\033[H";
+            HideCursor();
+        #endif
+
+        std::atomic<int> positions = 0;
+        std::atomic<bool> stopFlag = false;
+
+#ifdef _WIN32
+        std::vector<std::thread> workerThreads;
+        
+        for (int i = 0; i < threads - 1; ++i) {
+            CreateWorkerThread(i, positions, stopFlag, workerThreads);
+        }
+#else
+        std::vector<pthread_t> workerThreads;
+
+        for (int i = 0; i < threads - 1; ++i) {
+            pthread_attr_t attr;
+            pthread_attr_init(&attr);
+            pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
+
+            auto* args = new std::tuple<int, std::atomic<int>*, std::atomic<bool>*>(i, &positions, &stopFlag);
+
+            pthread_t thread;
+            if (pthread_create(&thread, &attr, ThreadFunc, args) == 0) {
+                workerThreads.push_back(thread);
+            } else {
+                std::cerr << "Failed to create thread " << i << "\n";
+                delete args;
+            }
+
+            pthread_attr_destroy(&attr);
+        }
+#endif
+
+        Stopwatch sw;
+        while (positions < targetPositions && !g_shutdownRequested) {
+            PrintProgress(positions, targetPositions, sw, threads);
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+
+        PrintProgress(positions, targetPositions, sw, threads);
+
+        stopFlag = true;
+
+        std::cout << "\n\nWaiting for threads to finish writing..." << std::endl;
+
+#ifdef _WIN32
+        for (std::thread& thread : workerThreads) {
+            if (thread.joinable()) {
+                thread.join();
+            }
+        }
+#else
+        for (pthread_t& thread : workerThreads) {
+            pthread_join(thread, nullptr);
+        }
+#endif
+
+        // Stop heartbeat
+        heartbeatStop = true;
+        if (heartbeat.joinable()) {
+            heartbeat.join();
+        }
+
+        if (g_shutdownRequested) break;
+
+        std::cout << "All threads completed. Merging files..." << std::endl;
+        std::string mergedFile = MergeThreadFiles();
+
+        #ifdef _WIN32
+            ShowCursor();
+        #else
+            ShowCursor();
+        #endif
+        
+        if (!mergedFile.empty()) {
+            std::cout << "Uploading file to server..." << std::endl;
+            std::string uploadUrl = SERVER_URL + "/api/upload/" + sessionId;
+            
+            if (UploadFile(uploadUrl, mergedFile, username, positions.load())) {
+                std::cout << "Upload successful!" << std::endl;
+                
+                // Delete the file after successful upload
+                std::error_code ec;
+                std::filesystem::remove(mergedFile, ec);
+                if (!ec) {
+                    std::cout << "Local file cleaned up." << std::endl;
+                }
+            } else {
+                std::cerr << "Upload failed. File kept locally: " << mergedFile << std::endl;
+            }
+        }
+        
+        if (g_shutdownRequested) break;
+        
+        std::cout << "\n=== Starting next cycle ===" << std::endl << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+    }
+    
+    std::cout << "\nOnline mode shutdown complete." << std::endl;
+}
+
 void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int threads) {
-    // Define ANSI escape codes for colors as std::string
     const std::string COLOR_RESET = "\033[0m";
-    const std::string COLOR_TITLE = "\033[1;36m";    // Bright cyan
-    const std::string COLOR_SECTION = "\033[1;33m";  // Bright yellow
-    const std::string COLOR_VALUE = "\033[1;32m";    // Bright green
-    const std::string COLOR_BAR = "\033[1;34m";      // Bright blue
+    const std::string COLOR_TITLE = "\033[1;36m";
+    const std::string COLOR_SECTION = "\033[1;33m";
+    const std::string COLOR_VALUE = "\033[1;32m";
+    const std::string COLOR_BAR = "\033[1;34m";
 
     static double lastPositions = 0;
     static double lastElapsed = 0;

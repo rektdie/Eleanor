@@ -61,6 +61,7 @@ struct Game {
 };
 
 void Run(int targetPositions, int threads);
+void RunOnline(const std::string& username, int targetPositions, int threads);
 
 void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int threads);
 }
