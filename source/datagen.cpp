@@ -5,6 +5,13 @@
 #include <tuple>
 #include <atomic>
 #include <mutex>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
 #include "datagen.h"
 #include "movegen.h"
 #include "search.h"
@@ -112,6 +119,51 @@ static void WriteToFile(std::vector<Game> &gamesBuffer, std::ofstream &file) {
 
     file.write(buffer.data(), buffer.size());
     file.flush();
+}
+
+inline void MergeThreadFiles() {
+    namespace fs = std::filesystem;
+
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+    std::tm tm = *std::localtime(&now_time);
+
+    std::ostringstream oss;
+    oss << "datagen_" 
+        << std::put_time(&tm, "%Y-%m-%d_%H-%M") 
+        << ".binpack";
+    std::string finalFileName = oss.str();
+
+    std::ofstream finalFile(finalFileName, std::ios::binary);
+    if (!finalFile.is_open()) {
+        std::cerr << "Failed to create final merged file: " << finalFileName << std::endl;
+        return;
+    }
+
+    for (const auto& entry : fs::directory_iterator(fs::current_path())) {
+        if (!entry.is_regular_file()) continue;
+        std::string filename = entry.path().filename().string();
+
+        if (filename.find("thread") == 0 && filename.find(".binpack") != std::string::npos) {
+            std::ifstream threadFile(entry.path(), std::ios::binary);
+            if (!threadFile.is_open()) {
+                std::cerr << "Failed to open " << filename << std::endl;
+                continue;
+            }
+
+            finalFile << threadFile.rdbuf();
+            threadFile.close();
+
+            std::error_code ec;
+            fs::remove(entry.path(), ec);
+            if (ec) {
+                std::cerr << "Failed to delete " << filename << ": " << ec.message() << std::endl;
+            }
+        }
+    }
+
+    finalFile.close();
+    std::cout << "Merged all thread files into: " << finalFileName << std::endl;
 }
 
 static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& stopFlag) {
@@ -282,6 +334,8 @@ void Run(int targetPositions, int threads) {
         pthread_join(thread, nullptr);
     }
 #endif
+
+    MergeThreadFiles();
 
     #ifdef _WIN32
         ShowCursor();

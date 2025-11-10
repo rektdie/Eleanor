@@ -34,25 +34,6 @@ struct MarlinFormat {
         this->wdl = wdl;
         extra = 0;
     }
-
-    void writeToFile(const std::string& filename) const {
-        std::ofstream outFile(filename, std::ios::binary);
-        if (!outFile) {
-            std::cerr << "Error opening file for writing!" << std::endl;
-            return;
-        }
-
-        outFile.write(reinterpret_cast<const char*>(&occupancy), sizeof(occupancy));
-        outFile.write(reinterpret_cast<const char*>(&pieces), sizeof(pieces));
-        outFile.write(reinterpret_cast<const char*>(&stmEPSquare), sizeof(stmEPSquare));
-        outFile.write(reinterpret_cast<const char*>(&halfmoveClock), sizeof(halfmoveClock));
-        outFile.write(reinterpret_cast<const char*>(&fullmoveNumber), sizeof(fullmoveNumber));
-        outFile.write(reinterpret_cast<const char*>(&eval), sizeof(eval));
-        outFile.write(reinterpret_cast<const char*>(&wdl), sizeof(wdl));
-        outFile.write(reinterpret_cast<const char*>(&extra), sizeof(extra));
-
-        outFile.close();
-    }
 };
 
 struct ScoredMove {
