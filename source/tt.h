@@ -27,6 +27,8 @@ public:
     uint8_t depth = 0;
     uint8_t nodeType = 0;
 
+    bool ttpv = false;
+
     TTEntry() {}
 
     TTEntry(int16_t score) {
@@ -83,5 +85,5 @@ public:
 
     TTEntry ReadEntry(U64 &hashKey, int depth, int alpha, int beta);
 
-    void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move besteMove);
+    void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, bool ttpv, Move bestMove);
 };
