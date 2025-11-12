@@ -638,6 +638,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // PVS SEE
         int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
 
+        if (currMove.IsQuiet())
+            SEEThreshold -= historyScore / 600;
+
         if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
             continue;
 
