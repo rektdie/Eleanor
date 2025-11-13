@@ -5,6 +5,13 @@
 
 <h1 align="center">Eleanor Chess Engine</h1>
 
+![GitHub License](https://img.shields.io/github/license/rektdie/Eleanor?style=for-the-badge&color=orange)
+![GitHub commits since latest release](https://img.shields.io/github/commits-since/rektdie/Eleanor/latest?style=for-the-badge&color=orange)<br>
+[![Testing Site](https://img.shields.io/badge/testing_site-%23413679?link=https%3A%2F%2Frektdie.pythonanywhere.com%2F)](https://rektdie.pythonanywhere.com/)
+[![Datagen Dashboard](https://img.shields.io/badge/datagen_dashboard-%23413679?link=https%3A%2F%2Frektgen.online%2F)](https://rektgen.online/)<br>
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/rektdie/Eleanor/total?color=orange)
+
+
 | Version | Release Date | [CCRL 40/15](https://www.computerchess.org.uk/ccrl/4040/cgi/compare_engines.cgi?family=Eleanor&print=Rating+list&print=Results+table&print=LOS+table&print=Ponder+hit+table&print=Eval+difference+table&print=Comopp+gamenum+table&print=Overlap+table&print=Score+with+common+opponents) | [CCRL Blitz](https://www.computerchess.org.uk/ccrl/404/cgi/compare_engines.cgi?family=Eleanor&print=Rating+list&print=Results+table&print=LOS+table&print=Ponder+hit+table&print=Eval+difference+table&print=Comopp+gamenum+table&print=Overlap+table&print=Score+with+common+opponents) |
 | --- | --- | --- | --- |
 | 2.0 | 2025-08-23 | 3312 (#115) | 3392 (#105)
@@ -62,4 +69,4 @@ The engine can be used in any GUI with **UCI support**.
 
 **The project is a work in progress and actively developed. Contributions are highly appreciated.**
 
-###### Last updated: 2025-08-24
+###### Last updated: 2025-11-13
