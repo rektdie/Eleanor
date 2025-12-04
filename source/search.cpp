@@ -426,6 +426,16 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     const int staticEval = AdjustEval(board, ctx, rawEval);
     ctx->ss[ply].eval = staticEval;
 
+    int ttAdjustedEval = staticEval;
+
+    if (!ctx->excluded && !board.InCheck() && entry.bestMove &&
+        ((entry.nodeType == PV) ||
+        (entry.nodeType == AllNode && entry.score <= staticEval) ||
+        (entry.nodeType == CutNode && entry.score >= staticEval))) {
+        
+        ttAdjustedEval = entry.score;
+    }
+
     bool corrplexity = std::abs(rawEval - staticEval) > 70;
 
     const bool improving = [&]
@@ -454,7 +464,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
 
             // Null Move Pruning
-            if (!ctx->doingNullMove && staticEval >= beta + nmpBetaMargin) {
+            if (!ctx->doingNullMove && ttAdjustedEval >= beta + nmpBetaMargin) {
                 if (depth > 1 && !board.InPossibleZug()) {
                     Board copy = board;
                     copy.MakeMove(Move());
