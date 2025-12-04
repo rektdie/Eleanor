@@ -448,6 +448,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 return (beta + (staticEval - beta) / 3);
             }
 
+            // Razoring
+            if (!isPV && depth <= 3 && staticEval + razoringScalar * depth < alpha) {
+                return Quiescence<mode>(board, alpha, beta, ply, ctx).score;
+            }
+
             // Null Move Pruning
             if (!ctx->doingNullMove && staticEval >= beta + nmpBetaMargin) {
                 if (depth > 1 && !board.InPossibleZug()) {
