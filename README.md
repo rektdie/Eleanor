@@ -14,6 +14,7 @@
 
 | Version | Release Date | [CCRL 40/15](https://www.computerchess.org.uk/ccrl/4040/cgi/compare_engines.cgi?family=Eleanor&print=Rating+list&print=Results+table&print=LOS+table&print=Ponder+hit+table&print=Eval+difference+table&print=Comopp+gamenum+table&print=Overlap+table&print=Score+with+common+opponents) | [CCRL Blitz](https://www.computerchess.org.uk/ccrl/404/cgi/compare_engines.cgi?family=Eleanor&print=Rating+list&print=Results+table&print=LOS+table&print=Ponder+hit+table&print=Eval+difference+table&print=Comopp+gamenum+table&print=Overlap+table&print=Score+with+common+opponents) |
 | --- | --- | --- | --- |
+| 3.0 | 2025-12-05 | ? | ?
 | 2.0 | 2025-08-23 | 3312 (#115) | 3392 (#105)
 | 1.0 | 2025-06-02 | 2856 (#244) | 2759 (#256)
 
@@ -24,8 +25,8 @@
 
 Eleanor uses a **fully neural network-based evaluation function**, entirely trained on self-play data from an initially simple HCE using the [bullet](https://github.com/jw1912/bullet) trainer.  
 
-**Architecture:** `(768 -> 1024)x2 -> 1x8`  
-A 1024-hidden-layer *perspective net* with 8 output buckets.
+**Architecture:** `(768hm -> 1536)x2 -> 1x8`  
+A 1536-hidden-layer *perspective net* with 8 output buckets and horizontal mirroring.
 
 ## Installation
 
@@ -69,4 +70,4 @@ The engine can be used in any GUI with **UCI support**.
 
 **The project is a work in progress and actively developed. Contributions are highly appreciated.**
 
-###### Last updated: 2025-11-13
+###### Last updated: 2025-12-05
