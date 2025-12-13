@@ -49,6 +49,26 @@ constexpr std::array<int, 6> SEEPieceValues = {
 void InitLMRTable();
 class SearchContext;
 
+class CaptHistory {
+private:
+    // indexed by [stm][moving pt][capture pt][to]
+    MultiArray<int, 2, 6, 6, 64> historyMoves;
+public:
+    void Update(bool stm, int moving, int capture, int to, int bonus) {
+        int clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
+        historyMoves[stm][moving][capture][to] +=
+            clampedBonus - historyMoves[stm][moving][capture][to] * std::abs(clampedBonus) / MAX_HISTORY;
+    }
+
+    void Clear() {
+        std::fill(&historyMoves[0][0][0][0], &historyMoves[0][0][0][0] + sizeof(historyMoves) / sizeof(int), 0);
+    }
+
+    auto& operator[](int index) {
+        return historyMoves[index];
+    }
+};
+
 class CorrHist {
 private:
     // indexed by [stm][key]
@@ -204,6 +224,7 @@ public:
     History history;
     ContHistory conthist;
     CorrHist corrhist;
+    CaptHistory capthist;
 
     std::array<std::array<int, MAX_DEPTH>, 2> killerMoves{};
 
@@ -220,6 +241,7 @@ public:
         history.Clear();
         conthist.Clear();
         corrhist.Clear();
+        capthist.Clear();
         TT.Clear();
         sw.Restart();
         killerMoves = {};
