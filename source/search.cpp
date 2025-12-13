@@ -768,12 +768,16 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 int movingPiece = board.GetPieceType(seenCaptures[moveIndex].MoveFrom());
                 int capturedPiece = board.GetPieceType(seenCaptures[moveIndex].MoveTo());
 
-                if (seenCaptures[seenCapturesCount].GetFlags() == epCapture) {
+                if (seenCaptures[moveIndex].GetFlags() == epCapture) {
                     capturedPiece = Pawn;
                 }
 
+                if (movingPiece == nullPieceType || capturedPiece == nullPieceType) {
+                    std::cout << "asd\n";
+                }
+
                 ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece,
-                    seenCaptures[seenCapturesCount].MoveTo(), -bonus);
+                    seenCaptures[moveIndex].MoveTo(), -bonus);
             }
 
             if (!ctx->excluded)
