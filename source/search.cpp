@@ -60,7 +60,9 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
             targetType = Pawn;
         }
 
-        return 50000 * ((SEE(board, move, seeOrderingThreshold))) + (100 * targetType - attackerType + 105);
+        const int capthistScore = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
+
+        return 50000 * ((SEE(board, move, seeOrderingThreshold))) + (100 * targetType - attackerType + 105) + capthistScore;
     } else {
         if (ctx->killerMoves[0][ply] == move) {
             return 41000;
@@ -535,7 +537,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     int moveSeen = 0;
     std::array<Move, MAX_MOVES> seenQuiets;
+    std::array<Move, MAX_MOVES> seenCaptures;
     int seenQuietsCount = 0;
+    int seenCapturesCount = 0;
 
     // For all moves
     for (int i = 0; i < board.currentMoveIndex; i++) {
@@ -690,15 +694,18 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (currMove != 0 && currMove.IsQuiet()) {
             seenQuiets[seenQuietsCount] = currMove;
             seenQuietsCount++;
+        } else if (currMove != 0 && currMove.IsCapture()) {
+            seenCaptures[seenCapturesCount] = currMove;
+            seenCapturesCount++;
         }
 
         // Fail high (beta cutoff)
         if (score >= beta) {
+            int bonus = historyBonusMultiplier * depth - historyBonusSub;
+
             if (!currMove.IsCapture()) {
                 ctx->killerMoves[1][ply] = ctx->killerMoves[0][ply];
                 ctx->killerMoves[0][ply] = currMove;
-
-                int bonus = historyBonusMultiplier * depth - historyBonusSub;
 
                 ctx->history.Update(board.sideToMove, currMove, sourceThreatened, targetThreatened, bonus);
 
@@ -745,6 +752,32 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                     ctx->history.Update(board.sideToMove, seenQuiets[moveIndex], sourceThreatened, targetThreatened, -bonus);
                 }
+            } else {
+                int movingPiece = board.GetPieceType(currMove.MoveFrom());
+                int capturedPiece = board.GetPieceType(currMove.MoveTo());
+
+                if (currMove.GetFlags() == epCapture) {
+                    capturedPiece = Pawn;
+                }
+
+                ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece, currMove.MoveTo(), bonus);
+            }
+
+            // Capthist malus
+            for (int moveIndex = 0; moveIndex < seenCapturesCount - currMove.IsCapture(); moveIndex++) {
+                int movingPiece = board.GetPieceType(seenCaptures[moveIndex].MoveFrom());
+                int capturedPiece = board.GetPieceType(seenCaptures[moveIndex].MoveTo());
+
+                if (seenCaptures[moveIndex].GetFlags() == epCapture) {
+                    capturedPiece = Pawn;
+                }
+
+                if (movingPiece == nullPieceType || capturedPiece == nullPieceType) {
+                    std::cout << "asd\n";
+                }
+
+                ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece,
+                    seenCaptures[moveIndex].MoveTo(), -bonus);
             }
 
             if (!ctx->excluded)
