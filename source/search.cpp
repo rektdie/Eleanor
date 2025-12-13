@@ -449,7 +449,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
 
             // Razoring
-            if (!isPV && depth <= 3 && staticEval + razoringScalar * depth < alpha) {
+            if (depth <= 3 && staticEval + razoringScalar * depth < alpha) {
                 return Quiescence<mode>(board, alpha, beta, ply, ctx).score;
             }
 
