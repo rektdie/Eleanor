@@ -530,16 +530,18 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             if (score >= probcutBeta) {
                 ctx->TT.WriteEntry(board.hashKey, probcutDepth, score, CutNode, currMove);
                 
-                int movingPiece = board.GetPieceType(currMove.MoveFrom());
-                int capturedPiece = board.GetPieceType(currMove.MoveTo());
+                if (currMove.IsCapture()) {
+                    int movingPiece = board.GetPieceType(currMove.MoveFrom());
+                    int capturedPiece = board.GetPieceType(currMove.MoveTo());
 
-                if (currMove.GetFlags() == epCapture) {
-                    capturedPiece = Pawn;
+                    if (currMove.GetFlags() == epCapture) {
+                        capturedPiece = Pawn;
+                    }
+
+                    int bonus = historyBonusMultiplier * depth - historyBonusSub;
+
+                    ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece, currMove.MoveTo(), bonus);
                 }
-
-                int bonus = historyBonusMultiplier * depth - historyBonusSub;
-
-                ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece, currMove.MoveTo(), bonus);
 
                 return score;
             }
