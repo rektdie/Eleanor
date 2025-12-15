@@ -174,24 +174,33 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
         if (corrplexity)
             reduction -= lmrCorrplexity;
 
-        if (move.IsQuiet()) {
-            // History LMR
+        // History LMR
+        int historyReduction = 0;
 
+        if (move.IsQuiet()) {
             bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
             bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
 
-            int historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
+            historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
             if (ply > 0) {
                 historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 1);
 
                 if (ply > 1)
                     historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 2);
             }
+        } else if (move.IsCapture()) {
+            int attackerType = board.GetPieceType(move.MoveFrom());
+            int targetType = board.GetPieceType(move.MoveTo());
 
-            historyReduction = historyReduction / lmrHistoryDivisor;
-
-            reduction -= historyReduction * 1024;
+            if (move.GetFlags() == epCapture) {
+                targetType = Pawn;
+            }
+            
+            historyReduction = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
         }
+
+        historyReduction = historyReduction / lmrHistoryDivisor;
+        reduction -= historyReduction * 1024;
     }
 
     reduction /= 1024;
