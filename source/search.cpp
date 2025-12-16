@@ -38,8 +38,22 @@ int16_t ContHistory::GetNPly(Board& board, Move& move, SearchContext* ctx, int p
     return ctx->conthist[otherColor][prevType][prevTo][board.sideToMove][pieceType][to];
 }
 
-static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
-    int corrhist = ctx->corrhist.GetAllHist(board);
+static int AdjustEval(Board &board, int ply, SearchContext* ctx, int eval) {
+    int prevType = 0;
+    int prevTo = 0;
+    int pieceType = 0;
+    int to = 0;
+    int otherColor = 0;
+
+    if (ply > 0) {
+        prevType = ctx->ss[ply-1].pieceType;
+        prevTo = ctx->ss[ply-1].moveTo;
+        pieceType = ctx->ss[ply].pieceType;
+        to = ctx->ss[ply].moveTo;
+        otherColor = ctx->ss[ply-1].side;
+    }
+
+    int corrhist = ctx->corrhist.GetAllHist(board, ply, otherColor, prevType, prevTo, pieceType, to);
 
     int mateFound = MATE_SCORE - MAX_DEPTH;
 
@@ -315,7 +329,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
 
-    int bestScore = AdjustEval(board, ctx, NNUE::net.Evaluate(board));
+    int bestScore = AdjustEval(board, ply, ctx, NNUE::net.Evaluate(board));
     ctx->ss[ply].eval = bestScore;
 
     if (!ctx->excluded) {
@@ -434,7 +448,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
 
     int rawEval = NNUE::net.Evaluate(board);
-    const int staticEval = AdjustEval(board, ctx, rawEval);
+    const int staticEval = AdjustEval(board, ply, ctx, rawEval);
     ctx->ss[ply].eval = staticEval;
 
     bool corrplexity = std::abs(rawEval - staticEval) > 70;
@@ -820,7 +834,22 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
             int corrHistBonus = std::clamp(results.score - staticEval, -CORRHIST_LIMIT, CORRHIST_LIMIT);
 
-            ctx->corrhist.UpdateAll(board, depth, corrHistBonus);
+            int prevType = 0;
+            int prevTo = 0;
+            int pieceType = 0;
+            int to = 0;
+            int otherColor = 0;
+
+            if (ply > 0) {
+                prevType = ctx->ss[ply-1].pieceType;
+                prevTo = ctx->ss[ply-1].moveTo;
+                pieceType = ctx->ss[ply].pieceType;
+                to = ctx->ss[ply].moveTo;
+                otherColor = ctx->ss[ply-1].side;
+            }
+
+            ctx->corrhist.UpdateAll(board, ply, depth, corrHistBonus, otherColor, prevType, prevTo, 
+                pieceType, to);
         }
 
         ctx->TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove);

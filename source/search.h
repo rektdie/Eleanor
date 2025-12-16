@@ -74,6 +74,9 @@ private:
     // indexed by [stm][key]
     MultiArray<int, 2, CORRHIST_SIZE> pawnHist;
     MultiArray<int, 2, CORRHIST_SIZE> nonPawnHist;
+
+    // indexed by [other color][prev move piece][stm][prev move to][piece][to]
+    MultiArray<int, 2, 6, 64, 2, 6, 64> contHist;
 public:
     void Update(Board& board, int depth, int diff, int* entry) {
         const int scaledDiff = diff * CORRHIST_GRAIN;
@@ -83,19 +86,30 @@ public:
         *entry = std::clamp(*entry, -CORRHIST_MAX, CORRHIST_MAX);
     }
 
-    void UpdateAll(Board& board, int depth, int diff) {
+    void UpdateAll(Board& board, int ply, int depth, int diff, bool otherColor, int prevType, int prevTo, int type, int to) {
         Update(board, depth, diff, &pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]);
         Update(board, depth, diff, &nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE]);
+
+        if (ply > 0)
+            Update(board, depth, diff, &contHist[otherColor][prevType][prevTo][board.sideToMove][type][to]);
     }
 
-    int GetAllHist(Board& board) {
-        return pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]
+    int GetAllHist(Board& board, int ply, bool otherColor, int prevType, int prevTo, int type, int to) {
+        int result = 0;
+
+        result += pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]
             +  nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE];
+
+        if (ply > 0)
+            result += contHist[otherColor][prevType][prevTo][board.sideToMove][type][to];
+
+        return result;
     }
 
     void Clear() {
         std::fill(&pawnHist[0][0], &pawnHist[0][0] + sizeof(pawnHist) / sizeof(int), 0);
         std::fill(&nonPawnHist[0][0], &nonPawnHist[0][0] + sizeof(nonPawnHist) / sizeof(int), 0);
+        std::fill(&contHist[0][0][0][0][0][0], &contHist[0][0][0][0][0][0] + sizeof(contHist) / sizeof(int), 0);
     }
 };
 
