@@ -79,7 +79,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
                 conthistScore = ctx->conthist.GetNPly(board, move, ctx, ply, 1);
                 
                 if (ply > 1) {
-                    conthistScore = ctx->conthist.GetNPly(board, move, ctx, ply, 2);
+                    conthistScore += ctx->conthist.GetNPly(board, move, ctx, ply, 2);
                 }
             }
 
