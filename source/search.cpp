@@ -80,6 +80,10 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
                 
                 if (ply > 1) {
                     conthistScore += ctx->conthist.GetNPly(board, move, ctx, ply, 2);
+
+                    if (ply > 3) {
+                        conthistScore += ctx->conthist.GetNPly(board, move, ctx, ply, 4);
+                    }
                 }
             }
 
