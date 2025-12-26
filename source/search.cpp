@@ -164,8 +164,11 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
         if (cutnode)
             reduction += lmrCutnode;
 
-        if constexpr (isPV)
+        if constexpr (isPV) {
             reduction -= lmrIsPV;
+        } else {
+            reduction += lmrIsNotPV;
+        }
     
         if (!improving)
             reduction += lmrImproving;
