@@ -304,7 +304,7 @@ static bool ShouldStop(SearchContext* ctx) {
     return false;
 }
 
-template <searchMode mode>
+template <bool isPV, searchMode mode>
 static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext* ctx) {
     if (ShouldStop<mode>(ctx)) return 0;
 
@@ -317,17 +317,25 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     int bestScore = AdjustEval(board, ctx, NNUE::net.Evaluate(board));
     ctx->ss[ply].eval = bestScore;
 
-    if (!ctx->excluded) {
-        TTEntry entry = ctx->TT.GetRawEntry(board.hashKey);
-        if (entry.hashKey == board.hashKey) {
-            bestScore = entry.score;
+    TTEntry entry;
+    if (!ctx->excluded)
+        entry = ctx->TT.GetRawEntry(board.hashKey);
+
+    const bool ttHit = entry.hashKey == board.hashKey;
+
+    if constexpr (!isPV) {
+        if (ttHit) {
+            if (((entry.nodeType == PV) ||
+                (entry.nodeType == AllNode && entry.score <= alpha) ||
+                (entry.nodeType == CutNode && entry.score >= beta))) {
+
+                return SearchResults(entry.score, entry.bestMove);
+            }
         }
     }
 
-
-    if (bestScore >= beta) {
-        return bestScore;
-    }
+    if (ttHit)
+        bestScore = entry.score;
 
     if (alpha < bestScore) {
         alpha = bestScore;
@@ -371,7 +379,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
         ctx->TT.PrefetchEntry(copy.hashKey);
 
-        int score = -Quiescence<mode>(copy, -beta, -alpha, ply + 1, ctx).score;
+        int score = -Quiescence<isPV, mode>(copy, -beta, -alpha, ply + 1, ctx).score;
 
         if (score >= beta) {
             if (!ctx->excluded) {
@@ -430,7 +438,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
     }
 
-    if (depth <= 0) return Quiescence<mode>(board, alpha, beta, ply, ctx);
+    if (depth <= 0) return Quiescence<isPV, mode>(board, alpha, beta, ply, ctx);
 
     int rawEval = NNUE::net.Evaluate(board);
     const int staticEval = AdjustEval(board, ctx, rawEval);
@@ -460,7 +468,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
             // Razoring
             if (!isPV && depth <= 3 && staticEval + razoringScalar * depth < alpha) {
-                return Quiescence<mode>(board, alpha, beta, ply, ctx).score;
+                return Quiescence<isPV, mode>(board, alpha, beta, ply, ctx).score;
             }
 
             // Null Move Pruning
@@ -517,7 +525,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             ctx->positionHistory[copy.positionIndex] = copy.hashKey;
             ctx->nodes++;
 
-            int score = -Quiescence<mode>(copy, -probcutBeta, -probcutBeta + 1, ply + 1, ctx).score;
+            int score = -Quiescence<isPV, mode>(copy, -probcutBeta, -probcutBeta + 1, ply + 1, ctx).score;
 
             if (score >= probcutBeta) {
                 score = -PVS<isPV, mode>(copy, probcutDepth - 1, -probcutBeta, -probcutBeta + 1,
