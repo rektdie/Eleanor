@@ -420,7 +420,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     if constexpr (!isPV) {
         if (ttHit) {
-            if (entry.depth >= depth &&
+            if (entry.depth > depth - (entry.score <= beta) &&
                 ((entry.nodeType == PV) ||
                 (entry.nodeType == AllNode && entry.score <= alpha) ||
                 (entry.nodeType == CutNode && entry.score >= beta))) {
