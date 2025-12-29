@@ -537,6 +537,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         MOVEGEN::GenerateMoves<All>(board, true);
     }
 
+    // IIR
+    if (ply && !ttHit && depth >= 8)
+        depth--;
+
     SortMoves(board, ply, ctx);
 
     int score = -inf;
