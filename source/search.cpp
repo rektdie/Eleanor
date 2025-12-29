@@ -337,6 +337,10 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     if (ttHit)
         bestScore = entry.score;
 
+    if (bestScore >= beta) {
+        return bestScore;
+    }
+
     if (alpha < bestScore) {
         alpha = bestScore;
     }
