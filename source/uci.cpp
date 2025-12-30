@@ -113,13 +113,13 @@ static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchC
 // Unix/Linux implementation using pthread
 template <SEARCH::searchMode mode>
 static void* ThreadFunc(void* arg) {
-    auto* tup = static_cast<std::tuple<Board*, SearchParams, SEARCH::SearchContext*>*>(arg);
-    SEARCH::SearchPosition<mode>(*std::get<0>(*tup), std::get<1>(*tup), std::get<2>(*tup));
+    auto* tup = static_cast<std::tuple<Board, SearchParams, SEARCH::SearchContext*>*>(arg);
+    SEARCH::SearchPosition<mode>(std::get<0>(*tup), std::get<1>(*tup), std::get<2>(*tup));
     delete tup;
     return nullptr;
 }
 
-static void StartSearchThread(Board board, SearchParams params, SEARCH::SearchContext* ctx, int id) {
+static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchContext* ctx, int id) {
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);  // 8 MB stack
@@ -131,10 +131,10 @@ static void StartSearchThread(Board board, SearchParams params, SEARCH::SearchCo
         ctxCopy->doPrint = true;
 
     if (params.nodes) {
-        auto* arg = new std::tuple<Board*, SearchParams, SEARCH::SearchContext*>(&board, params, ctxCopy);
+        auto* arg = new std::tuple<Board, SearchParams, SEARCH::SearchContext*>(board, params, ctxCopy);
         pthread_create(&thread, &attr, ThreadFunc<SEARCH::nodesMode>, arg);
     } else {
-        auto* arg = new std::tuple<Board*, SearchParams, SEARCH::SearchContext*>(&board, params, ctxCopy);
+        auto* arg = new std::tuple<Board, SearchParams, SEARCH::SearchContext*>(board, params, ctxCopy);
         pthread_create(&thread, &attr, ThreadFunc<SEARCH::normal>, arg);
     }
 
