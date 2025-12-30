@@ -89,23 +89,22 @@ static double ReadParam(const std::string& param, const std::string &command) {
 #ifdef _WIN32
 // Windows implementation using std::thread
 template <SEARCH::searchMode mode>
-static void ThreadFunc(Board* board, SearchParams params, SEARCH::SearchContext* ctx) {
-    SEARCH::SearchPosition<mode>(*board, params, ctx);
+static void ThreadFunc(Board board, SearchParams params, SEARCH::SearchContext* ctx) {
+    SEARCH::SearchPosition<mode>(board, params, ctx);
+    delete ctx;
 }
 
 static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchContext* ctx, int id) {
-    std::thread searchThread;
-    
-    auto ctxCopy = std::make_unique<SEARCH::SearchContext>(*ctx);
+    SEARCH::SearchContext* ctxCopy = new SEARCH::SearchContext(*ctx);
     if (id == 0)
         ctxCopy->doPrint = true;
-
-    if (params.nodes) {
-        searchThread = std::thread(ThreadFunc<SEARCH::nodesMode>, &board, params, ctxCopy);
-    } else {
-        searchThread = std::thread(ThreadFunc<SEARCH::normal>, &board, params, ctxCopy);
-    }
     
+    std::thread searchThread;
+    if (params.nodes) {
+        searchThread = std::thread(ThreadFunc<SEARCH::nodesMode>, board, params, ctxCopy);
+    } else {
+        searchThread = std::thread(ThreadFunc<SEARCH::normal>, board, params, ctxCopy);
+    }
     searchThread.detach();
 }
 
@@ -114,7 +113,10 @@ static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchC
 template <SEARCH::searchMode mode>
 static void* ThreadFunc(void* arg) {
     auto* tup = static_cast<std::tuple<Board, SearchParams, SEARCH::SearchContext*>*>(arg);
-    SEARCH::SearchPosition<mode>(std::get<0>(*tup), std::get<1>(*tup), std::get<2>(*tup));
+    SEARCH::SearchContext* ctx = std::get<2>(*tup);
+    SEARCH::SearchPosition<mode>(std::get<0>(*tup), std::get<1>(*tup), ctx);
+    
+    delete ctx;
     delete tup;
     return nullptr;
 }
@@ -126,20 +128,30 @@ static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchC
 
     pthread_t thread;
 
+    int result;
     SEARCH::SearchContext* ctxCopy = new SEARCH::SearchContext(*ctx);
     if (id == 0)
         ctxCopy->doPrint = true;
 
     if (params.nodes) {
         auto* arg = new std::tuple<Board, SearchParams, SEARCH::SearchContext*>(board, params, ctxCopy);
-        pthread_create(&thread, &attr, ThreadFunc<SEARCH::nodesMode>, arg);
+        result = pthread_create(&thread, &attr, ThreadFunc<SEARCH::nodesMode>, arg);
+        if (result != 0) {
+            delete ctxCopy;
+            delete arg;
+        }
     } else {
         auto* arg = new std::tuple<Board, SearchParams, SEARCH::SearchContext*>(board, params, ctxCopy);
-        pthread_create(&thread, &attr, ThreadFunc<SEARCH::normal>, arg);
+        result = pthread_create(&thread, &attr, ThreadFunc<SEARCH::normal>, arg);
+        if (result != 0) {
+            delete ctxCopy;
+            delete arg;
+        }
     }
 
     pthread_attr_destroy(&attr);
-    pthread_detach(thread);
+    if (result == 0)
+        pthread_detach(thread);
 }
 #endif
 
