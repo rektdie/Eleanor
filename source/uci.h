@@ -3,6 +3,8 @@
 #include "board.h"
 
 inline bool UCIEnabled = false;
+inline int threads = 1;
+inline bool searchStopped = false;
 
 class SearchParams {
 public:
@@ -12,6 +14,8 @@ public:
     int binc = 0;
     int movesToGo = 0;
     int nodes = 0;
+
+    int threads = 1;
 
     SearchParams(){}
 };

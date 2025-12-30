@@ -85,3 +85,5 @@ public:
 
     void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move besteMove);
 };
+
+extern TTable SharedTT;

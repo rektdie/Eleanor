@@ -64,7 +64,9 @@ constexpr std::array<std::string_view, 50> fenPositions = {
 void RunBenchmark() {
     Board board;
 
+    TTable BenchTT;
     auto ctx = std::make_unique<SearchContext>();
+    ctx->TT = &BenchTT;
 
     Stopwatch sw;
     for (int i = 0; i < fenPositions.size(); i++) {
