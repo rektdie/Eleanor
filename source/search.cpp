@@ -204,7 +204,9 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
 
     reduction /= 1024;
 
-    return std::clamp(reduction, -1, depth - 1);
+    int low = (!isPV && !cutnode) ? -2 : -1;
+
+    return std::clamp(reduction, low, depth - 1);
 }
 
 
