@@ -471,7 +471,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
 
             // Null Move Pruning
-            if (!ctx->doingNullMove && staticEval >= beta + nmpBetaMargin) {
+            if (!ctx->doingNullMove && staticEval >= beta + nmpBetaBase - nmpBetaMultiplier * depth) {
                 if (depth > 1 && !board.InPossibleZug()) {
                     Board copy = board;
                     copy.MakeMove(Move());
