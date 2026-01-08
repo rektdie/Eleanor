@@ -620,7 +620,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         int extension = 0;
 
         if (ply
-            && depth >= 8
+            && depth >= 6
             && ttHit
             && currMove == entry.bestMove
             && ctx->excluded == 0
