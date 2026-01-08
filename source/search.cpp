@@ -595,9 +595,16 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         
         int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
 
-        if (!isPV && ply && currMove.IsQuiet()
-                && lmrDepth <= 5 && staticEval + margin < alpha && notMated) {
-            continue;
+        if (ply && !isPV && !board.InCheck() && notMated) {
+            if (currMove.IsQuiet()) {
+                if (lmrDepth <= 5 && staticEval + margin < alpha) {
+                    continue;
+                }
+            } else {
+                if (depth <= 5 && staticEval + 300 - 150 * depth <= alpha) {
+                    continue;
+                }
+            }
         }
 
         Board copy = board;
