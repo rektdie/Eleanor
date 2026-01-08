@@ -341,7 +341,13 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     const int fpScore = bestScore + 100;
 
-    MOVEGEN::GenerateMoves<Noisy>(board, true);
+    bool skipQuiets = false;
+
+    if (!board.InCheck()) {
+        MOVEGEN::GenerateMoves<Noisy>(board, true);
+    } else {
+        MOVEGEN::GenerateMoves<All>(board, true);
+    }
 
     SortMoves(board, ply, ctx);
 
@@ -350,6 +356,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     int nodeType = AllNode;
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
+        if (board.moveList[i].IsQuiet() && skipQuiets)
+            continue;
+
         // QS FP
         if (!board.InCheck() && board.moveList[i].IsCapture() &&
             fpScore <= alpha && !SEE(board, board.moveList[i], 1)) {
@@ -378,6 +387,11 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         ctx->TT.PrefetchEntry(copy.hashKey);
 
         int score = -Quiescence<isPV, mode>(copy, -beta, -alpha, ply + 1, ctx).score;
+
+        bool notMated = results.score > (-MATE_SCORE + MAX_DEPTH);
+
+        if (board.moveList[i].IsQuiet() && notMated)
+            skipQuiets = true;
 
         if (score >= beta) {
             if (!ctx->excluded) {
