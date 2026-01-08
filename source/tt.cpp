@@ -1,6 +1,6 @@
 #include "tt.h"
 
-void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove) {
+void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove, bool ttpv) {
     TTEntry *current = &table[hashKey % table.size()];
 
     current->hashKey = hashKey;
@@ -8,4 +8,5 @@ void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move b
     current->score = score;
     current->depth = depth;
     current->bestMove = bestMove;
+    current->ttpv = ttpv;
 }
