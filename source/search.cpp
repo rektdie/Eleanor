@@ -62,7 +62,7 @@ static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
 
         const int capthistScore = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
 
-        return 50000 * ((SEE(board, move, seeOrderingThreshold))) + (100 * targetType - attackerType + 105) + capthistScore;
+        return 50000 * ((SEE(board, move, seeOrderingThreshold))) + 100 * targetType + capthistScore;
     } else {
         if (ctx->killerMoves[0][ply] == move) {
             return 41000;
