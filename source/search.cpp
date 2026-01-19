@@ -602,7 +602,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         // History pruning
         if (!isPV && currMove.IsQuiet() && notMated && depth <= 4
-            && historyScore < -4000 * depth) {
+            && historyScore < -3000 * depth - 1000) {
             continue;
         }
 
