@@ -574,7 +574,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             int lmpThreshold = 7 + depth * depth * (1 + improving);
 
             if (moveSeen >= lmpThreshold) {
-                continue;
+                break;
             }
         }
 
