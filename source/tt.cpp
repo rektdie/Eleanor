@@ -1,7 +1,20 @@
 #include "tt.h"
 
 void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove, bool ttpv) {
-    TTEntry *current = &table[hashKey % table.size()];
+    TTBucket *bucket = &table[hashKey % table.size()];
+    TTEntry *current = nullptr;
+
+    if (bucket->depthPreferred && bucket->depthPreferred.hashKey == hashKey) {
+        current = &bucket->depthPreferred;
+    } else if (bucket->alwaysReplace && bucket->alwaysReplace.hashKey == hashKey) {
+        current = &bucket->alwaysReplace;
+    } else if (ttpv) {
+        current = &bucket->depthPreferred;
+    } else if (!bucket->depthPreferred || bucket->depthPreferred.depth <= depth) {
+        current = &bucket->depthPreferred;
+    } else {
+        current = &bucket->alwaysReplace;
+    }
 
     current->hashKey = hashKey;
     current->nodeType = nodeType;

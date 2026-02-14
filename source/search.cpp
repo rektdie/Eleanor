@@ -47,7 +47,7 @@ static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
 }
 
 static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
-    TTEntry current = ctx->TT.GetRawEntry(board.hashKey);
+    TTEntry current = ctx->TT.GetEntry(board.hashKey);
     if (current.hashKey == board.hashKey && current.bestMove == move) {
         return 100000;
     }
@@ -322,7 +322,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     TTEntry entry;
     if (!ctx->excluded) {
-        entry = ctx->TT.GetRawEntry(board.hashKey);
+        entry = ctx->TT.GetEntry(board.hashKey);
         if (entry.hashKey == board.hashKey) {
             bestScore = entry.score;
         }
@@ -420,7 +420,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     TTEntry entry;
     if (!ctx->excluded)
-        entry = ctx->TT.GetRawEntry(board.hashKey);
+        entry = ctx->TT.GetEntry(board.hashKey);
 
     const bool ttHit = entry.hashKey == board.hashKey;
     const bool ttpv = isPV | entry.ttpv;
