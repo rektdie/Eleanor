@@ -472,7 +472,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             // Reverse Futility Pruning
             int margin = rfpBase + rfpMargin * (depth - improving);
             if (!ttHit && ttAdjustedEval - margin >= beta && depth < 7) {
-                return (beta + (ttAdjustedEval - beta) / 3);
+                return (beta + (staticEval - beta) / 3);
             }
 
             // Razoring
