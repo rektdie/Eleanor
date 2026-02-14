@@ -445,7 +445,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     int ttAdjustedEval = staticEval;
 
-    if (!ctx->excluded && !board.InCheck() && entry.bestMove &&
+    if (!ctx->excluded && !board.InCheck() && ttHit && 
         ((entry.nodeType == PV) ||
         (entry.nodeType == AllNode && entry.score <= staticEval) ||
         (entry.nodeType == CutNode && entry.score >= staticEval))) {
