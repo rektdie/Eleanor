@@ -861,8 +861,8 @@ public:
         delta *= 2;
     }
 
-    void Set(int score) {
-        delta = aspInitialDelta;
+    void Set(int score, int extraDelta) {
+        delta = aspInitialDelta + extraDelta;
         alpha = score - delta;
         beta = score + delta;
     }
@@ -895,6 +895,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
     AspirationWindow aw;
 
     int elapsed = 0;
+    int lastScore = ScoreNone;
 
     double nodeScaling = 1;
 
@@ -936,7 +937,17 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
             continue;
         }
 
-        aw.Set(currentResults.score);
+        int extraDelta = 0;
+
+        if (lastScore != ScoreNone) {
+            int swing = std::abs(currentResults.score - lastScore);
+            extraDelta = (swing * swing) / aspSwingSqDiv;
+            extraDelta = std::clamp(extraDelta, 0, aspMaxExtra);
+        }
+
+        lastScore = currentResults.score;
+
+        aw.Set(currentResults.score, extraDelta);
 
         if (ctx->searchStopped) {
             break;
