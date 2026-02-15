@@ -24,8 +24,8 @@
     X_INT(seeQuietThreshold, -80, -150, -20) \
     X_INT(seeNoisyThreshold, -30, -80, 20) \
     X_INT(aspInitialDelta, 30, 20, 80) \
-    X_INT(aspSwingSqDiv, 64, 20, 80) \
-    X_INT(aspMaxExtra, 300, 20, 80) \
+    X_INT(aspSwingSqDiv, 24, 20, 80) \
+    X_INT(aspMaxExtra, 400, 20, 80) \
     X_INT(nmpBetaMargin, 30, 20, 80) \
     X_INT(seePawnValue, 100, 80, 120) \
     X_INT(seeKnightValue, 300, 250, 350) \
