@@ -39,16 +39,22 @@ public:
     }
 };
 
+class TTBucket {
+public:
+    TTEntry depthPreferred;
+    TTEntry alwaysReplace;
+};
+
 // 1024 MB
-constexpr U64 maxHash = (1024 * 1000000) / sizeof(TTEntry);
+constexpr U64 maxHash = (1024 * 1000000) / sizeof(TTBucket);
 // 8 MB
-constexpr U64 defaultHash = (8 * 1000000) / sizeof(TTEntry);
+constexpr U64 defaultHash = (8 * 1000000) / sizeof(TTBucket);
 
 constexpr int16_t invalidEntry = 11111;
 
 class TTable {
 private:
-    std::vector<TTEntry> table;
+    std::vector<TTBucket> table;
 public:
     TTable() : table(defaultHash) {};
 
@@ -66,9 +72,15 @@ public:
         __builtin_prefetch(&table[hashKey % table.size()]);
     }
 
-    TTEntry GetRawEntry(U64 &hashKey) {
-        TTEntry *current = &table[hashKey % table.size()];
-        return *current;
+    TTEntry GetEntry(U64 &hashKey) {
+        TTBucket *current = &table[hashKey % table.size()];
+        if (current->depthPreferred.hashKey == hashKey) {
+            return current->depthPreferred;
+        } else if (current->alwaysReplace.hashKey == hashKey) {
+            return current->alwaysReplace;
+        }
+
+        return TTEntry();
     }
 
     // returns used space per mill
@@ -76,13 +88,11 @@ public:
         int count = 0;
 
         for (int i = 0; i < 1000; i++) {
-            if (table[i]) count++;
+            if (table[i].depthPreferred || table[i].alwaysReplace) count++;
         }
 
         return count;
     }
 
-    TTEntry ReadEntry(U64 &hashKey, int depth, int alpha, int beta);
-
-    void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move besteMove, bool ttpv);
+    void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove, bool ttpv);
 };
