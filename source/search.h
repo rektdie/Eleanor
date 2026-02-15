@@ -201,7 +201,7 @@ public:
     int32_t eval = ScoreNone;
 
     int pieceType = -1;
-    int moveTo = -1;
+    Move lastMove = Move();
     bool side = -1;
 };
 

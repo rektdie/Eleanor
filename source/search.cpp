@@ -30,7 +30,7 @@ void InitLMRTable() {
 
 int16_t ContHistory::GetNPly(Board& board, Move& move, SearchContext* ctx, int ply, int n) {
     int prevType = ctx->ss[ply-n].pieceType;
-    int prevTo = ctx->ss[ply-n].moveTo;
+    int prevTo = ctx->ss[ply-n].lastMove.MoveTo();
     int pieceType = board.GetPieceType(move.MoveFrom());
     int to = move.MoveTo();
     bool otherColor = ctx->ss[ply-n].side;
@@ -363,7 +363,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         if (!isLegal) continue;
 
         ctx->ss[ply].pieceType = board.GetPieceType(board.moveList[i].MoveFrom());
-        ctx->ss[ply].moveTo = board.moveList[i].MoveTo();
+        ctx->ss[ply].lastMove = board.moveList[i];
         ctx->ss[ply].side = board.sideToMove;
 
         if (!SEE(board, board.moveList[i], seeQsThreshold))
@@ -444,6 +444,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     ctx->ss[ply].eval = staticEval;
 
     int ttAdjustedEval = staticEval;
+
+    const int alphaOriginal = alpha;
 
     if (!ctx->excluded && !board.InCheck() && ttHit && 
         ((entry.nodeType == PV) ||
@@ -616,7 +618,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (!isLegal) continue;
 
         ctx->ss[ply].pieceType = board.GetPieceType(currMove.MoveFrom());
-        ctx->ss[ply].moveTo = currMove.MoveTo();
+        ctx->ss[ply].lastMove = currMove;
         ctx->ss[ply].side = board.sideToMove;
 
         if (copy.positionIndex >= ctx->positionHistory.size()) {
@@ -736,9 +738,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                 if (ply > 0) {
                     int prevType = ctx->ss[ply-1].pieceType;
-                    int prevTo = ctx->ss[ply-1].moveTo;
+                    int prevTo = ctx->ss[ply-1].lastMove.MoveTo();
                     int pieceType = ctx->ss[ply].pieceType;
-                    int to = ctx->ss[ply].moveTo;
+                    int to = ctx->ss[ply].lastMove.MoveTo();
                     bool otherColor = ctx->ss[ply-1].side;
 
                     ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, bonus);
@@ -753,7 +755,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                     if (ply > 1) {
                         prevType = ctx->ss[ply-2].pieceType;
-                        prevTo = ctx->ss[ply-2].moveTo;
+                        prevTo = ctx->ss[ply-2].lastMove.MoveTo();
                         otherColor = ctx->ss[ply-2].side;
 
                         ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, bonus);
@@ -826,6 +828,22 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         } else { // stalemate
             return 0;
         }
+    }
+
+    // Prior counter bonus
+    if (ply) {
+        int prevSide = ctx->ss[ply-1].side;
+        Move lastMove = ctx->ss[ply-1].lastMove;
+
+        bool srcThr = board.IsSquareThreatened(prevSide, lastMove.MoveFrom());
+        bool dstThr = board.IsSquareThreatened(prevSide, lastMove.MoveTo());
+
+        int bonus = historyBonusMultiplier * depth;
+
+        if (results.score <= alphaOriginal)
+            bonus = -bonus;
+
+        ctx->history.Update(prevSide, lastMove, srcThr, dstThr, bonus);
     }
 
     if (ctx->searchStopped) return 0;
