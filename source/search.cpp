@@ -602,8 +602,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             if (ply > 1)
                 historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
         }
+
+        int histAdj = std::clamp(historyScore / fpHistDiv, -fpHistLimit, fpHistLimit);
         
-        int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
+        int margin = fpMargin * (lmrDepth + improving) + histAdj;
 
         if (!isPV && ply && currMove.IsQuiet()
                 && lmrDepth <= 5 && staticEval + margin < alpha && notMated) {
