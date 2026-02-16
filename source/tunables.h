@@ -32,6 +32,7 @@
     X_INT(seeQueenValue, 900, 750, 1100) \
     X_INT(seeQsThreshold, 0, -50, 50) \
     X_INT(seeOrderingThreshold, -100, -120, -80) \
+    X_INT(probcutImprovingScalar, 20, 10, 60) \
     X_INT(historyBonusMultiplier, 300, 270, 330) \
     X_INT(historyBonusSub, 250, 230, 280)
 
