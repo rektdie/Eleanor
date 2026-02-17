@@ -154,7 +154,7 @@ bool IsDraw(Board &board, SearchContext* ctx) {
 }
 
 template <bool isPV>
-static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, bool improving, bool corrplexity, bool ttpv, SearchContext* ctx) {
+static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, bool improving, bool corrplexity, bool ttpv, TTEntry &ttEntry, SearchContext* ctx) {
     int reduction = 0;
 
     // Late Move Reduction
@@ -175,6 +175,9 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
 
         if (ttpv)
             reduction -= lmrTTPV;
+
+        if (move.IsQuiet() && ttEntry.bestMove.IsCapture())
+            reduction += lmrTTCapture;
 
         // History LMR
         int historyReduction = 0;
@@ -675,7 +678,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
             continue;
 
-        int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ttpv, ctx);
+        int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ttpv, entry, ctx);
 
         int newDepth = depth + (copy.InCheck() && !ctx->excluded) - 1 + extension;
 
