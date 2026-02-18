@@ -495,6 +495,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     ctx->doingNullMove = false;
 
                     if (ctx->searchStopped) return 0;
+
                     if (score >= beta) return score;
                 }
             }
@@ -576,17 +577,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         bool notMated = results.score > (-MATE_SCORE + MAX_DEPTH);
         int lmrDepth = depth - lmrTable[currMove.IsQuiet()][depth][moveSeen];
 
-        // Late move pruning
-        // If we are near a leaf node we prune moves
-        // that are late in the list
-        if (currMove.IsQuiet() && notMated) {
-
-            int lmpThreshold = 7 + depth * depth * (1 + improving);
-
-            if (moveSeen >= lmpThreshold) {
-                continue;
-            }
-        }
+        int historyScore = 0;
 
         bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveFrom());
         bool targetThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveTo());
@@ -594,13 +585,26 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // Futility pruning
         // If our static eval is far below alpha, there is only a small chance
         // that a quiet move will help us so we skip them
-        int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()][sourceThreatened][targetThreatened];
-        
-        if (ply > 0) {
-            historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 1);
-            
-            if (ply > 1)
-                historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
+        if (currMove.IsQuiet()) {
+            historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()][sourceThreatened][targetThreatened];
+
+            if (ply > 0) {
+                historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 1);
+
+                if (ply > 1)
+                    historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
+            }
+
+            // Late move pruning
+            // If we are near a leaf node we prune quiet moves
+            // that are late in the list, unless history says they're promising
+            if (notMated) {
+                int lmpThreshold = 7 + depth * depth * (1 + improving);
+
+                if (moveSeen >= lmpThreshold && historyScore < lmpHistoryThreshold) {
+                    continue;
+                }
+            }
         }
         
         int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
