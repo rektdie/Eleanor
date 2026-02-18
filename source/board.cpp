@@ -638,24 +638,26 @@ Bitboard Board::AttacksTo(int square, Bitboard occupancy) {
 }
 
 bool Board::IsSquareAttackedBy(bool attackerSide, int square, Bitboard occupancy) {
-    const Bitboard pawns = pieces[Pawn] & colors[attackerSide];
+    const Bitboard attackers = colors[attackerSide] & occupancy;
+
+    const Bitboard pawns = pieces[Pawn] & attackers;
     if (MOVEGEN::pawnAttacks[!attackerSide][square] & pawns) {
         return true;
     }
 
-    if (MOVEGEN::knightAttacks[square] & pieces[Knight] & colors[attackerSide]) {
+    if (MOVEGEN::knightAttacks[square] & pieces[Knight] & attackers) {
         return true;
     }
 
-    if (MOVEGEN::kingAttacks[square] & pieces[King] & colors[attackerSide]) {
+    if (MOVEGEN::kingAttacks[square] & pieces[King] & attackers) {
         return true;
     }
 
-    if (MOVEGEN::getBishopAttack(square, occupancy) & (pieces[Bishop] | pieces[Queen]) & colors[attackerSide]) {
+    if (MOVEGEN::getBishopAttack(square, occupancy) & (pieces[Bishop] | pieces[Queen]) & attackers) {
         return true;
     }
 
-    if (MOVEGEN::getRookAttack(square, occupancy) & (pieces[Rook] | pieces[Queen]) & colors[attackerSide]) {
+    if (MOVEGEN::getRookAttack(square, occupancy) & (pieces[Rook] | pieces[Queen]) & attackers) {
         return true;
     }
 
