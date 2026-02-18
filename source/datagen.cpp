@@ -206,10 +206,7 @@ static bool IsGameOver(Board &board, SEARCH::SearchContext* ctx) {
     int moveSeen = 0;
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
-        Board copy = board;
-        bool isLegal = copy.MakeMove(board.moveList[i]);
-
-        if (!isLegal) continue;
+        if (!board.IsLegal(board.moveList[i])) continue;
         moveSeen++;
     }
 
@@ -227,12 +224,14 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext* ctx) {
         MOVEGEN::GenerateMoves<All>(board, true);
 
         std::uniform_int_distribution<int> dist(0, board.currentMoveIndex - 1);
-        bool isLegal = board.MakeMove(board.moveList[dist(rng)]);
+        Move move = board.moveList[dist(rng)];
 
-        if (!isLegal) {
+        if (!board.IsLegal(move)) {
             count--;
             continue;
         }
+
+        board.MakeMove(move);
         ctx->positionHistory[board.positionIndex] = board.hashKey;
         MOVEGEN::GenerateMoves<All>(board, true);
         if (IsGameOver(board, ctx)) break;

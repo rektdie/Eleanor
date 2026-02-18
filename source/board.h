@@ -66,10 +66,12 @@ public:
 
 	void Promote(int square, int pieceType, int color, bool isCapture);
 	bool MakeMove(Move move);
+	bool IsLegal(Move move);
 
     bool InPossibleZug();
 
     Bitboard AttacksTo(int square, Bitboard occupancy);
+    bool IsSquareAttackedBy(bool attackerSide, int square, Bitboard occupancy);
 
     bool IsSquareThreatened(bool side, int square);
 };

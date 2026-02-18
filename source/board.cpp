@@ -246,10 +246,7 @@ void Board::ResetMoves() {
 void Board::ListMoves() {
 	int moveCount = 1;
 	for (int i = 0; i < currentMoveIndex; i++) {
-		Board copy = *this;
-		bool isLegal = copy.MakeMove(moveList[i]);
-
-		if (!isLegal)
+		if (!IsLegal(moveList[i]))
 			continue;
 
 		std::cout << moveCount << ". ";
@@ -501,6 +498,69 @@ bool Board::MakeMove(Move move) {
     return true;
 }
 
+bool Board::IsLegal(Move move) {
+    if (!move) {
+        return true;
+    }
+
+    const int from = move.MoveFrom();
+    const int to = move.MoveTo();
+    const int piece = GetPieceType(from);
+
+    if (piece == nullPieceType || GetPieceColor(from) != sideToMove) {
+        return false;
+    }
+
+    if (colors[sideToMove].IsSet(to)) {
+        return false;
+    }
+
+    const bool enemy = !sideToMove;
+    const int direction = sideToMove ? south : north;
+
+    int kingSquare = (pieces[King] & colors[sideToMove]).getLS1BIndex();
+    int kingTarget = kingSquare;
+
+    Bitboard postMoveOccupancy = occupied;
+    postMoveOccupancy.PopBit(from);
+
+    if (move.GetFlags() == epCapture) {
+        postMoveOccupancy.PopBit(to - direction);
+    } else if (move.IsCapture()) {
+        postMoveOccupancy.PopBit(to);
+    }
+
+    if (move.GetFlags() == kingCastle || move.GetFlags() == queenCastle) {
+        const int rookFrom = move.GetFlags() == kingCastle ? (sideToMove ? h8 : h1) : (sideToMove ? a8 : a1);
+        const int rookTo = move.GetFlags() == kingCastle ? rookFrom - 2 : rookFrom + 3;
+        const int kingMid = from + (to > from ? 1 : -1);
+
+        if (IsSquareAttackedBy(enemy, from, occupied)) {
+            return false;
+        }
+
+        Bitboard midOccupancy = occupied;
+        midOccupancy.PopBit(from);
+        midOccupancy.SetBit(kingMid);
+
+        if (IsSquareAttackedBy(enemy, kingMid, midOccupancy)) {
+            return false;
+        }
+
+        postMoveOccupancy.PopBit(rookFrom);
+        postMoveOccupancy.PopBit(from);
+        postMoveOccupancy.SetBit(rookTo);
+    }
+
+    postMoveOccupancy.SetBit(to);
+
+    if (piece == King) {
+        kingTarget = to;
+    }
+
+    return !IsSquareAttackedBy(enemy, kingTarget, postMoveOccupancy);
+}
+
 bool Board::InPossibleZug() {
     Bitboard toCheck;
 
@@ -575,6 +635,31 @@ Bitboard Board::AttacksTo(int square, Bitboard occupancy) {
     attacks |= (bishopAttacks & (pieces[Bishop] | pieces[Queen]));
 
     return attacks;
+}
+
+bool Board::IsSquareAttackedBy(bool attackerSide, int square, Bitboard occupancy) {
+    const Bitboard pawns = pieces[Pawn] & colors[attackerSide];
+    if (MOVEGEN::pawnAttacks[!attackerSide][square] & pawns) {
+        return true;
+    }
+
+    if (MOVEGEN::knightAttacks[square] & pieces[Knight] & colors[attackerSide]) {
+        return true;
+    }
+
+    if (MOVEGEN::kingAttacks[square] & pieces[King] & colors[attackerSide]) {
+        return true;
+    }
+
+    if (MOVEGEN::getBishopAttack(square, occupancy) & (pieces[Bishop] | pieces[Queen]) & colors[attackerSide]) {
+        return true;
+    }
+
+    if (MOVEGEN::getRookAttack(square, occupancy) & (pieces[Rook] | pieces[Queen]) & colors[attackerSide]) {
+        return true;
+    }
+
+    return false;
 }
 
 bool Board::IsSquareThreatened(bool side, int square) {
