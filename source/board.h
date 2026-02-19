@@ -21,6 +21,9 @@ public:
 
 	Bitboard occupied;
 
+    std::array<Bitboard, 2> pinned;
+    Bitboard checkers;
+
     ACC::AccumulatorPair accPair;
 
     std::array<Bitboard, 6> pieceThreats;
@@ -72,4 +75,7 @@ public:
     Bitboard AttacksTo(int square, Bitboard occupancy);
 
     bool IsSquareThreatened(bool side, int square);
+
+    Bitboard CalcCheckers();
+    Bitboard CalcPinned(bool color);
 };

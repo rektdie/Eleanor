@@ -16,6 +16,9 @@ void Board::Reset() {
 	sideToMove = White;
 	occupied = 0ULL;
 
+    checkers = 0ULL;
+    pinned = std::array<Bitboard, 2>();
+
 	pieces = std::array<Bitboard, 6>();
 	colors = std::array<Bitboard, 2>();
 
@@ -83,6 +86,8 @@ void Board::SetByFen(std::string_view fen) {
 
     occupied = colors[White] | colors[Black];
     hashKey = UTILS::GetHashKey(*this);
+    checkers = CalcCheckers();
+    pinned = {CalcPinned(White), CalcPinned(Black)};
 	MOVEGEN::GenThreatMaps(*this);
 	MOVEGEN::GenerateMoves<All>(*this, true);
 
@@ -481,6 +486,7 @@ bool Board::MakeMove(Move move) {
 	enPassantTarget = newEpTarget;
 
 	MOVEGEN::GenThreatMaps(*this);
+    pinned = {CalcPinned(White), CalcPinned(Black)};
 
     sideToMove = !sideToMove;
     if (InCheck())  {
@@ -577,6 +583,63 @@ Bitboard Board::AttacksTo(int square, Bitboard occupancy) {
     return attacks;
 }
 
+static Bitboard rayBetween(int sq1, int sq2) {
+    if (sq1 == sq2) return 0ULL;
+
+    int f1 = sq1 % 8, r1 = sq1 / 8;
+    int f2 = sq2 % 8, r2 = sq2 / 8;
+
+    int df = (f2 > f1) - (f2 < f1);
+    int dr = (r2 > r1) - (r2 < r1);
+
+    // must be same rank, file, or diagonal
+    if (df != 0 && dr != 0 && std::abs(f2 - f1) != std::abs(r2 - r1))
+        return 0ULL;
+
+    Bitboard ray = 0ULL;
+
+    int f = f1 + df;
+    int r = r1 + dr;
+
+    while (f != f2 || r != r2) {
+        ray |= 1ULL << (r * 8 + f);
+        f += df;
+        r += dr;
+    }
+
+    ray &= ~((1ULL << sq1) | (1ULL << sq2));
+
+    return ray;
+}
+
 bool Board::IsSquareThreatened(bool side, int square) {
 	return colorThreats[!side].IsSet(square);
+}
+
+Bitboard Board::CalcCheckers() {
+    return AttacksTo((colors[sideToMove] & pieces[King]).getLS1BIndex(), occupied) & colors[!sideToMove];
+}
+
+Bitboard Board::CalcPinned(bool color) {
+    Bitboard pinned;
+
+    Bitboard kingSquare = (pieces[King] & colors[color]).getLS1BIndex();
+    
+    Bitboard oppQueens = pieces[Queen] & colors[!color];
+
+    Bitboard potentialAttackers = MOVEGEN::getPieceAttacks(kingSquare, Bishop, !color, colors[!color]) & (oppQueens | (pieces[Bishop] & colors[!color]))
+                                | MOVEGEN::getPieceAttacks(kingSquare, Rook, !color, colors[!color]) & (oppQueens | (pieces[Rook] & colors[!color]));
+
+    while (potentialAttackers) {
+        int attackerSquare = potentialAttackers.getLS1BIndex();
+
+        Bitboard isPinned = colors[color] & rayBetween(attackerSquare, kingSquare);
+
+        if (isPinned)
+            pinned |= isPinned;
+
+        potentialAttackers.PopBit(attackerSquare);
+    }
+
+    return pinned;
 }
