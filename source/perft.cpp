@@ -29,9 +29,9 @@ void Perft(Board &board, int depth) {
 
     Stopwatch sw;
     for (int i = 0; i < board.currentMoveIndex; i++) {
+        if (!board.IsLegal(board.moveList[i])) continue;
         Board copy = board;
-        bool isLegal = copy.MakeMove(board.moveList[i]);
-        if (!isLegal) continue;
+        copy.MakeMove(board.moveList[i]);
         U64 nodeCount = HelperPerft(copy, depth - 1);
         totalNodes += nodeCount;
         board.moveList[i].PrintMove();

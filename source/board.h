@@ -68,7 +68,7 @@ public:
 	void RemovePiece(int piece, int square, bool color);
 
 	void Promote(int square, int pieceType, int color, bool isCapture);
-	bool MakeMove(Move move);
+	void MakeMove(Move move);
 
     bool InPossibleZug();
 

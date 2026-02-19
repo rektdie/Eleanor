@@ -252,11 +252,11 @@ void Board::ResetMoves() {
 void Board::ListMoves() {
 	int moveCount = 1;
 	for (int i = 0; i < currentMoveIndex; i++) {
-		Board copy = *this;
-		bool isLegal = copy.MakeMove(moveList[i]);
+        if (IsLegal(moveList[i])) continue;
 
-		if (!isLegal)
-			continue;
+		Board copy = *this;
+		copy.MakeMove(moveList[i]);
+
 
 		std::cout << moveCount << ". ";
 		moveList[i].PrintMove();
@@ -348,7 +348,7 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 	SetPiece(pieceType, square, color);
 }
 
-bool Board::MakeMove(Move move) {
+void Board::MakeMove(Move move) {
 	// Null Move
     if (!move) {
 		int newEpTarget = noEPTarget;
@@ -362,7 +362,7 @@ bool Board::MakeMove(Move move) {
 
         enPassantTarget = newEpTarget;
 
-        return true;
+        return;
     }
 
 	int newEpTarget = noEPTarget;
@@ -505,8 +505,6 @@ bool Board::MakeMove(Move move) {
 	}
 
     positionIndex++;
-
-    return true;
 }
 
 bool Board::InPossibleZug() {
