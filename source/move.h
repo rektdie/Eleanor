@@ -64,6 +64,10 @@ public:
         return (GetFlags() >= knightPromotion);
     }
 
+    bool IsCastle() {
+        return (GetFlags() == kingCastle || GetFlags() == queenCastle); 
+    }
+
     void PrintMove() {
         std::cout << squareCoords[MoveFrom()] << squareCoords[MoveTo()];
 

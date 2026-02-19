@@ -4,6 +4,7 @@
 #include <iostream>
 #include <ranges>
 #include <string_view>
+#include <cassert>
 #include "utils.h"
 
 void Board::Reset() {
@@ -348,7 +349,6 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 }
 
 bool Board::MakeMove(Move move) {
-	Board save = *this;
 	// Null Move
     if (!move) {
 		int newEpTarget = noEPTarget;
@@ -487,13 +487,15 @@ bool Board::MakeMove(Move move) {
 
 	MOVEGEN::GenThreatMaps(*this);
     pinned = {CalcPinned(White), CalcPinned(Black)};
+    checkers = CalcCheckers();
 
+    /*
     sideToMove = !sideToMove;
     if (InCheck())  {
-		*this = save;
 		return false;
 	}
     sideToMove = !sideToMove;
+    */
 
 	if (attackerColor == Black) fullMoves++;
 	if (attackerPiece == Pawn || move.IsCapture()) {
@@ -612,6 +614,36 @@ static Bitboard rayBetween(int sq1, int sq2) {
     return ray;
 }
 
+// Returns the full ray from `from` in the direction of `to`, to the edge of the board
+static Bitboard fullRay(int from, int to) {
+    int df = (to % 8) - (from % 8);
+    int dr = (to / 8) - (from / 8);
+
+    if (df != 0) df /= std::abs(df);
+    if (dr != 0) dr /= std::abs(dr);
+
+    Bitboard ray = 0ULL;
+
+    int f = from % 8 + df;
+    int r = from / 8 + dr;
+    while (f >= 0 && f < 8 && r >= 0 && r < 8) {
+        ray |= 1ULL << (r * 8 + f);
+        f += df;
+        r += dr;
+    }
+
+    f = from % 8 - df;
+    r = from / 8 - dr;
+    while (f >= 0 && f < 8 && r >= 0 && r < 8) {
+        ray |= 1ULL << (r * 8 + f);
+        f -= df;
+        r -= dr;
+    }
+
+    ray |= 1ULL << from;
+    return ray;
+}
+
 bool Board::IsSquareThreatened(bool side, int square) {
 	return colorThreats[!side].IsSet(square);
 }
@@ -623,23 +655,75 @@ Bitboard Board::CalcCheckers() {
 Bitboard Board::CalcPinned(bool color) {
     Bitboard pinned;
 
-    Bitboard kingSquare = (pieces[King] & colors[color]).getLS1BIndex();
+    int kingSquare = (pieces[King] & colors[color]).getLS1BIndex();
+
+    assert(kingSquare != -1);
     
     Bitboard oppQueens = pieces[Queen] & colors[!color];
 
-    Bitboard potentialAttackers = MOVEGEN::getPieceAttacks(kingSquare, Bishop, !color, colors[!color]) & (oppQueens | (pieces[Bishop] & colors[!color]))
-                                | MOVEGEN::getPieceAttacks(kingSquare, Rook, !color, colors[!color]) & (oppQueens | (pieces[Rook] & colors[!color]));
+    Bitboard potentialAttackers = MOVEGEN::getBishopAttack(kingSquare, colors[!color]) & (oppQueens | (pieces[Bishop] & colors[!color]))
+                                | MOVEGEN::getRookAttack(kingSquare, colors[!color]) & (oppQueens | (pieces[Rook] & colors[!color]));
 
     while (potentialAttackers) {
         int attackerSquare = potentialAttackers.getLS1BIndex();
 
         Bitboard isPinned = colors[color] & rayBetween(attackerSquare, kingSquare);
 
-        if (isPinned)
+        if (isPinned.PopCount() == 1)
             pinned |= isPinned;
 
         potentialAttackers.PopBit(attackerSquare);
     }
 
     return pinned;
+}
+
+bool Board::IsLegal(Move &move) {
+    assert(move != 0);
+
+    int us = sideToMove;
+    int them = !us;
+
+    int from = move.MoveFrom();
+    int to = move.MoveTo();
+
+    Bitboard king = pieces[King] & colors[us];
+    int kingSquare = king.getLS1BIndex();
+
+    int moveType = move.GetFlags();
+
+    if (moveType == epCapture) {
+        Bitboard occAfterEP = occupied ^ Bitboard::GetSquare(from) ^ Bitboard::GetSquare(to)
+                                ^ Bitboard::GetSquare(enPassantTarget);
+
+        Bitboard theirQueens = pieces[Queen] & colors[them];
+
+        return (MOVEGEN::getPieceAttacks(kingSquare, Bishop, them, occAfterEP) & (theirQueens | (pieces[Bishop] & colors[them]))).PopCount() < 1
+            && (MOVEGEN::getPieceAttacks(kingSquare, Rook, them, occAfterEP) & (theirQueens | (pieces[Rook] & colors[them]))).PopCount() < 1;
+    }
+
+    int movingPiece = GetPieceType(from);
+
+    if (movingPiece == King) {
+        Bitboard kinglessOcc = occupied ^ king;
+        Bitboard theirQueens = pieces[Queen] & colors[them];
+
+        return !colorThreats[them].IsSet(to)
+            && (MOVEGEN::getBishopAttack(to, kinglessOcc) & (theirQueens | (pieces[Bishop] & colors[them]))).PopCount() == 0
+            && (MOVEGEN::getRookAttack(to, kinglessOcc) & (theirQueens | (pieces[Rook] & colors[them]))).PopCount() == 0;
+    }
+
+    if (checkers.PopCount() > 1) {
+        return false;
+    }
+
+    if (pinned[us].IsSet(from) && !fullRay(kingSquare, from).IsSet(to))
+        return false;
+
+    if (checkers.PopCount() < 1)
+        return true;
+
+    int checkerSquare = checkers.getLS1BIndex();
+
+    return (rayBetween(kingSquare, checkerSquare) | checkers).IsSet(to);
 }

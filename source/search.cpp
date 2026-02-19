@@ -358,9 +358,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
             continue;
         }
 
+        if (!board.IsLegal(board.moveList[i])) continue;
         Board copy = board;
-        int isLegal = copy.MakeMove(board.moveList[i]);
-        if (!isLegal) continue;
+        copy.MakeMove(board.moveList[i]);
 
         ctx->ss[ply].pieceType = board.GetPieceType(board.moveList[i].MoveFrom());
         ctx->ss[ply].moveTo = board.moveList[i].MoveTo();
@@ -523,10 +523,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             if (!SEE(board, currMove, seeThreshold))
                 continue;
 
+            if (!board.IsLegal(currMove)) continue;
             Board copy = board;
-            bool isLegal = copy.MakeMove(currMove);
-
-            if (!isLegal) continue;
+            copy.MakeMove(currMove);
 
             if (copy.positionIndex >= ctx->positionHistory.size()) {
                 ctx->positionHistory.resize(copy.positionIndex + 100);
@@ -610,10 +609,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             continue;
         }
 
+        if (!board.IsLegal(currMove)) continue;
         Board copy = board;
-        bool isLegal = copy.MakeMove(currMove);
-
-        if (!isLegal) continue;
+        copy.MakeMove(currMove);
 
         ctx->ss[ply].pieceType = board.GetPieceType(currMove.MoveFrom());
         ctx->ss[ply].moveTo = currMove.MoveTo();

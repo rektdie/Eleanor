@@ -78,4 +78,6 @@ public:
 
     Bitboard CalcCheckers();
     Bitboard CalcPinned(bool color);
+
+    bool IsLegal(Move &move);
 };
