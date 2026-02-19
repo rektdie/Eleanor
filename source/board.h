@@ -21,6 +21,9 @@ public:
 
 	Bitboard occupied;
 
+    std::array<Bitboard, 2> pinned;
+    Bitboard checkers;
+
     ACC::AccumulatorPair accPair;
 
     std::array<Bitboard, 6> pieceThreats;
@@ -65,11 +68,16 @@ public:
 	void RemovePiece(int piece, int square, bool color);
 
 	void Promote(int square, int pieceType, int color, bool isCapture);
-	bool MakeMove(Move move);
+	void MakeMove(Move move);
 
     bool InPossibleZug();
 
     Bitboard AttacksTo(int square, Bitboard occupancy);
 
     bool IsSquareThreatened(bool side, int square);
+
+    Bitboard CalcCheckers();
+    Bitboard CalcPinned(bool color);
+
+    bool IsLegal(Move &move);
 };
