@@ -226,7 +226,7 @@ public:
     CorrHist corrhist;
     CaptHistory capthist;
 
-    std::array<std::array<int, MAX_DEPTH>, 2> killerMoves{};
+    std::array<std::array<Move, MAX_DEPTH>, 2> killerMoves{};
 
     std::vector<U64> positionHistory;
 
