@@ -22,7 +22,7 @@ static U64 HelperPerft(Board &board, int depth) {
 }
 
 void Perft(Board &board, int depth) {
-    board.SetByFen(StartingFen);
+    //board.SetByFen(StartingFen);
     MOVEGEN::GenerateMoves<All>(board, true);
 
     U64 totalNodes = 0;

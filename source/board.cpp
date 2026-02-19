@@ -252,7 +252,7 @@ void Board::ResetMoves() {
 void Board::ListMoves() {
 	int moveCount = 1;
 	for (int i = 0; i < currentMoveIndex; i++) {
-        if (IsLegal(moveList[i])) continue;
+        if (!IsLegal(moveList[i])) continue;
 
 		Board copy = *this;
 		copy.MakeMove(moveList[i]);
@@ -691,13 +691,14 @@ bool Board::IsLegal(Move &move) {
     int moveType = move.GetFlags();
 
     if (moveType == epCapture) {
+        int epCapturedSquare = to + (us == White ? -8 : 8);
         Bitboard occAfterEP = occupied ^ Bitboard::GetSquare(from) ^ Bitboard::GetSquare(to)
-                                ^ Bitboard::GetSquare(enPassantTarget);
+                                ^ Bitboard::GetSquare(epCapturedSquare);
 
         Bitboard theirQueens = pieces[Queen] & colors[them];
 
-        return (MOVEGEN::getPieceAttacks(kingSquare, Bishop, them, occAfterEP) & (theirQueens | (pieces[Bishop] & colors[them]))).PopCount() < 1
-            && (MOVEGEN::getPieceAttacks(kingSquare, Rook, them, occAfterEP) & (theirQueens | (pieces[Rook] & colors[them]))).PopCount() < 1;
+        return (MOVEGEN::getBishopAttack(kingSquare, occAfterEP) & (theirQueens | (pieces[Bishop] & colors[them]))).PopCount() < 1
+            && (MOVEGEN::getRookAttack(kingSquare, occAfterEP) & (theirQueens | (pieces[Rook] & colors[them]))).PopCount() < 1;
     }
 
     int movingPiece = GetPieceType(from);
