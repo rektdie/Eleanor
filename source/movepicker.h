@@ -23,6 +23,8 @@ private:
     int index;
     bool generated;
 
+    int scores[MAX_MOVES];
+
 public:
     MovePicker(Board& b, SearchContext* c, int p, Move tt)
         : board(b), ctx(c), ttMove(tt), ply(p), stage(TT), index(0), generated(false)
@@ -48,11 +50,13 @@ public:
 
                         MOVEGEN::GenerateMoves<mode>(board, true);
 
-                        SortMoves();
+                        ScoreAllMoves();
                         index = 0;
                     }
 
                     while (index < board.currentMoveIndex) {
+                        PickBest(index);
+
                         Move m = board.moveList[index++];
 
                         if (m == ttMove)
@@ -123,31 +127,24 @@ private:
         return 20000 + historyScore + conthistScore;
     }
 
-    void SortMoves() {
-
+    void ScoreAllMoves() {
         int moveCount = board.currentMoveIndex;
-        if (moveCount <= 1)
-            return;
-
-        int scores[MAX_MOVES];
-
         for (int i = 0; i < moveCount; i++)
             scores[i] = ScoreMove(board.moveList[i]);
+    }
 
-        for (int i = 1; i < moveCount; i++) {
+    void PickBest(int start) {
+        int moveCount = board.currentMoveIndex;
+        int bestIdx   = start;
 
-            Move tempMove = board.moveList[i];
-            int  tempScore = scores[i];
-            int  j = i - 1;
+        for (int i = start + 1; i < moveCount; i++) {
+            if (scores[i] > scores[bestIdx])
+                bestIdx = i;
+        }
 
-            while (j >= 0 && scores[j] < tempScore) {
-                board.moveList[j + 1] = board.moveList[j];
-                scores[j + 1] = scores[j];
-                j--;
-            }
-
-            board.moveList[j + 1] = tempMove;
-            scores[j + 1] = tempScore;
+        if (bestIdx != start) {
+            std::swap(board.moveList[start], board.moveList[bestIdx]);
+            std::swap(scores[start],         scores[bestIdx]);
         }
     }
 };
