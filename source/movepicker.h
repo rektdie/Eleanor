@@ -3,6 +3,8 @@
 #include "search.h"
 #include "movegen.h"
 
+#include <limits>
+
 using namespace SEARCH;
 
 template <MovegenMode mode>
@@ -22,6 +24,8 @@ private:
 
     int index;
     bool generated;
+
+    int scores[MAX_MOVES];
 
 public:
     MovePicker(Board& b, SearchContext* c, int p, Move tt)
@@ -48,12 +52,13 @@ public:
 
                         MOVEGEN::GenerateMoves<mode>(board, true);
 
-                        SortMoves();
+                        ScoreAllMoves();
                         index = 0;
                     }
 
                     while (index < board.currentMoveIndex) {
-                        Move m = board.moveList[index++];
+                        int idx = FindNext();
+                        Move m  = board.moveList[idx];
 
                         if (m == ttMove)
                             continue;
@@ -123,31 +128,35 @@ private:
         return 20000 + historyScore + conthistScore;
     }
 
-    void SortMoves() {
-
+    void ScoreAllMoves() {
         int moveCount = board.currentMoveIndex;
-        if (moveCount <= 1)
-            return;
-
-        int scores[MAX_MOVES];
-
         for (int i = 0; i < moveCount; i++)
             scores[i] = ScoreMove(board.moveList[i]);
+    }
 
-        for (int i = 1; i < moveCount; i++) {
+    int FindNext() {
+        const auto toU64 = [](int s) {
+            int64_t widened = s;
+            widened -= std::numeric_limits<int32_t>::min();
+            return static_cast<uint64_t>(widened) << 32;
+        };
 
-            Move tempMove = board.moveList[i];
-            int  tempScore = scores[i];
-            int  j = i - 1;
+        int moveCount = board.currentMoveIndex;
 
-            while (j >= 0 && scores[j] < tempScore) {
-                board.moveList[j + 1] = board.moveList[j];
-                scores[j + 1] = scores[j];
-                j--;
-            }
-
-            board.moveList[j + 1] = tempMove;
-            scores[j + 1] = tempScore;
+        uint64_t best = toU64(scores[index]) | static_cast<uint64_t>(256 - index);
+        for (int i = index + 1; i < moveCount; i++) {
+            uint64_t curr = toU64(scores[i]) | static_cast<uint64_t>(256 - i);
+            if (curr > best)
+                best = curr;
         }
+
+        int bestIdx = 256 - static_cast<int>(best & 0xFFFFFFFF);
+
+        if (bestIdx != index) {
+            std::swap(board.moveList[index], board.moveList[bestIdx]);
+            std::swap(scores[index],         scores[bestIdx]);
+        }
+
+        return index++;
     }
 };
