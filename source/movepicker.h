@@ -3,6 +3,8 @@
 #include "search.h"
 #include "movegen.h"
 
+#include <limits>
+
 using namespace SEARCH;
 
 template <MovegenMode mode>
@@ -55,9 +57,8 @@ public:
                     }
 
                     while (index < board.currentMoveIndex) {
-                        PickBest(index);
-
-                        Move m = board.moveList[index++];
+                        int idx = FindNext();
+                        Move m  = board.moveList[idx];
 
                         if (m == ttMove)
                             continue;
@@ -133,18 +134,29 @@ private:
             scores[i] = ScoreMove(board.moveList[i]);
     }
 
-    void PickBest(int start) {
+    int FindNext() {
+        const auto toU64 = [](int s) {
+            int64_t widened = s;
+            widened -= std::numeric_limits<int32_t>::min();
+            return static_cast<uint64_t>(widened) << 32;
+        };
+
         int moveCount = board.currentMoveIndex;
-        int bestIdx   = start;
 
-        for (int i = start + 1; i < moveCount; i++) {
-            if (scores[i] > scores[bestIdx])
-                bestIdx = i;
+        uint64_t best = toU64(scores[index]) | static_cast<uint64_t>(256 - index);
+        for (int i = index + 1; i < moveCount; i++) {
+            uint64_t curr = toU64(scores[i]) | static_cast<uint64_t>(256 - i);
+            if (curr > best)
+                best = curr;
         }
 
-        if (bestIdx != start) {
-            std::swap(board.moveList[start], board.moveList[bestIdx]);
-            std::swap(scores[start],         scores[bestIdx]);
+        int bestIdx = 256 - static_cast<int>(best & 0xFFFFFFFF);
+
+        if (bestIdx != index) {
+            std::swap(board.moveList[index], board.moveList[bestIdx]);
+            std::swap(scores[index],         scores[bestIdx]);
         }
+
+        return index++;
     }
 };
