@@ -589,6 +589,20 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
             continue;
 
+        // Capthist pruning
+        if (!isPV && ply && currMove.IsCapture() && lmrDepth <= 5 && notMated) {
+            int attackerType = board.GetPieceType(currMove.MoveFrom());
+            int targetType   = board.GetPieceType(currMove.MoveTo());
+
+            if (currMove.GetFlags() == epCapture)
+                targetType = Pawn;
+
+            int capthistScore = ctx->capthist[board.sideToMove][attackerType][targetType][currMove.MoveTo()];
+
+            if (!SEE(board, currMove, 0) && capthistScore < capthistPruningThreshold * depth)
+                continue;
+        }
+
         int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ttpv, ctx);
 
         int newDepth = depth + (copy.InCheck() && !ctx->excluded) - 1 + extension;

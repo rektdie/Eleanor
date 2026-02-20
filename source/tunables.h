@@ -33,7 +33,8 @@
     X_INT(seeQsThreshold, 0, -50, 50) \
     X_INT(seeOrderingThreshold, -100, -120, -80) \
     X_INT(historyBonusMultiplier, 300, 270, 330) \
-    X_INT(historyBonusSub, 250, 230, 280)
+    X_INT(historyBonusSub, 250, 230, 280) \
+    X_INT(capthistPruningThreshold, -3000, 230, 280) 
 
 #ifdef TUNING
     #define X_DOUBLE(name, default_val, min_val, max_val) \
