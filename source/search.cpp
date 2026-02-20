@@ -6,6 +6,7 @@
 #include "benchmark.h"
 #include "types.h"
 #include "tunables.h"
+#include "movepicker.h"
 #include "termcolor.hpp"
 #include <iomanip>
 
@@ -44,88 +45,6 @@ static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
     int mateFound = MATE_SCORE - MAX_DEPTH;
 
     return std::clamp(eval + corrhist / CORRHIST_GRAIN, -mateFound + 1, mateFound - 1);
-}
-
-static int ScoreMove(Board &board, Move &move, int ply, SearchContext* ctx) {
-    TTEntry current = ctx->TT.GetEntry(board.hashKey);
-    if (current.hashKey == board.hashKey && current.bestMove == move) {
-        return 100000;
-    }
-
-    if (move.IsCapture()) {
-        const int attackerType = board.GetPieceType(move.MoveFrom());
-        int targetType = board.GetPieceType(move.MoveTo());
-
-        if (move.GetFlags() == epCapture) {
-            targetType = Pawn;
-        }
-
-        const int capthistScore = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
-
-        return 50000 * ((SEE(board, move, seeOrderingThreshold))) + (100 * targetType - attackerType + 105) + capthistScore;
-    } else {
-        if (ctx->killerMoves[0][ply] == move) {
-            return 41000;
-        } else if (ctx->killerMoves[1][ply] == move) {
-            return 40000;
-        } else {
-            bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
-            bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
-
-            int historyScore = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
-            int conthistScore = 0;
-
-            if (ply > 0) {
-                conthistScore = ctx->conthist.GetNPly(board, move, ctx, ply, 1);
-                
-                if (ply > 1) {
-                    conthistScore += ctx->conthist.GetNPly(board, move, ctx, ply, 2);
-                }
-            }
-
-            return 20000 + historyScore + conthistScore;
-        }
-    }
-
-    return 0;
-}
-
-static void SortMoves(Board &board, int ply, SearchContext* ctx) {
-    if (board.currentMoveIndex <= 1) {
-        return;
-    }
-
-    int scores[MAX_MOVES];
-
-    for (int i = 0; i < board.currentMoveIndex; i++) {
-        scores[i] = ScoreMove(board, board.moveList[i], ply, ctx);
-    }
-
-    for (int i = 1; i < board.currentMoveIndex; i++) {
-        Move tempMove = board.moveList[i];
-        int tempScore = scores[i];
-        int j = i - 1;
-
-        while (j >= 0 && scores[j] < tempScore) {
-            board.moveList[j + 1] = board.moveList[j];
-            scores[j + 1] = scores[j];
-            j--;
-        }
-
-        board.moveList[j + 1] = tempMove;
-        scores[j + 1] = tempScore;
-    }
-}
-
-void ListScores(Board &board, int ply, SearchContext* ctx) {
-    SortMoves(board, ply, ctx);
-
-    for (int i = 0; i < board.currentMoveIndex; i++) {
-        Move currentMove = board.moveList[i];
-
-        std::cout << squareCoords[currentMove.MoveFrom()] << squareCoords[currentMove.MoveTo()];
-        std::cout << ": " << ScoreMove(board, currentMove, ply, ctx) << '\n';
-    }
 }
 
 static bool IsThreefold(Board &board, SearchContext* ctx) {
@@ -341,32 +260,31 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     const int fpScore = bestScore + 100;
 
-    MOVEGEN::GenerateMoves<Noisy>(board, true);
-
-    SortMoves(board, ply, ctx);
+    MovePicker<Noisy> mp(board, ctx, ply, entry.bestMove);
 
     SearchResults results;
 
     int nodeType = AllNode;
 
-    for (int i = 0; i < board.currentMoveIndex; i++) {
+    Move currMove;
+    while ((currMove = mp.Next())) {
         // QS FP
-        if (!board.InCheck() && board.moveList[i].IsCapture() &&
-            fpScore <= alpha && !SEE(board, board.moveList[i], 1)) {
+        if (!board.InCheck() && currMove.IsCapture() &&
+            fpScore <= alpha && !SEE(board, currMove, 1)) {
 
             bestScore = std::max(bestScore, fpScore);
             continue;
         }
 
-        if (!board.IsLegal(board.moveList[i])) continue;
+        if (!board.IsLegal(currMove)) continue;
         Board copy = board;
-        copy.MakeMove(board.moveList[i]);
+        copy.MakeMove(currMove);
 
-        ctx->ss[ply].pieceType = board.GetPieceType(board.moveList[i].MoveFrom());
-        ctx->ss[ply].moveTo = board.moveList[i].MoveTo();
+        ctx->ss[ply].pieceType = board.GetPieceType(currMove.MoveFrom());
+        ctx->ss[ply].moveTo = currMove.MoveTo();
         ctx->ss[ply].side = board.sideToMove;
 
-        if (!SEE(board, board.moveList[i], seeQsThreshold))
+        if (!SEE(board, currMove, seeQsThreshold))
             continue;
 
         if (copy.positionIndex >= ctx->positionHistory.size()) {
@@ -381,7 +299,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
         if (score >= beta) {
             if (!ctx->excluded) {
-                ctx->TT.WriteEntry(board.hashKey, 0, score, CutNode, board.moveList[i], ttpv);
+                ctx->TT.WriteEntry(board.hashKey, 0, score, CutNode, currMove, ttpv);
             }
             return score;
         }
@@ -391,7 +309,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         if (score > alpha) {
             nodeType = PV;
             alpha = score;
-            results.bestMove = board.moveList[i];
+            results.bestMove = currMove;
         }
     }
 
@@ -509,13 +427,12 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         && (!entry.bestMove || !entry.bestMove.IsQuiet())
         && !(ttHit && entry.depth >= probcutDepth && entry.score < probcutBeta)) {
 
-        MOVEGEN::GenerateMoves<Noisy>(board, true);
-        SortMoves(board, ply, ctx);
+        MovePicker<Noisy> mp(board, ctx, ply, entry.bestMove);
 
         const int seeThreshold = (probcutBeta - staticEval) * 15 / 16;
 
-        for (int i = 0; i < board.currentMoveIndex; i++) {
-            Move currMove = board.moveList[i];
+        Move currMove;
+        while ((currMove = mp.Next())) {
 
             if (ctx->excluded == currMove)
                 continue;
@@ -548,12 +465,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 return score;
             }
         }
-        MOVEGEN::GenerateMoves<Quiet>(board, false);
-    } else {
-        MOVEGEN::GenerateMoves<All>(board, true);
     }
 
-    SortMoves(board, ply, ctx);
+
+    MovePicker<All> mp(board, ctx, ply, entry.bestMove);
+    
 
     int score = -inf;
     int nodeType = AllNode;
@@ -566,8 +482,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     int seenCapturesCount = 0;
 
     // For all moves
-    for (int i = 0; i < board.currentMoveIndex; i++) {
-        Move currMove = board.moveList[i];
+    Move currMove;
+    while ((currMove = mp.Next())) {
 
         if (ctx->excluded == currMove)
             continue;
