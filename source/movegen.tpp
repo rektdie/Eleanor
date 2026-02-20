@@ -275,14 +275,13 @@ void GenerateMoves(Board &board, bool clear) {
         board.ResetMoves();
         board.pieceThreats = {};
         board.colorThreats = {};
+        GenThreatMaps(board);
     }
 
-    GenThreatMaps(board);
-
-	GenPawnMoves<mode>(board);
-	GenKnightMoves<mode>(board);
-	GenKingMoves<mode>(board);
-	GenBishopMoves<mode>(board);
-	GenRookMoves<mode>(board);
-	GenQueenMoves<mode>(board);
-};
+    GenPawnMoves<mode>(board);
+    GenKnightMoves<mode>(board);
+    GenKingMoves<mode>(board);
+    GenBishopMoves<mode>(board);
+    GenRookMoves<mode>(board);
+    GenQueenMoves<mode>(board);
+}
