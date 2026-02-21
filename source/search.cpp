@@ -515,6 +515,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             int attackerType = board.GetPieceType(currMove.MoveFrom());
             int targetType   = board.GetPieceType(currMove.MoveTo());
 
+            if (currMove.GetFlags() == epCapture)
+                targetType = Pawn;
+
             historyScore = ctx->capthist[board.sideToMove][attackerType][targetType][currMove.MoveTo()];
         } else {
             historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()][sourceThreatened][targetThreatened];
