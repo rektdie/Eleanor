@@ -509,13 +509,22 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // Futility pruning
         // If our static eval is far below alpha, there is only a small chance
         // that a quiet move will help us so we skip them
-        int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()][sourceThreatened][targetThreatened];
-        
-        if (ply > 0) {
-            historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 1);
+        int historyScore;
+
+        if (currMove == capture) {
+            int attackerType = board.GetPieceType(currMove.MoveFrom());
+            int targetType   = board.GetPieceType(currMove.MoveTo());
+
+            historyScore = ctx->capthist[board.sideToMove][attackerType][targetType][currMove.MoveTo()];
+        } else {
+            historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()][sourceThreatened][targetThreatened];
             
-            if (ply > 1)
-                historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
+            if (ply > 0) {
+                historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 1);
+                
+                if (ply > 1)
+                    historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
+            }
         }
         
         int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
@@ -564,7 +573,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                 if constexpr (!isPV) {
                     // Double extension
-                    if (singularScore <= sBeta - 1 - doubleExtMargin) {
+                    if (singularScore <= sBeta - 1 - (doubleExtMargin - historyScore / 512)) {
                         extension++;
                     }
                 }
