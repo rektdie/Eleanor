@@ -511,7 +511,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // that a quiet move will help us so we skip them
         int historyScore;
 
-        if (currMove == capture) {
+        if (currMove.IsCapture()) {
             int attackerType = board.GetPieceType(currMove.MoveFrom());
             int targetType   = board.GetPieceType(currMove.MoveTo());
 
