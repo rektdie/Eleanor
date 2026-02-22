@@ -399,7 +399,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
 
             // Null Move Pruning
-            if (!ctx->doingNullMove && staticEval >= beta + nmpBetaMargin) {
+            if (ply > ctx->minNmpPly && staticEval >= beta + nmpBetaMargin) {
                 if (depth > 1 && !board.InPossibleZug()) {
                     Board copy = board;
                     copy.MakeMove(Move());
@@ -408,12 +408,24 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                     ctx->TT.PrefetchEntry(copy.hashKey);
 
-                    ctx->doingNullMove = true;
                     int score = -PVS<false, mode>(copy, depth - reduction, -beta, -beta + 1, ply + 1, ctx, !cutnode).score;
-                    ctx->doingNullMove = false;
 
                     if (ctx->searchStopped) return 0;
-                    if (score >= beta) return score;
+                    if (score >= beta) {
+                        if (depth <= 14 || ctx->minNmpPly > 0) {
+                            return score > MATE_SCORE - MAX_DEPTH ? beta : score;
+                        }
+
+                        ctx->minNmpPly = ply + (depth - reduction) * 3 / 4;
+
+                        const auto verifResults = PVS<false, mode>(copy, depth - reduction, beta - 1, beta, ply + 1, ctx, true);
+
+                        ctx->minNmpPly = 0;
+
+                        if (verifResults.score >= beta) {
+                            return verifResults;
+                        }
+                    }
                 }
             }
         }
