@@ -79,10 +79,6 @@ public:
 private:
 
     int ScoreMove(Move& move) {
-        TTEntry current = ctx->TT.GetEntry(board.hashKey);
-
-        if (current.hashKey == board.hashKey && current.bestMove == move)
-            return 100000;
 
         if (move.IsCapture()) {
 
