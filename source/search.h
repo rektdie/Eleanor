@@ -217,7 +217,7 @@ public:
 
     Move excluded = Move();
 
-    bool doingNullMove = false;
+    int minNmpPly = 0;
     bool searchStopped = false;
 
     PVLine pvLine;
