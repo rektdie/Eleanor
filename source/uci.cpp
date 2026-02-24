@@ -4,6 +4,7 @@
 #include <string>
 #include <tuple>
 #include <memory>
+#include <vector>
 #include "types.h"
 #include "movegen.h"
 #include "search.h"
@@ -88,27 +89,38 @@ static double ReadParam(const std::string& param, const std::string &command) {
 
 #ifdef _WIN32
 // Windows implementation using std::thread
+static std::vector<std::thread> activeThreads;
+
 template <SEARCH::searchMode mode>
-static void ThreadFunc(Board* board, SearchParams params, SEARCH::SearchContext* ctx) {
-    SEARCH::SearchPosition<mode>(*board, params, ctx);
+static void ThreadFunc(Board board, SearchParams params, SEARCH::SearchContext* ctx) {
+    SEARCH::SearchPosition<mode>(board, params, ctx);
     delete ctx;
 }
 
 static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchContext* ctx, int id) {
-    std::thread searchThread;
     SEARCH::SearchContext* ctxCopy = new SEARCH::SearchContext(*ctx);
     if (id == 0)
         ctxCopy->doPrint = true;
     if (params.nodes) {
-        searchThread = std::thread(ThreadFunc<SEARCH::nodesMode>, &board, params, ctxCopy);
+        activeThreads.emplace_back(ThreadFunc<SEARCH::nodesMode>, board, params, ctxCopy);
     } else {
-        searchThread = std::thread(ThreadFunc<SEARCH::normal>, &board, params, ctxCopy);
+        activeThreads.emplace_back(ThreadFunc<SEARCH::normal>, board, params, ctxCopy);
     }
-    searchThread.detach();
+}
+
+static void WaitForSearchThreads() {
+    for (auto &thread : activeThreads) {
+        if (thread.joinable()) {
+            thread.join();
+        }
+    }
+    activeThreads.clear();
 }
 
 #else
 // Unix/Linux implementation using pthread
+static std::vector<pthread_t> activeThreads;
+
 template <SEARCH::searchMode mode>
 static void* ThreadFunc(void* arg) {
     auto* tup = static_cast<std::tuple<Board, SearchParams, SEARCH::SearchContext*>*>(arg);
@@ -138,9 +150,21 @@ static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchC
     }
 
     pthread_attr_destroy(&attr);
-    pthread_detach(thread);
+    activeThreads.push_back(thread);
+}
+
+static void WaitForSearchThreads() {
+    for (pthread_t thread : activeThreads) {
+        pthread_join(thread, nullptr);
+    }
+    activeThreads.clear();
 }
 #endif
+
+static void StopAndWaitForSearchThreads() {
+    searchStopped.store(true, std::memory_order_relaxed);
+    WaitForSearchThreads();
+}
 
 static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* ctx) {
     SearchParams params;
@@ -160,6 +184,8 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* c
         params.btime = 99999999;
     }
 
+    StopAndWaitForSearchThreads();
+
     for (int i = 0; i < threads; i++) {
         StartSearchThread(board, params, ctx, i);
     }
@@ -167,12 +193,14 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* c
 
 static void SetOption(std::string& command, SEARCH::SearchContext* ctx) {
     if (command.find("Hash") != std::string::npos) {
+        StopAndWaitForSearchThreads();
         U64 hashSize = (ReadParam("value", command) * 1000000ULL) / sizeof(TTEntry);
         ctx->TT->Resize(hashSize);
         return;
     }
 
     if (command.find("Threads") != std::string::npos) {
+        StopAndWaitForSearchThreads();
         threads = ReadParam("value", command);
         return;
     }
@@ -256,6 +284,7 @@ void UCILoop(Board &board) {
 
         // parse UCI "ucinewgame" command
         if (input.find("ucinewgame") != std::string::npos) {
+            StopAndWaitForSearchThreads();
             board.SetByFen(StartingFen);
 
             // Clearing
@@ -279,6 +308,7 @@ void UCILoop(Board &board) {
 
         // parse UCI "quit" command
         if (input.find("quit") != std::string::npos) {
+            StopAndWaitForSearchThreads();
             // stop the loop
             break;
         }
@@ -286,7 +316,7 @@ void UCILoop(Board &board) {
         // parse UCI "stop" command
         if (input.find("stop") != std::string::npos) {
             // stop the loop
-            searchStopped = true;
+            StopAndWaitForSearchThreads();
             continue;
         }
 

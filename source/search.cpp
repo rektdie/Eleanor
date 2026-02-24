@@ -207,18 +207,18 @@ static bool ShouldStop(SearchContext* ctx) {
     if constexpr (mode == normal) {
         if (ctx->nodes % 1024 == 0) {
             if (ctx->sw.GetElapsedMS() >= ctx->timeToSearch) {
-                searchStopped = true;
+                searchStopped.store(true, std::memory_order_relaxed);
                 return true;
             }
         }
     } else if constexpr (mode == nodesMode) {
         if (ctx->nodes > ctx->nodesToGo) {
-            searchStopped = true;
+            searchStopped.store(true, std::memory_order_relaxed);
             return true;
         }
     } else if constexpr (mode == datagen) {
         if (ctx->nodes > DATAGEN::HARD_NODES) {
-            searchStopped = true;
+            searchStopped.store(true, std::memory_order_relaxed);
             return true;
         }
     }
@@ -314,7 +314,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     }
 
     results.score = bestScore;
-    if (searchStopped) return 0;
+    if (searchStopped.load(std::memory_order_relaxed)) return 0;
     if (!ctx->excluded) {
         ctx->TT->WriteEntry(board.hashKey, 0, results.score, nodeType, results.bestMove, ttpv);
     }
@@ -410,7 +410,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                     int score = -PVS<false, mode>(copy, depth - reduction, -beta, -beta + 1, ply + 1, ctx, !cutnode).score;
 
-                    if (searchStopped) return 0;
+                    if (searchStopped.load(std::memory_order_relaxed)) return 0;
                     if (score >= beta) {
                         if (depth <= 14 || ctx->minNmpPly > 0) {
                             return score > MATE_SCORE - MAX_DEPTH ? beta : score;
@@ -469,7 +469,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     ply + 1, ctx, !cutnode).score;
             }
 
-            if (searchStopped) return 0;
+            if (searchStopped.load(std::memory_order_relaxed)) return 0;
 
             if (score >= probcutBeta) {
                 ctx->TT->WriteEntry(board.hashKey, probcutDepth, score, CutNode, currMove, ttpv);
@@ -640,7 +640,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             ctx->nodesTable[currMove % 4096] += ctx->nodes - nodesBeforeSearch;
         }
 
-        if (searchStopped) return 0;
+        if (searchStopped.load(std::memory_order_relaxed)) return 0;
 
         if (currMove != 0 && currMove.IsQuiet()) {
             seenQuiets[seenQuietsCount] = currMove;
@@ -754,7 +754,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
     }
 
-    if (searchStopped) return 0;
+    if (searchStopped.load(std::memory_order_relaxed)) return 0;
     if (!ctx->excluded) {
 
         if (!board.InCheck() && ((results.bestMove.IsQuiet() || !results.bestMove))
@@ -864,7 +864,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 
         aw.Set(currentResults.score);
 
-        if (searchStopped) {
+        if (searchStopped.load(std::memory_order_relaxed)) {
             break;
         } else {
             if (currentResults.bestMove) {
@@ -877,13 +877,13 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 
                 if constexpr (mode == normal) {
                     if (ctx->sw.GetElapsedMS() >= softTime) {
-                        searchStopped = true;
+                        searchStopped.store(true, std::memory_order_relaxed);
                         break;
                     }
                 }
             } else if constexpr (mode == datagen) {
                 if (ctx->nodes >= DATAGEN::SOFT_NODES) {
-                    searchStopped = true;
+                    searchStopped.store(true, std::memory_order_relaxed);
                     break;
                 }
             }
@@ -895,7 +895,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 
 template <searchMode mode>
 SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* ctx) {
-    searchStopped = false;
+    searchStopped.store(false, std::memory_order_relaxed);
     ctx->seldepth = 0;
     ctx->nodesTable = {};
     if constexpr (mode != bench) {

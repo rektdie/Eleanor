@@ -68,11 +68,11 @@ public:
         table.resize(size);
     }
 
-    void PrefetchEntry(U64 &hashKey) {
+    void PrefetchEntry(const U64 &hashKey) {
         __builtin_prefetch(&table[hashKey % table.size()]);
     }
 
-    TTEntry GetEntry(U64 &hashKey) {
+    TTEntry GetEntry(const U64 &hashKey) {
         TTBucket *current = &table[hashKey % table.size()];
         if (current->depthPreferred.hashKey == hashKey) {
             return current->depthPreferred;
@@ -86,15 +86,16 @@ public:
     // returns used space per mill
     int GetUsedPercentage() {
         int count = 0;
+        const U64 sampleSize = std::min<U64>(1000, table.size());
 
-        for (int i = 0; i < 1000; i++) {
+        for (U64 i = 0; i < sampleSize; i++) {
             if (table[i].depthPreferred || table[i].alwaysReplace) count++;
         }
 
         return count;
     }
 
-    void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove, bool ttpv);
+    void WriteEntry(const U64 &hashKey, int depth, int score, int nodeType, Move bestMove, bool ttpv);
 };
 
 extern TTable SharedTT;
