@@ -1,5 +1,7 @@
 #include "tt.h"
 
+TTable SharedTT;
+
 void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove, bool ttpv) {
     TTBucket *bucket = &table[hashKey % table.size()];
     TTEntry *current = nullptr;

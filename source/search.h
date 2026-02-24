@@ -207,6 +207,8 @@ public:
 
 class SearchContext {
 public:
+    bool doPrint = false;
+
     U64 nodes = 0;
     U64 nodesToGo = 0;
     int timeToSearch = 0;
@@ -218,7 +220,6 @@ public:
     Move excluded = Move();
 
     int minNmpPly = 0;
-    bool searchStopped = false;
 
     PVLine pvLine;
     History history;
@@ -230,7 +231,7 @@ public:
 
     std::vector<U64> positionHistory;
 
-    TTable TT;
+    TTable* TT = &SharedTT;
 
     std::array<Stack, MAX_DEPTH> ss{};
 
@@ -242,7 +243,6 @@ public:
         conthist.Clear();
         corrhist.Clear();
         capthist.Clear();
-        TT.Clear();
         sw.Restart();
         killerMoves = {};
         ss = {};

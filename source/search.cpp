@@ -207,18 +207,18 @@ static bool ShouldStop(SearchContext* ctx) {
     if constexpr (mode == normal) {
         if (ctx->nodes % 1024 == 0) {
             if (ctx->sw.GetElapsedMS() >= ctx->timeToSearch) {
-                ctx->searchStopped = true;
+                searchStopped = true;
                 return true;
             }
         }
     } else if constexpr (mode == nodesMode) {
         if (ctx->nodes > ctx->nodesToGo) {
-            ctx->searchStopped = true;
+            searchStopped = true;
             return true;
         }
     } else if constexpr (mode == datagen) {
         if (ctx->nodes > DATAGEN::HARD_NODES) {
-            ctx->searchStopped = true;
+            searchStopped = true;
             return true;
         }
     }
@@ -241,7 +241,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     TTEntry entry;
     if (!ctx->excluded) {
-        entry = ctx->TT.GetEntry(board.hashKey);
+        entry = ctx->TT->GetEntry(board.hashKey);
         if (entry.hashKey == board.hashKey) {
             bestScore = entry.score;
         }
@@ -293,13 +293,13 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         ctx->positionHistory[copy.positionIndex] = copy.hashKey;
         ctx->nodes++;
 
-        ctx->TT.PrefetchEntry(copy.hashKey);
+        ctx->TT->PrefetchEntry(copy.hashKey);
 
         int score = -Quiescence<isPV, mode>(copy, -beta, -alpha, ply + 1, ctx).score;
 
         if (score >= beta) {
             if (!ctx->excluded) {
-                ctx->TT.WriteEntry(board.hashKey, 0, score, CutNode, currMove, ttpv);
+                ctx->TT->WriteEntry(board.hashKey, 0, score, CutNode, currMove, ttpv);
             }
             return score;
         }
@@ -314,9 +314,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     }
 
     results.score = bestScore;
-    if (ctx->searchStopped) return 0;
+    if (searchStopped) return 0;
     if (!ctx->excluded) {
-        ctx->TT.WriteEntry(board.hashKey, 0, results.score, nodeType, results.bestMove, ttpv);
+        ctx->TT->WriteEntry(board.hashKey, 0, results.score, nodeType, results.bestMove, ttpv);
     }
     return results;
 }
@@ -338,7 +338,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     TTEntry entry;
     if (!ctx->excluded)
-        entry = ctx->TT.GetEntry(board.hashKey);
+        entry = ctx->TT->GetEntry(board.hashKey);
 
     const bool ttHit = entry.hashKey == board.hashKey;
     const bool ttpv = isPV | entry.ttpv;
@@ -406,11 +406,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                     const int reduction = 4 + improving + depth / 3;
 
-                    ctx->TT.PrefetchEntry(copy.hashKey);
+                    ctx->TT->PrefetchEntry(copy.hashKey);
 
                     int score = -PVS<false, mode>(copy, depth - reduction, -beta, -beta + 1, ply + 1, ctx, !cutnode).score;
 
-                    if (ctx->searchStopped) return 0;
+                    if (searchStopped) return 0;
                     if (score >= beta) {
                         if (depth <= 14 || ctx->minNmpPly > 0) {
                             return score > MATE_SCORE - MAX_DEPTH ? beta : score;
@@ -469,10 +469,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     ply + 1, ctx, !cutnode).score;
             }
 
-            if (ctx->searchStopped) return 0;
+            if (searchStopped) return 0;
 
             if (score >= probcutBeta) {
-                ctx->TT.WriteEntry(board.hashKey, probcutDepth, score, CutNode, currMove, ttpv);
+                ctx->TT->WriteEntry(board.hashKey, probcutDepth, score, CutNode, currMove, ttpv);
 
                 return score;
             }
@@ -551,7 +551,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         ctx->positionHistory[copy.positionIndex] = copy.hashKey;
         ctx->nodes++;
 
-        ctx->TT.PrefetchEntry(copy.hashKey);
+        ctx->TT->PrefetchEntry(copy.hashKey);
 
         int extension = 0;
 
@@ -640,7 +640,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             ctx->nodesTable[currMove % 4096] += ctx->nodes - nodesBeforeSearch;
         }
 
-        if (ctx->searchStopped) return 0;
+        if (searchStopped) return 0;
 
         if (currMove != 0 && currMove.IsQuiet()) {
             seenQuiets[seenQuietsCount] = currMove;
@@ -732,7 +732,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
 
             if (!ctx->excluded)
-                ctx->TT.WriteEntry(board.hashKey, depth, score, CutNode, currMove, ttpv);
+                ctx->TT->WriteEntry(board.hashKey, depth, score, CutNode, currMove, ttpv);
             return score;
         }
 
@@ -754,7 +754,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
     }
 
-    if (ctx->searchStopped) return 0;
+    if (searchStopped) return 0;
     if (!ctx->excluded) {
 
         if (!board.InCheck() && ((results.bestMove.IsQuiet() || !results.bestMove))
@@ -765,7 +765,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             ctx->corrhist.UpdateAll(board, depth, corrHistBonus);
         }
 
-        ctx->TT.WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove, ttpv);
+        ctx->TT->WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove, ttpv);
     }
     return results;
 }
@@ -824,7 +824,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 
     double nodeScaling = 1;
 
-    if (!UCIEnabled && (mode == normal || mode == nodesMode)) {
+    if (!UCIEnabled && ctx->doPrint && (mode == normal || mode == nodesMode)) {
         std::cout << termcolor::bold;
         std::cout << std::setw(6) << std::left << "Depth" 
                   << std::setw(10) << std::right << "Time"
@@ -864,7 +864,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 
         aw.Set(currentResults.score);
 
-        if (ctx->searchStopped) {
+        if (searchStopped) {
             break;
         } else {
             if (currentResults.bestMove) {
@@ -872,17 +872,18 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
             }
 
             if constexpr (mode == normal || mode == nodesMode) {
-                PrintSearchInfo(ctx, safeResults, depth, elapsed);
+                if (ctx->doPrint)
+                    PrintSearchInfo(ctx, safeResults, depth, elapsed);
 
                 if constexpr (mode == normal) {
                     if (ctx->sw.GetElapsedMS() >= softTime) {
-                        ctx->searchStopped = true;
+                        searchStopped = true;
                         break;
                     }
                 }
             } else if constexpr (mode == datagen) {
                 if (ctx->nodes >= DATAGEN::SOFT_NODES) {
-                    ctx->searchStopped = true;
+                    searchStopped = true;
                     break;
                 }
             }
@@ -894,7 +895,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 
 template <searchMode mode>
 SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* ctx) {
-    ctx->searchStopped = false;
+    searchStopped = false;
     ctx->seldepth = 0;
     ctx->nodesTable = {};
     if constexpr (mode != bench) {
@@ -910,9 +911,11 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* c
 
     if constexpr (mode != normal && mode != nodesMode) return results;
 
-    std::cout << "bestmove ";
-    results.bestMove.PrintMove();
-    std::cout << std::endl;
+    if (ctx->doPrint) {
+        std::cout << "bestmove ";
+        results.bestMove.PrintMove();
+        std::cout << std::endl;
+    }
 
     return results;
 }
@@ -957,7 +960,7 @@ void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int 
         }
 
         std::cout << " nodes " << ctx->nodes << " nps " << int(ctx->nodes/ctx->sw.GetElapsedSec());
-        std::cout << " hashfull " << ctx->TT.GetUsedPercentage();
+        std::cout << " hashfull " << ctx->TT->GetUsedPercentage();
         std::cout << " pv ";
         ctx->pvLine.Print(0, depth % 2 == 0);
         std::cout << std::endl;
