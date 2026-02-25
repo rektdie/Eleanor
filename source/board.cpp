@@ -38,6 +38,7 @@ void Board::Reset() {
     pawnKey = 0ULL;
     nonPawnKey = 0ULL;
     majorKey = 0ULL;
+    minorKey = 0ULL;
 }
 
 void Board::SetByFen(std::string_view fen) {
@@ -300,6 +301,10 @@ void Board::SetPiece(int piece, int square, bool color) {
         if (piece == King || piece == Rook || piece == Queen) {
             majorKey ^= UTILS::zKeys[color][piece][square];
         }
+
+        if (piece == King || piece == Bishop || piece == Knight) {
+            minorKey ^= UTILS::zKeys[color][piece][square];
+        }
     }
 }
 
@@ -317,6 +322,10 @@ void Board::RemovePiece(int piece, int square, bool color) {
 
         if (piece == King || piece == Rook || piece == Queen) {
             majorKey ^= UTILS::zKeys[color][piece][square];
+        }
+
+        if (piece == King || piece == Bishop || piece == Knight) {
+            minorKey ^= UTILS::zKeys[color][piece][square];
         }
     }
 }

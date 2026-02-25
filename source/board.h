@@ -46,6 +46,7 @@ public:
     U64 pawnKey = 0ULL;
     U64 nonPawnKey = 0ULL;
 	U64 majorKey   = 0ULL;
+	U64 minorKey = 0ULL;
 
 	void Reset();
 	void SetByFen(std::string_view fen);
