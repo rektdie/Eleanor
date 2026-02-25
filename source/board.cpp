@@ -726,3 +726,188 @@ bool Board::IsLegal(Move &move) {
 
     return (rayBetween(kingSquare, checkerSquare) | checkers).IsSet(to);
 }
+
+bool Board::IsPseudoLegal(Move &move) {
+    if (!move) return true;
+
+    const int from = move.MoveFrom();
+    const int to   = move.MoveTo();
+    const int flag = move.GetFlags();
+
+    // basic bounds
+    if ((unsigned)from >= 64u || (unsigned)to >= 64u) return false;
+
+    const int us   = sideToMove;
+    const int them = !sideToMove;
+
+    const int movingPiece = GetPieceType(from);
+    if (movingPiece == nullPieceType) return false;
+    if (!colors[us].IsSet(from)) return false;
+    if (colors[us].IsSet(to)) return false;
+
+    const bool isCapture = move.IsCapture();
+    const int targetPiece = GetPieceType(to);
+
+    // capture consistency (except EP which captures "behind")
+    if (flag == capture) {
+        if (targetPiece == nullPieceType) return false;
+        if (!colors[them].IsSet(to)) return false;
+    } else if (isCapture && flag != epCapture) {
+        // promo-capture also lands on occupied enemy square
+        if (targetPiece == nullPieceType) return false;
+        if (!colors[them].IsSet(to)) return false;
+    } else if (!isCapture) {
+        // quiet moves must not land on occupied square
+        if (occupied.IsSet(to)) {
+            // except castling (king lands on empty anyway)
+            if (flag != kingCastle && flag != queenCastle) return false;
+        }
+    }
+
+    const int fromFile = from & 7;
+    const int toFile   = to & 7;
+    const int fromRank = from >> 3;
+    const int toRank   = to >> 3;
+
+    const int dir = us ? south : north;
+
+    auto isOneStepPawnPush = [&] {
+        return to == from + dir && !occupied.IsSet(to);
+    };
+
+    auto isPawnCaptureTo = [&] {
+        // diagonal one step forward
+        return (to == from + dir - 1 && toFile == fromFile - 1)
+            || (to == from + dir + 1 && toFile == fromFile + 1);
+    };
+
+    // handle specials by flag first
+    switch (flag) {
+    case quiet:
+    case capture:
+        break;
+
+    case doublePawnPush: {
+        if (movingPiece != Pawn) return false;
+        // from must be on starting rank
+        if (!us) { // white
+            if (fromRank != 1) return false;
+        } else {   // black
+            if (fromRank != 6) return false;
+        }
+        const int mid = from + dir;
+        if (to != from + 2 * dir) return false;
+        if (occupied.IsSet(mid) || occupied.IsSet(to)) return false;
+        return true;
+    }
+
+    case epCapture: {
+        if (movingPiece != Pawn) return false;
+        if (enPassantTarget == noEPTarget) return false;
+        if (to != enPassantTarget) return false;
+        if (!isPawnCaptureTo()) return false;
+
+        // target square is empty, captured pawn is behind to
+        const int capSq = to - dir;
+        if (!colors[them].IsSet(capSq)) return false;
+        if (GetPieceType(capSq) != Pawn) return false;
+        if (occupied.IsSet(to)) return false;
+        return true;
+    }
+
+    case kingCastle:
+    case queenCastle: {
+        if (movingPiece != King) return false;
+
+        const int kingSquare = (colors[us] & pieces[King]).getLS1BIndex();
+        if (from != kingSquare) return false;
+
+        const int kingRight  = us ? blackKingRight  : whiteKingRight;
+        const int queenRight = us ? blackQueenRight : whiteQueenRight;
+
+        if (flag == kingCastle) {
+            if (!(castlingRights & kingRight)) return false;
+            const U64 KingSide = us ? 0xf000000000000000ULL : 0xf0ULL;
+            const U64 mask     = us ? 0x7000000000000000ULL : 0x70ULL;
+            const int targetSq = us ? g8 : g1;
+            if (to != targetSq) return false;
+
+            // must be exactly king+rook on that side and no attacked transit squares
+            if ((Bitboard(KingSide) & occupied).PopCount() != 2) return false;
+            if (mask & colorThreats[them]) return false;
+            return true;
+        } else {
+            if (!(castlingRights & queenRight)) return false;
+            const U64 QueenSide = us ? 0x1f00000000000000ULL : 0x1fULL;
+            const U64 mask      = us ? 0x1c00000000000000ULL : 0x1cULL;
+            const int targetSq  = us ? c8 : c1;
+            if (to != targetSq) return false;
+
+            if ((Bitboard(QueenSide) & occupied).PopCount() != 2) return false;
+            if (mask & colorThreats[them]) return false;
+            return true;
+        }
+    }
+
+    default:
+        // promotions (quiet + capture)
+        if (!move.IsPromo()) return false;
+        if (movingPiece != Pawn) return false;
+
+        // must land on last rank
+        if (!us) {
+            if (toRank != 7) return false;
+        } else {
+            if (toRank != 0) return false;
+        }
+
+        if (move.IsCapture()) {
+            if (!isPawnCaptureTo()) return false;
+            if (!colors[them].IsSet(to)) return false;
+        } else {
+            if (!isOneStepPawnPush()) return false;
+        }
+        return true;
+    }
+
+    // normal piece movement checks for quiet/capture (non-special)
+    switch (movingPiece) {
+    case Pawn: {
+        // non-promo pawns cannot land on last rank
+        if (!us) { if (toRank == 7) return false; }
+        else     { if (toRank == 0) return false; }
+
+        if (move.IsCapture()) {
+            if (!isPawnCaptureTo()) return false;
+            // (regular capture already checked occupancy/enemy above)
+            return true;
+        } else {
+            return isOneStepPawnPush();
+        }
+    }
+
+    case Knight:
+        return (MOVEGEN::knightAttacks[from] & Bitboard::GetSquare(to)) != 0;
+
+    case Bishop: {
+        Bitboard att = MOVEGEN::getBishopAttack(from, occupied);
+        return (att & Bitboard::GetSquare(to)) != 0;
+    }
+
+    case Rook: {
+        Bitboard att = MOVEGEN::getRookAttack(from, occupied);
+        return (att & Bitboard::GetSquare(to)) != 0;
+    }
+
+    case Queen: {
+        Bitboard att = MOVEGEN::getBishopAttack(from, occupied) | MOVEGEN::getRookAttack(from, occupied);
+        return (att & Bitboard::GetSquare(to)) != 0;
+    }
+
+    case King:
+        return (MOVEGEN::kingAttacks[from] & Bitboard::GetSquare(to)) != 0;
+
+    default:
+        return false;
+    }
+}

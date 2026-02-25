@@ -80,4 +80,5 @@ public:
     Bitboard CalcPinned(bool color);
 
     bool IsLegal(Move &move);
+	bool IsPseudoLegal(Move &move);
 };

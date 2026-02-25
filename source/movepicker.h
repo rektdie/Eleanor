@@ -40,7 +40,7 @@ public:
                 case TT: {
                     stage = Rest;
 
-                    if (ttMove)
+                    if (ttMove && board.IsPseudoLegal(ttMove))
                         return ttMove;
                     break;
                 }
