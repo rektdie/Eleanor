@@ -91,17 +91,19 @@ static double ReadParam(const std::string& param, const std::string &command) {
 template <SEARCH::searchMode mode>
 static void ThreadFunc(Board* board, SearchParams params, SEARCH::SearchContext* ctx) {
     SEARCH::SearchPosition<mode>(*board, params, ctx);
+    delete ctx;
 }
 
-static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchContext* ctx) {
+static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchContext* ctx, int id) {
     std::thread searchThread;
-    
+    SEARCH::SearchContext* ctxCopy = new SEARCH::SearchContext(*ctx);
+    if (id == 0)
+        ctxCopy->doPrint = true;
     if (params.nodes) {
-        searchThread = std::thread(ThreadFunc<SEARCH::nodesMode>, &board, params, ctx);
+        searchThread = std::thread(ThreadFunc<SEARCH::nodesMode>, &board, params, ctxCopy);
     } else {
-        searchThread = std::thread(ThreadFunc<SEARCH::normal>, &board, params, ctx);
+        searchThread = std::thread(ThreadFunc<SEARCH::normal>, &board, params, ctxCopy);
     }
-    
     searchThread.detach();
 }
 
@@ -109,24 +111,29 @@ static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchC
 // Unix/Linux implementation using pthread
 template <SEARCH::searchMode mode>
 static void* ThreadFunc(void* arg) {
-    auto* tup = static_cast<std::tuple<Board*, SearchParams, SEARCH::SearchContext*>*>(arg);
-    SEARCH::SearchPosition<mode>(*std::get<0>(*tup), std::get<1>(*tup), std::get<2>(*tup));
+    auto* tup = static_cast<std::tuple<Board, SearchParams, SEARCH::SearchContext*>*>(arg);
+    SEARCH::SearchContext* ctx = std::get<2>(*tup);
+    SEARCH::SearchPosition<mode>(std::get<0>(*tup), std::get<1>(*tup), ctx);
+    delete ctx;
     delete tup;
     return nullptr;
 }
 
-static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchContext* ctx) {
+static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchContext* ctx, int id) {
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);  // 8 MB stack
 
     pthread_t thread;
 
+    SEARCH::SearchContext* ctxCopy = new SEARCH::SearchContext(*ctx);
+    if (id == 0)
+        ctxCopy->doPrint = true;
     if (params.nodes) {
-        auto* arg = new std::tuple<Board*, SearchParams, SEARCH::SearchContext*>(&board, params, ctx);
+        auto* arg = new std::tuple<Board, SearchParams, SEARCH::SearchContext*>(board, params, ctxCopy);
         pthread_create(&thread, &attr, ThreadFunc<SEARCH::nodesMode>, arg);
     } else {
-        auto* arg = new std::tuple<Board*, SearchParams, SEARCH::SearchContext*>(&board, params, ctx);
+        auto* arg = new std::tuple<Board, SearchParams, SEARCH::SearchContext*>(board, params, ctxCopy);
         pthread_create(&thread, &attr, ThreadFunc<SEARCH::normal>, arg);
     }
 
@@ -153,13 +160,20 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* c
         params.btime = 99999999;
     }
 
-    StartSearchThread(board, params, ctx);
+    for (int i = 0; i < threads; i++) {
+        StartSearchThread(board, params, ctx, i);
+    }
 }
 
 static void SetOption(std::string& command, SEARCH::SearchContext* ctx) {
     if (command.find("Hash") != std::string::npos) {
         U64 hashSize = (ReadParam("value", command) * 1000000ULL) / sizeof(TTEntry);
-        ctx->TT.Resize(hashSize);
+        ctx->TT->Resize(hashSize);
+        return;
+    }
+
+    if (command.find("Threads") != std::string::npos) {
+        threads = ReadParam("value", command);
         return;
     }
 
@@ -209,7 +223,7 @@ static void PrintEngineInfo() {
     std::cout << "id name Eleanor v3.0" << std::endl;
     std::cout << "id author rektdie" << std::endl;
     std::cout << "option name Hash type spin default 8 min 1 max 1024" << std::endl;
-    std::cout << "option name Threads type spin default 1 min 1 max 1" << std::endl;
+    std::cout << "option name Threads type spin default 1 min 1 max 512" << std::endl;
 
     #ifdef TUNING
         PrintTunablesUCI();
@@ -245,7 +259,7 @@ void UCILoop(Board &board) {
             board.SetByFen(StartingFen);
 
             // Clearing
-            ctx->TT.Clear();
+            ctx->TT->Clear();
 
             ctx->killerMoves = {};
             ctx->history.Clear();
@@ -272,7 +286,7 @@ void UCILoop(Board &board) {
         // parse UCI "stop" command
         if (input.find("stop") != std::string::npos) {
             // stop the loop
-            ctx->searchStopped = true;
+            searchStopped = true;
             continue;
         }
 
