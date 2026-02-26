@@ -896,6 +896,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 template <searchMode mode>
 SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* ctx) {
     searchStopped = false;
+    ctx->TT->IncreaseAge();
     ctx->seldepth = 0;
     ctx->nodesTable = {};
     if constexpr (mode != bench) {

@@ -26,6 +26,7 @@ public:
     Move bestMove = Move();
     uint8_t depth = 0;
     uint8_t nodeType = 0;
+    uint8_t age = 0;
     bool ttpv = false;
 
     TTEntry() {}
@@ -55,6 +56,13 @@ constexpr int16_t invalidEntry = 11111;
 class TTable {
 private:
     std::vector<TTBucket> table;
+
+    uint8_t age = 0;
+
+    int GetReplacementValue(const TTEntry& entry) const {
+        const int ageDelta = uint8_t(age - entry.age);
+        return entry.depth - ageDelta * 4 + entry.ttpv * 2;
+    }
 public:
     TTable() : table(defaultHash) {};
 
@@ -70,6 +78,10 @@ public:
 
     void PrefetchEntry(U64 &hashKey) {
         __builtin_prefetch(&table[hashKey % table.size()]);
+    }
+
+    void IncreaseAge() {
+        age++;
     }
 
     TTEntry GetEntry(U64 &hashKey) {
