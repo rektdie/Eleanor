@@ -526,8 +526,12 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply > 0) {
             historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 1);
             
-            if (ply > 1)
+            if (ply > 1) {
                 historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
+
+                if (ply > 3)
+                    historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 4);
+            }
         }
         
         int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
