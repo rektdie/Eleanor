@@ -374,7 +374,9 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
     try {
         while (!stopFlag && !g_shutdownRequested) {
             Board board;
+            TTable DatagenTT;
             auto ctx = std::make_unique<SEARCH::SearchContext>();
+            ctx->TT = &DatagenTT;
 
             PlayRandMoves(board, ctx.get());
             if (IsGameOver(board, ctx.get())) continue;
