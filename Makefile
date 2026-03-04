@@ -3,49 +3,51 @@ SRC_DIR := source
 OBJ_DIR := obj
 FMT_DIR := external/fmt
 
-CXX := clang++
 EXE ?= Eleanor
 EVALFILE := ./nnue.bin
 
 ifeq ($(OS),Windows_NT)
-    UNAME_S := Windows
-    EXE_EXT := .exe
-    MKDIR := mkdir
-    RM := rmdir /s /q
-    DEL := del /q
-    PLATFORM := windows
+	UNAME_S := Windows
+	EXE_EXT := .exe
+	MKDIR := mkdir
+	RM := rmdir /s /q
+	DEL := del /q
+	PLATFORM := windows
+	CXX := g++
 else
-    UNAME_S := $(shell uname -s)
-    ARCH := $(shell uname -m)
-    EXE_EXT :=
-    MKDIR := mkdir -p
-    RM := rm -rf
-    DEL := rm -f
-    ifeq ($(UNAME_S),Darwin)
-        PLATFORM := mac
-    else
-        PLATFORM := unix
-    endif
+	UNAME_S := $(shell uname -s)
+	ARCH := $(shell uname -m)
+	EXE_EXT :=
+	MKDIR := mkdir -p
+	RM := rm -rf
+	DEL := rm -f
+	CXX := clang++
+	ifeq ($(UNAME_S),Darwin)
+	    PLATFORM := mac
+	else
+	    PLATFORM := unix
+	endif
 endif
 
 CXXFLAGS := -std=c++20 -O3 -flto -Wall
 LDFLAGS := -O3 -flto
 
 ifeq ($(PLATFORM),mac)
-    ifeq ($(ARCH),arm64)
-        # Apple Silicon
-        ARCH_FLAGS := -mcpu=apple-m1
-    else
-        ARCH_FLAGS := -march=native
-    endif
+	ifeq ($(ARCH),arm64)
+	    ARCH_FLAGS := -mcpu=apple-m1
+	else
+	    ARCH_FLAGS := -march=native
+	endif
+else ifeq ($(PLATFORM),windows)
+	ARCH_FLAGS := -march=native
+	LDFLAGS += -static
 else
-    ifeq ($(ARCH),aarch64)
-        # Generic Linux ARM64
-        ARCH_FLAGS := -mcpu=native
-    else
-        ARCH_FLAGS := -march=native
-        LDFLAGS += -fuse-ld=lld -static
-    endif
+	ifeq ($(ARCH),aarch64)
+	    ARCH_FLAGS := -mcpu=native
+	else
+	    ARCH_FLAGS := -march=native
+	    LDFLAGS += -fuse-ld=lld -static
+	endif
 endif
 
 CXXFLAGS += $(ARCH_FLAGS)

@@ -6,28 +6,60 @@
 #include <atomic>
 #include <mutex>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <string>
 #include <chrono>
-#include <iomanip>
 #include <sstream>
 #include <csignal>
 #include <cstdlib>
+#include <cerrno>
+
 #include "datagen.h"
 #include "movegen.h"
 #include "search.h"
-#include "movegen.h"
 #include "utils.h"
 
 // OS-dependent threading includes
 #ifdef _WIN32
     #include <windows.h>
-    #include <io.h>  // for _commit
+    #include <io.h>       // for _commit (if you ever use it)
+    #include <process.h>  // _beginthreadex / _endthreadex
 #else
     #include <pthread.h>
     #include <unistd.h>  // for sync
 #endif
+
+static std::filesystem::path MakeTempPath(const std::string& prefix, const std::string& ext) {
+    namespace fs = std::filesystem;
+    fs::path dir = fs::temp_directory_path();
+
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_int_distribution<uint64_t> dist;
+    auto name = prefix + std::to_string(dist(gen)) + ext;
+
+    return dir / name;
+}
+
+static std::string ShellQuote(const std::string& s) {
+#ifdef _WIN32
+    std::string out = "\"";
+    for (char c : s) {
+        if (c == '"') out += "\\\"";
+        else out += c;
+    }
+    out += "\"";
+    return out;
+#else
+    std::string out = "'";
+    for (char c : s) {
+        if (c == '\'') out += "'\\''";
+        else out += c;
+    }
+    out += "'";
+    return out;
+#endif
+}
 
 #ifdef _WIN32
 static void HideCursor() {
@@ -46,13 +78,8 @@ static void ShowCursor() {
     SetConsoleCursorInfo(hConsole, &cursorInfo);
 }
 #else
-static void HideCursor() {
-    std::cout << "\033[?25l";
-}
-
-static void ShowCursor() {
-    std::cout << "\033[?25h";
-}
+static void HideCursor() { std::cout << "\033[?25l"; }
+static void ShowCursor() { std::cout << "\033[?25h"; }
 #endif
 
 namespace DATAGEN {
@@ -62,47 +89,67 @@ namespace DATAGEN {
 // ============================================================================
 
 static bool PostJSON(const std::string& url, const std::string& jsonBody, std::string& response) {
-    std::string tempFile = "/tmp/datagen_request.json";
+    namespace fs = std::filesystem;
+
+    fs::path tempFile = MakeTempPath("datagen_request_", ".json");
+    fs::path responseFile = MakeTempPath("datagen_response_", ".txt");
+
     std::ofstream out(tempFile);
     if (!out) {
-        std::cerr << "Failed to create temp file for request" << std::endl;
+        std::cerr << "Failed to create temp file for request: " << tempFile.string() << "\n";
         return false;
     }
     out << jsonBody;
     out.close();
 
-    std::string responseFile = "/tmp/datagen_response.txt";
     std::ostringstream cmd;
-    cmd << "curl -s -X POST \"" << url << "\" "
-        << "-H \"Content-Type: application/json\" "
-        << "-d @" << tempFile << " "
-        << "-o " << responseFile << " "
-        << "2>/dev/null";
+    cmd << "curl -s -X POST "
+        << ShellQuote(url) << " "
+        << "-H " << ShellQuote("Content-Type: application/json") << " "
+        << "-d " << ShellQuote("@" + tempFile.string()) << " "
+        << "-o " << ShellQuote(responseFile.string()) << " ";
+
+#ifdef _WIN32
+    cmd << "2>nul";
+#else
+    cmd << "2>/dev/null";
+#endif
 
     int result = system(cmd.str().c_str());
-    
+
     std::ifstream responseIn(responseFile);
     if (responseIn) {
         std::stringstream buffer;
         buffer << responseIn.rdbuf();
         response = buffer.str();
-        responseIn.close();
+    } else {
+        response.clear();
     }
 
-    std::remove(tempFile.c_str());
-    std::remove(responseFile.c_str());
+    std::error_code ec;
+    fs::remove(tempFile, ec);
+    fs::remove(responseFile, ec);
 
     return (result == 0);
 }
 
-static bool UploadFile(const std::string& url, const std::string& filepath, 
-                      const std::string& username, int positions) {
+static bool UploadFile(const std::string& url,
+                       const std::string& filepath,
+                       const std::string& username,
+                       int positions) {
     std::ostringstream cmd;
-    cmd << "curl -s -X POST \"" << url << "\" "
-        << "-F \"file=@" << filepath << "\" "
-        << "-F \"user=" << username << "\" "
-        << "-F \"positions=" << positions << "\" "
-        << "2>/dev/null";
+
+    cmd << "curl -s -X POST "
+        << ShellQuote(url) << " "
+        << "-F " << ShellQuote("file=@" + filepath) << " "
+        << "-F " << ShellQuote("user=" + username) << " "
+        << "-F " << ShellQuote("positions=" + std::to_string(positions)) << " ";
+
+#ifdef _WIN32
+    cmd << "2>nul";
+#else
+    cmd << "2>/dev/null";
+#endif
 
     int result = system(cmd.str().c_str());
     return (result == 0);
@@ -126,30 +173,24 @@ static std::string BuildHeartbeatJSON(const std::string& username, int threads) 
     return json.str();
 }
 
-// Simple JSON value extractor
 static std::string ExtractJSONValue(const std::string& json, const std::string& key) {
-    // Look for "key":"value" or "key":value pattern
     std::string searchKey = "\"" + key + "\":";
     size_t pos = json.find(searchKey);
     if (pos == std::string::npos) return "";
-    
+
     pos += searchKey.length();
-    
-    // Skip whitespace
+
     while (pos < json.length() && (json[pos] == ' ' || json[pos] == '\t' || json[pos] == '\n')) {
         pos++;
     }
-    
     if (pos >= json.length()) return "";
-    
-    // Check if value is quoted
+
     if (json[pos] == '"') {
-        pos++; // Skip opening quote
+        pos++;
         size_t endPos = json.find("\"", pos);
         if (endPos == std::string::npos) return "";
         return json.substr(pos, endPos - pos);
     } else {
-        // Unquoted value (number, boolean, etc.)
         size_t endPos = pos;
         while (endPos < json.length() && json[endPos] != ',' && json[endPos] != '}' && json[endPos] != ']') {
             endPos++;
@@ -162,15 +203,15 @@ static std::string ExtractJSONValue(const std::string& json, const std::string& 
 // HEARTBEAT THREAD
 // ============================================================================
 
-static void HeartbeatThread(const std::string& username, int threads, 
+static void HeartbeatThread(const std::string& username, int threads,
                            std::atomic<bool>& stopFlag, const std::string& serverUrl) {
     while (!stopFlag) {
         for (int i = 0; i < 15 && !stopFlag; ++i) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        
+
         if (stopFlag) break;
-        
+
         std::string response;
         std::string heartbeatJSON = BuildHeartbeatJSON(username, threads);
         PostJSON(serverUrl + "/api/session/heartbeat", heartbeatJSON, response);
@@ -194,10 +235,10 @@ static void SignalHandler(int signal) {
 static void SetupSignalHandlers() {
     std::signal(SIGINT, SignalHandler);
     std::signal(SIGTERM, SignalHandler);
-    
-    #ifndef _WIN32
+
+#ifndef _WIN32
     std::signal(SIGHUP, SignalHandler);
-    #endif
+#endif
 }
 
 static bool IsGameOver(Board &board, SEARCH::SearchContext* ctx) {
@@ -206,11 +247,9 @@ static bool IsGameOver(Board &board, SEARCH::SearchContext* ctx) {
     int moveSeen = 0;
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
-
         if (!board.IsLegal(board.moveList[i])) continue;
         Board copy = board;
         copy.MakeMove(board.moveList[i]);
-
         moveSeen++;
     }
 
@@ -227,6 +266,10 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext* ctx) {
     for (int count = 0; count < RAND_MOVES + plusOne; count++) {
         MOVEGEN::GenerateMoves<All>(board, true);
 
+        if (board.currentMoveIndex <= 0) {
+            break;
+        }
+
         std::uniform_int_distribution<int> dist(0, board.currentMoveIndex - 1);
 
         Move currMove = board.moveList[dist(rng)];
@@ -234,9 +277,11 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext* ctx) {
             count--;
             continue;
         }
+
         board.MakeMove(currMove);
 
         ctx->positionHistory[board.positionIndex] = board.hashKey;
+
         MOVEGEN::GenerateMoves<All>(board, true);
         if (IsGameOver(board, ctx)) break;
     }
@@ -244,7 +289,7 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext* ctx) {
 
 static void WriteToFile(std::vector<Game> &gamesBuffer, const std::string& basePath, int& fileCounter) {
     if (gamesBuffer.empty()) return;
-    
+
     int32_t zeroes = 0;
     std::vector<char> buffer;
 
@@ -269,32 +314,32 @@ static void WriteToFile(std::vector<Game> &gamesBuffer, const std::string& baseP
 
     std::string tmpFileName = basePath + std::to_string(fileCounter) + ".tmp";
     std::string finalFileName = basePath + std::to_string(fileCounter) + ".binpack";
-    
+
     std::ofstream tmpFile(tmpFileName, std::ios::binary);
     if (!tmpFile.is_open()) {
         std::cerr << "Failed to create temporary file: " << tmpFileName << std::endl;
         return;
     }
-    
+
     tmpFile.write(buffer.data(), buffer.size());
     tmpFile.flush();
-    
-    #ifdef _WIN32
+
+#ifdef _WIN32
     tmpFile.close();
-    #else
+#else
     tmpFile.close();
     sync();
-    #endif
-    
+#endif
+
     std::error_code ec;
     std::filesystem::rename(tmpFileName, finalFileName, ec);
     if (ec) {
-        std::cerr << "Failed to rename " << tmpFileName << " to " << finalFileName 
+        std::cerr << "Failed to rename " << tmpFileName << " to " << finalFileName
                   << ": " << ec.message() << std::endl;
         std::filesystem::remove(tmpFileName, ec);
         return;
     }
-    
+
     fileCounter++;
 }
 
@@ -308,8 +353,8 @@ static std::string MergeThreadFiles() {
     std::tm tm = *std::localtime(&now_time);
 
     std::ostringstream oss;
-    oss << "data/datagen_" 
-        << std::put_time(&tm, "%Y-%m-%d_%H-%M") 
+    oss << "data/datagen_"
+        << std::put_time(&tm, "%Y-%m-%d_%H-%M")
         << ".binpack";
     std::string finalFileName = oss.str();
 
@@ -345,7 +390,7 @@ static std::string MergeThreadFiles() {
     for (const auto& entry : fs::directory_iterator(dataDir)) {
         if (!entry.is_regular_file()) continue;
         std::string filename = entry.path().filename().string();
-        
+
         if (filename.find("thread") == 0 && filename.find(".tmp") != std::string::npos) {
             std::error_code ec;
             fs::remove(entry.path(), ec);
@@ -397,7 +442,7 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
 
             while (!IsGameOver(board, ctx.get())) {
                 if (g_shutdownRequested) break;
-                
+
                 SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx.get());
 
                 if (!results.bestMove) break;
@@ -433,23 +478,79 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
         throw;
     }
 
-    if (gamesBuffer.size() > 0) {
+    if (!gamesBuffer.empty()) {
         WriteToFile(gamesBuffer, basePath, fileCounter);
         gamesBuffer.clear();
+    }
+
+    if (!stopFlag.load() && !g_shutdownRequested.load()) {
+        std::abort();
     }
 }
 
 #ifdef _WIN32
-static void CreateWorkerThread(int id, std::atomic<int>& positions, std::atomic<bool>& stopFlag, std::vector<std::thread>& threads) {
-    threads.emplace_back(PlayGames, id, std::ref(positions), std::ref(stopFlag));
+
+struct WinThreadArgs {
+    int id;
+    std::atomic<int>* positions;
+    std::atomic<bool>* stopFlag;
+};
+
+static unsigned __stdcall WinThreadEntry(void* p) {
+    std::unique_ptr<WinThreadArgs> args(static_cast<WinThreadArgs*>(p));
+    PlayGames(args->id, *args->positions, *args->stopFlag);
+    _endthreadex(0);
+    return 0;
 }
+
+static bool CreateWorkerThread(int id,
+                               std::atomic<int>& positions,
+                               std::atomic<bool>& stopFlag,
+                               std::vector<HANDLE>& threads,
+                               size_t stackSizeBytes) {
+    auto* args = new WinThreadArgs{ id, &positions, &stopFlag };
+
+    unsigned tid = 0;
+    HANDLE h = reinterpret_cast<HANDLE>(
+        _beginthreadex(
+            nullptr,
+            static_cast<unsigned>(stackSizeBytes),
+            &WinThreadEntry,
+            args,
+            0,
+            &tid
+        )
+    );
+
+    if (!h) {
+        std::cerr << "Failed to create thread " << id << " (errno=" << errno << ")\n";
+        delete args;
+        return false;
+    }
+
+    threads.push_back(h);
+    return true;
+}
+
+static void JoinWorkerThreads(std::vector<HANDLE>& threads) {
+    for (HANDLE h : threads) {
+        if (h) {
+            WaitForSingleObject(h, INFINITE);
+            CloseHandle(h);
+        }
+    }
+    threads.clear();
+}
+
 #else
+
 static void* ThreadFunc(void* arg) {
     auto* tup = static_cast<std::tuple<int, std::atomic<int>*, std::atomic<bool>*>*>(arg);
     PlayGames(std::get<0>(*tup), *std::get<1>(*tup), *std::get<2>(*tup));
     delete tup;
     return nullptr;
 }
+
 #endif
 
 // ============================================================================
@@ -458,23 +559,26 @@ static void* ThreadFunc(void* arg) {
 
 void Run(int targetPositions, int threads) {
     SetupSignalHandlers();
-    
-    #ifdef _WIN32
-        system("cls");
-        HideCursor();
-    #else
-        std::cout << "\033[2J\033[H";
-        HideCursor();
-    #endif
+
+#ifdef _WIN32
+    system("cls");
+    HideCursor();
+#else
+    std::cout << "\033[2J\033[H";
+    HideCursor();
+#endif
 
     std::atomic<int> positions = 0;
     std::atomic<bool> stopFlag = false;
 
 #ifdef _WIN32
-    std::vector<std::thread> workerThreads;
-    
+    std::vector<HANDLE> workerThreads;
+    workerThreads.reserve((threads > 1) ? (threads - 1) : 0);
+
+    const size_t stackSizeBytes = 8ull * 1024ull * 1024ull; // change to 16/32 MiB if needed
+
     for (int i = 0; i < threads - 1; ++i) {
-        CreateWorkerThread(i, positions, stopFlag, workerThreads);
+        CreateWorkerThread(i, positions, stopFlag, workerThreads, stackSizeBytes);
     }
 #else
     std::vector<pthread_t> workerThreads;
@@ -511,11 +615,7 @@ void Run(int targetPositions, int threads) {
     std::cout << "\n\nWaiting for threads to finish writing..." << std::endl;
 
 #ifdef _WIN32
-    for (std::thread& thread : workerThreads) {
-        if (thread.joinable()) {
-            thread.join();
-        }
-    }
+    JoinWorkerThreads(workerThreads);
 #else
     for (pthread_t& thread : workerThreads) {
         pthread_join(thread, nullptr);
@@ -525,83 +625,82 @@ void Run(int targetPositions, int threads) {
     std::cout << "All threads completed. Merging files..." << std::endl;
     MergeThreadFiles();
 
-    #ifdef _WIN32
-        ShowCursor();
-    #else
-        ShowCursor();
-    #endif
-    
+#ifdef _WIN32
+    ShowCursor();
+#else
+    ShowCursor();
+#endif
+
     std::cout << "\nShutdown complete. All data saved safely." << std::endl;
 }
 
 void RunOnline(const std::string& username, int targetPositions, int threads) {
     const std::string SERVER_URL = "http://13.60.26.163:3000";
-    
+
     SetupSignalHandlers();
-    
+
     std::cout << "=== ONLINE MODE ===" << std::endl;
     std::cout << "User: " << username << std::endl;
     std::cout << "Target positions per cycle: " << targetPositions << std::endl;
     std::cout << "Threads: " << threads << std::endl;
     std::cout << "===================" << std::endl << std::endl;
-    
+
     while (!g_shutdownRequested) {
-        // Send initial heartbeat
         std::cout << "Sending heartbeat..." << std::endl;
         std::string heartbeatResponse;
         std::string heartbeatJSON = BuildHeartbeatJSON(username, threads);
-        
+
         if (!PostJSON(SERVER_URL + "/api/session/heartbeat", heartbeatJSON, heartbeatResponse)) {
             std::cerr << "Failed to send heartbeat. Retrying in 10 seconds..." << std::endl;
             std::this_thread::sleep_for(std::chrono::seconds(10));
             continue;
         }
-        
+
         std::cout << "Heartbeat response: " << heartbeatResponse << std::endl;
-        
-        // Start session
+
         std::string startResponse;
         std::string startJSON = BuildStartJSON(username, targetPositions);
-        
+
         std::cout << "Starting new session..." << std::endl;
         if (!PostJSON(SERVER_URL + "/api/session/start", startJSON, startResponse)) {
             std::cerr << "Failed to start session. Retrying in 10 seconds..." << std::endl;
             std::this_thread::sleep_for(std::chrono::seconds(10));
             continue;
         }
-        
+
         std::cout << "Server response: " << startResponse << std::endl;
-        
+
         std::string sessionId = ExtractJSONValue(startResponse, "session_id");
         if (sessionId.empty()) {
             std::cerr << "Failed to parse session ID. Retrying..." << std::endl;
             std::this_thread::sleep_for(std::chrono::seconds(10));
             continue;
         }
-        
+
         std::cout << "Session ID: " << sessionId << std::endl;
-        
-        // Start heartbeat thread
+
         std::atomic<bool> heartbeatStop(false);
         std::thread heartbeat(HeartbeatThread, username, threads, std::ref(heartbeatStop), SERVER_URL);
-        
-        // Run datagen
-        #ifdef _WIN32
-            system("cls");
-            HideCursor();
-        #else
-            std::cout << "\033[2J\033[H";
-            HideCursor();
-        #endif
+
+#ifdef _WIN32
+        system("cls");
+        HideCursor();
+#else
+        std::cout << "\033[2J\033[H";
+        HideCursor();
+#endif
 
         std::atomic<int> positions = 0;
         std::atomic<bool> stopFlag = false;
 
 #ifdef _WIN32
-        std::vector<std::thread> workerThreads;
-        
+        std::vector<HANDLE> workerThreads;
+        workerThreads.reserve((threads > 1) ? (threads - 1) : 0);
+
+        const size_t stackSizeBytes = 8ull * 1024ull * 1024ull; // change to 16/32 MiB if needed
+
         for (int i = 0; i < threads - 1; ++i) {
-            CreateWorkerThread(i, positions, stopFlag, workerThreads);
+            CreateWorkerThread(i, positions, stopFlag, workerThreads, stackSizeBytes);
         }
 #else
         std::vector<pthread_t> workerThreads;
@@ -638,18 +737,13 @@ void RunOnline(const std::string& username, int targetPositions, int threads) {
         std::cout << "\n\nWaiting for threads to finish writing..." << std::endl;
 
 #ifdef _WIN32
-        for (std::thread& thread : workerThreads) {
-            if (thread.joinable()) {
-                thread.join();
-            }
-        }
+        JoinWorkerThreads(workerThreads);
 #else
         for (pthread_t& thread : workerThreads) {
             pthread_join(thread, nullptr);
         }
 #endif
 
-        // Stop heartbeat
         heartbeatStop = true;
         if (heartbeat.joinable()) {
             heartbeat.join();
@@ -660,20 +754,19 @@ void RunOnline(const std::string& username, int targetPositions, int threads) {
         std::cout << "All threads completed. Merging files..." << std::endl;
         std::string mergedFile = MergeThreadFiles();
 
-        #ifdef _WIN32
-            ShowCursor();
-        #else
-            ShowCursor();
-        #endif
-        
+#ifdef _WIN32
+        ShowCursor();
+#else
+        ShowCursor();
+#endif
+
         if (!mergedFile.empty()) {
             std::cout << "Uploading file to server..." << std::endl;
             std::string uploadUrl = SERVER_URL + "/api/upload/" + sessionId;
-            
+
             if (UploadFile(uploadUrl, mergedFile, username, positions.load())) {
                 std::cout << "Upload successful!" << std::endl;
-                
-                // Delete the file after successful upload
+
                 std::error_code ec;
                 std::filesystem::remove(mergedFile, ec);
                 if (!ec) {
@@ -683,13 +776,13 @@ void RunOnline(const std::string& username, int targetPositions, int threads) {
                 std::cerr << "Upload failed. File kept locally: " << mergedFile << std::endl;
             }
         }
-        
+
         if (g_shutdownRequested) break;
-        
+
         std::cout << "\n=== Starting next cycle ===" << std::endl << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(2));
     }
-    
+
     std::cout << "\nOnline mode shutdown complete." << std::endl;
 }
 
@@ -718,44 +811,43 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
     int width = 60;
 
     std::string title = "Eleanor - Datagen";
-    int titlePadding = (width - title.length()) / 2;
-    std::cout << COLOR_TITLE << std::setw(titlePadding + title.length()) << title << COLOR_RESET << std::endl;
+    int titlePadding = (width - static_cast<int>(title.length())) / 2;
+    std::cout << COLOR_TITLE << std::setw(titlePadding + static_cast<int>(title.length())) << title << COLOR_RESET << std::endl;
 
     std::cout << std::string(width, '=') << std::endl;
-
     std::cout << std::endl;
 
     std::cout << std::fixed << std::setprecision(0);
 
     std::ostringstream datagenTextStream;
     datagenTextStream << std::fixed << std::setprecision(2)
-                    << "Positions processed: " << positions / 1000.0 << "K | Target: " << targetPositions / 1000.0 << "K";
+                      << "Positions processed: " << positions / 1000.0 << "K | Target: " << targetPositions / 1000.0 << "K";
     std::string datagenText = datagenTextStream.str();
-    int datagenPadding = (width - datagenText.length()) / 2;
-    std::cout << COLOR_SECTION << std::setw(datagenPadding + datagenText.length()) << datagenText << COLOR_RESET << std::endl;
+    int datagenPadding = (width - static_cast<int>(datagenText.length())) / 2;
+    std::cout << COLOR_SECTION << std::setw(datagenPadding + static_cast<int>(datagenText.length())) << datagenText << COLOR_RESET << std::endl;
 
     std::cout << std::endl;
 
     std::string elapsedText = "Elapsed Time: " + std::to_string(static_cast<int>(round(elapsed))) + " sec";
-    int elapsedPadding = (width - elapsedText.length()) / 2;
-    std::cout << COLOR_SECTION << std::setw(elapsedPadding + elapsedText.length()) << elapsedText << COLOR_RESET << std::endl;
+    int elapsedPadding = (width - static_cast<int>(elapsedText.length())) / 2;
+    std::cout << COLOR_SECTION << std::setw(elapsedPadding + static_cast<int>(elapsedText.length())) << elapsedText << COLOR_RESET << std::endl;
 
     std::string positionsPerSecText = "Positions/sec: " + std::to_string(static_cast<int>(round(positionsPerSec)));
-    int positionsPerSecPadding = (width - positionsPerSecText.length()) / 2;
-    std::cout << COLOR_VALUE << std::setw(positionsPerSecPadding + positionsPerSecText.length()) << positionsPerSecText << COLOR_RESET << std::endl;
+    int positionsPerSecPadding = (width - static_cast<int>(positionsPerSecText.length())) / 2;
+    std::cout << COLOR_VALUE << std::setw(positionsPerSecPadding + static_cast<int>(positionsPerSecText.length())) << positionsPerSecText << COLOR_RESET << std::endl;
 
     std::cout << std::endl;
 
     std::string threadsText = "Threads: " + std::to_string(static_cast<int>(threads));
-    int threadsTextPadding = (width - threadsText.length()) / 2;
-    std::cout << COLOR_SECTION << std::setw(threadsTextPadding + threadsText.length()) << threadsText << COLOR_RESET << std::endl;
+    int threadsTextPadding = (width - static_cast<int>(threadsText.length())) / 2;
+    std::cout << COLOR_SECTION << std::setw(threadsTextPadding + static_cast<int>(threadsText.length())) << threadsText << COLOR_RESET << std::endl;
 
     std::cout << std::endl;
 
     double remainingTime = 0.0;
     if (positions > 0 && elapsed > 0.0) {
-        double positionsPerSec = positions / elapsed;
-        remainingTime = (targetPositions - positions) / positionsPerSec;
+        double pps = positions / elapsed;
+        remainingTime = (targetPositions - positions) / pps;
     }
 
     remainingTime = (std::max)(0.0, remainingTime);
@@ -766,14 +858,15 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
 
     std::ostringstream remainingTimeStream;
     remainingTimeStream << "Estimated Time Left: "
-        << std::setfill('0') << std::setw(2) << remainingHours << "h "
-        << std::setw(2) << remainingMinutes << "m "
-        << std::setw(2) << remainingSeconds << "s";
+                        << std::setfill('0') << std::setw(2) << remainingHours << "h "
+                        << std::setw(2) << remainingMinutes << "m "
+                        << std::setw(2) << remainingSeconds << "s";
 
     std::string remainingTimeText = remainingTimeStream.str();
-    int remainingPadding = (width - remainingTimeText.length()) / 2;
-    std::cout << COLOR_SECTION << std::setw(remainingPadding + remainingTimeText.length())
-        << remainingTimeText << COLOR_RESET << std::endl;
+    int remainingPadding = (width - static_cast<int>(remainingTimeText.length())) / 2;
+    std::cout << COLOR_SECTION
+              << std::setw(remainingPadding + static_cast<int>(remainingTimeText.length()))
+              << remainingTimeText << COLOR_RESET << std::endl;
 
     std::cout << std::endl;
 
@@ -784,21 +877,18 @@ void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int
     std::string progressBar = "[";
 
     for (int i = 0; i < barWidth; ++i) {
-        if (i < pos) {
-            progressBar += "=";
-        } else if (i == pos) {
-            progressBar += ">";
-        } else {
-            progressBar += " ";
-        }
+        if (i < pos) progressBar += "=";
+        else if (i == pos) progressBar += ">";
+        else progressBar += " ";
     }
 
     progressBar += "] " + std::to_string(static_cast<int>(round(progress * 100.0))) + " %";
 
-    int progressPadding = (width - progressBar.length()) / 2;
-    std::cout << COLOR_BAR << std::setw(progressPadding + progressBar.length()) << progressBar << COLOR_RESET << std::endl;
+    int progressPadding = (width - static_cast<int>(progressBar.length())) / 2;
+    std::cout << COLOR_BAR << std::setw(progressPadding + static_cast<int>(progressBar.length()))
+              << progressBar << COLOR_RESET << std::endl;
 
     std::cout << std::endl;
 }
 
-}
+} // namespace DATAGEN
