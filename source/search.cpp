@@ -243,7 +243,12 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     if (!ctx->excluded) {
         entry = ctx->TT->GetEntry(board.hashKey);
         if (entry.hashKey == board.hashKey) {
-            bestScore = entry.score;
+            if (entry.nodeType == PV)
+                bestScore = entry.score;
+            else if (entry.nodeType == CutNode && entry.score >= beta)
+                return SearchResults(entry.score, entry.bestMove);
+            else if (entry.nodeType == AllNode && entry.score <= alpha)
+                return SearchResults(entry.score, entry.bestMove);
         }
     }
 
