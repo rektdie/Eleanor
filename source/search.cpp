@@ -472,6 +472,17 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             if (searchStopped) return 0;
 
             if (score >= probcutBeta) {
+                int bonus = historyBonusMultiplier * depth - historyBonusSub;
+
+                int movingPiece = board.GetPieceType(currMove.MoveFrom());
+                int capturedPiece = board.GetPieceType(currMove.MoveTo());
+
+                if (currMove.GetFlags() == epCapture) {
+                    capturedPiece = Pawn;
+                }
+
+                ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece, currMove.MoveTo(), bonus);
+
                 ctx->TT->WriteEntry(board.hashKey, probcutDepth, score, CutNode, currMove, ttpv);
 
                 return score;
