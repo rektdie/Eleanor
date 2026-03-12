@@ -603,7 +603,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ttpv, ctx);
 
-        int newDepth = depth + (copy.InCheck() && !ctx->excluded) - 1 + extension;
+        int newDepth = depth - 1 + extension;
 
         U64 nodesBeforeSearch = ctx->nodes;
 
