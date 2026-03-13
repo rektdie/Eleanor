@@ -239,10 +239,13 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     int bestScore = AdjustEval(board, ctx, NNUE::net.Evaluate(board));
     ctx->ss[ply].eval = bestScore;
 
+    bool ttHit = false;
+
     TTEntry entry;
     if (!ctx->excluded) {
         entry = ctx->TT->GetEntry(board.hashKey);
         if (entry.hashKey == board.hashKey) {
+            ttHit = true;
             bestScore = entry.score;
         }
     }
@@ -251,6 +254,10 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
 
     if (bestScore >= beta) {
+        if (!ttHit) {
+            ctx->TT->WriteEntry(board.hashKey, 0, bestScore, CutNode, Move(), ttpv);
+        }
+
         return bestScore;
     }
 
