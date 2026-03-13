@@ -596,7 +596,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         cutnode |= extension < 0;
 
         // PVS SEE
-        int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
+        int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * lmrDepth * lmrDepth;
 
         if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
             continue;
