@@ -743,6 +743,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             alpha = score;
             results.bestMove = currMove;
             ctx->pvLine.SetMove(ply, currMove);
+        } else if (depth > 4 && depth < 10 && beta < (MATE_SCORE + MAX_DEPTH)
+            && alpha > (-MATE_SCORE + MAX_DEPTH)) {
+            depth--;
         }
     }
 
