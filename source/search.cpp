@@ -652,7 +652,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         // Fail high (beta cutoff)
         if (score >= beta) {
-            int bonus = historyBonusMultiplier * depth - historyBonusSub;
+            int bonus = historyBonusMultiplier * (depth + (!board.InCheck() && staticEval <= alpha)) - historyBonusSub;
 
             if (!currMove.IsCapture()) {
                 ctx->killerMoves[1][ply] = ctx->killerMoves[0][ply];
