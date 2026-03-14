@@ -586,7 +586,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             const int sDepth = (depth - 1) / 2;
 
             ctx->excluded = currMove;
-            const int singularScore = PVS<false, mode>(board, sDepth, sBeta-1, sBeta, ply, ctx, cutnode).score;
+            const int singularScore = PVS<false, mode>(board, sDepth, sBeta-1, sBeta, ply, ctx, false).score;
             ctx->excluded = Move();
             
             // Singular extension
