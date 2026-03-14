@@ -274,6 +274,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     }
 
     if (bestScore >= beta) {
+        if (!ttHit)
+            ctx->TT->WriteEntry(board.hashKey, 0, bestScore, CutNode, Move(), ttpv);
+
         return bestScore;
     }
 
