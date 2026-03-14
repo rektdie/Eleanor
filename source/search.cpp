@@ -274,6 +274,11 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     }
 
     if (bestScore >= beta) {
+        if ((std::abs(bestScore) + MAX_DEPTH < MATE_SCORE) &&
+            (std::abs(beta) + MAX_DEPTH < MATE_SCORE)) {
+            bestScore = (bestScore + beta) / 2;
+        }
+
         return bestScore;
     }
 
