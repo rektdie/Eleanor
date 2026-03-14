@@ -240,15 +240,38 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     ctx->ss[ply].eval = bestScore;
 
     TTEntry entry;
-    if (!ctx->excluded) {
-        entry = ctx->TT->GetEntry(board.hashKey);
-        if (entry.hashKey == board.hashKey) {
-            bestScore = entry.score;
+    bool ttHit = false;
+    entry = ctx->TT->GetEntry(board.hashKey);
+
+    if (entry.hashKey == board.hashKey) {
+        ttHit = true;
+
+        switch (entry.nodeType) {
+            case PV:
+                return entry.score;
+            case CutNode:
+                if (entry.score >= beta)
+                    return entry.score;
+            case AllNode:
+                if (entry.score <= alpha)
+                    return entry.score;
         }
     }
 
     const bool ttpv = isPV | entry.ttpv;
 
+    if (ttHit) {
+        switch (entry.nodeType) {
+            case PV:
+                bestScore = entry.score;
+            case CutNode:
+                if (entry.score < bestScore)
+                    bestScore = entry.score;
+            case AllNode:
+                if (entry.score > bestScore)
+                    bestScore = entry.score;
+        }
+    }
 
     if (bestScore >= beta) {
         return bestScore;
@@ -298,9 +321,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         int score = -Quiescence<isPV, mode>(copy, -beta, -alpha, ply + 1, ctx).score;
 
         if (score >= beta) {
-            if (!ctx->excluded) {
-                ctx->TT->WriteEntry(board.hashKey, 0, score, CutNode, currMove, ttpv);
-            }
+            ctx->TT->WriteEntry(board.hashKey, 0, score, CutNode, currMove, ttpv);
             return score;
         }
 
@@ -315,9 +336,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     results.score = bestScore;
     if (searchStopped) return 0;
-    if (!ctx->excluded) {
-        ctx->TT->WriteEntry(board.hashKey, 0, results.score, nodeType, results.bestMove, ttpv);
-    }
+    ctx->TT->WriteEntry(board.hashKey, 0, results.score, nodeType, results.bestMove, ttpv);
     return results;
 }
 
