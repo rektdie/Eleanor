@@ -423,7 +423,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     Board copy = board;
                     copy.MakeMove(Move());
 
-                    const int reduction = 4 + improving + depth / 3;
+                    int reduction = 4 + improving + depth / 3;
+                    reduction += std::min((staticEval - beta) / 400, 3);
 
                     ctx->TT->PrefetchEntry(copy.hashKey);
 
