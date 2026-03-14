@@ -126,7 +126,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
 
     reduction /= 1024;
 
-    return std::clamp(reduction, -1, depth - 1);
+    return std::clamp(reduction, -1 * isPV, depth - 1);
 }
 
 
