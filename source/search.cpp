@@ -265,10 +265,10 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
             case PV:
                 bestScore = entry.score;
             case CutNode:
-                if (entry.score < bestScore)
+                if (entry.score > bestScore)
                     bestScore = entry.score;
             case AllNode:
-                if (entry.score > bestScore)
+                if (entry.score < bestScore)
                     bestScore = entry.score;
         }
     }
