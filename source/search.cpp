@@ -597,6 +597,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     // Double extension
                     if (singularScore <= sBeta - 1 - doubleExtMargin) {
                         extension++;
+
+                        // Triple extension
+                        if (currMove.IsQuiet() && singularScore <= sBeta - 1 - tripleExtMargin) {
+                            extension++;
+                        }
                     }
                 }
             }
