@@ -186,7 +186,13 @@ int Forward(const Board& board, const Network& net) {
 }
 
 int16_t Network::Evaluate(const Board& board) {
-    return std::clamp(Forward(board, *this), (-SEARCH::MATE_SCORE + SEARCH::MAX_DEPTH),
+    const int materialScale = 2048
+        +  90 * board.pieces[Knight].PopCount()
+        +  90 * board.pieces[Bishop].PopCount()
+        + 180 * board.pieces[Rook].PopCount()
+        + 360 * board.pieces[Queen].PopCount();
+
+    return std::clamp(Forward(board, *this) * materialScale / 4096, (-SEARCH::MATE_SCORE + SEARCH::MAX_DEPTH),
         (SEARCH::MATE_SCORE - SEARCH::MAX_DEPTH));
 }
 
