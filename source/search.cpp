@@ -374,7 +374,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
     }
 
-    if (depth <= 0) return Quiescence<isPV, mode>(board, alpha, beta, ply, ctx);
+    if (depth <= 0 && !board.InCheck()) return Quiescence<isPV, mode>(board, alpha, beta, ply, ctx);
 
     int rawEval = NNUE::net.Evaluate(board);
     const int staticEval = AdjustEval(board, ctx, rawEval);
