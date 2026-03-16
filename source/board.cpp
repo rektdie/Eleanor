@@ -18,6 +18,10 @@ void Board::Reset() {
 	occupied = 0ULL;
 
     checkers = 0ULL;
+
+    mailbox = std::array<int, 64>();
+    mailbox.fill(nullPieceType);
+    
     pinned = std::array<Bitboard, 2>();
 
 	pieces = std::array<Bitboard, 6>();
@@ -61,8 +65,7 @@ void Board::SetByFen(std::string_view fen) {
 			bool side = std::islower(piece);
 			int pieceType = pieceTypes.find(std::tolower(piece));
 
-			colors[side].SetBit(currSquare);
-			pieces[pieceType].SetBit(currSquare);
+            SetPiece(pieceType, currSquare, side);
 
 			currSquare++;
 		}
@@ -85,6 +88,10 @@ void Board::SetByFen(std::string_view fen) {
 		halfMoves = std::stoi(tokens[4]);
 		fullMoves = std::stoi(tokens[5]);
 	}
+
+    pawnKey = 0ULL;
+    nonPawnKey = 0ULL;
+    majorKey = 0ULL;
 
     occupied = colors[White] | colors[Black];
     hashKey = UTILS::GetHashKey(*this);
@@ -268,11 +275,7 @@ void Board::ListMoves() {
 }
 
 int Board::GetPieceType(int square) {
-	for (int piece = Pawn; piece <= King; piece++) {
-		if (pieces[piece].IsSet(square)) return piece;
-	}
-
-	return nullPieceType;
+	return mailbox[square];
 }
 
 int Board::GetPieceColor(int square) {
@@ -289,6 +292,8 @@ void Board::SetPiece(int piece, int square, bool color) {
 	pieces[piece].SetBit(square);
 	colors[color].SetBit(square);
 	occupied.SetBit(square);
+
+    mailbox[square] = piece;
 
     hashKey ^= UTILS::zKeys[color][piece][square];
 
@@ -307,6 +312,8 @@ void Board::RemovePiece(int piece, int square, bool color) {
 	pieces[piece].PopBit(square);
 	colors[color].PopBit(square);
 	occupied.PopBit(square);
+
+    mailbox[square] = nullPieceType;
 
     hashKey ^= UTILS::zKeys[color][piece][square];
 
