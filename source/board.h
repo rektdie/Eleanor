@@ -16,6 +16,8 @@ public:
 		SetByFen(StartingFen);
 	}
 
+	std::array<int, 64> mailbox;
+
 	std::array<Bitboard, 6> pieces;
 	std::array<Bitboard, 2> colors;
 
