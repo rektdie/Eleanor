@@ -226,6 +226,10 @@ static bool ShouldStop(SearchContext* ctx) {
     return false;
 }
 
+static bool IsDecisive(int score) {
+    return std::abs(score) > WIN_SCORE;
+}
+
 template <bool isPV, searchMode mode>
 static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext* ctx) {
     if (ShouldStop<mode>(ctx)) return 0;
@@ -409,7 +413,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             // Reverse Futility Pruning
             int margin = rfpBase + rfpMargin * (depth - improving);
             if (!ttpv && ttAdjustedEval - margin >= beta && depth < 7) {
-                return (beta + (ttAdjustedEval - beta) / 3);
+                return !IsDecisive(ttAdjustedEval) && !IsDecisive(beta)
+                    ? ((ttAdjustedEval + beta) / 2)
+                    :  ttAdjustedEval;
             }
 
             // Razoring
