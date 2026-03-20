@@ -49,6 +49,8 @@ public:
     U64 nonPawnKey = 0ULL;
 	U64 majorKey   = 0ULL;
 
+	std::array<Bitboard, 4> checkZones;
+
 	void Reset();
 	void SetByFen(std::string_view fen);
 	std::string GetFen();
@@ -81,6 +83,9 @@ public:
 
     Bitboard CalcCheckers();
     Bitboard CalcPinned(bool color);
+
+	void CalcCheckZones();
+	bool GivesDirectCheck(Move &move);
 
     bool IsLegal(Move &move);
 	bool IsPseudoLegal(Move &move);
