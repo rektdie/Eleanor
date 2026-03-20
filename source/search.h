@@ -23,6 +23,7 @@ enum searchMode {
 constexpr int MATE_SCORE = 32767;
 constexpr int MAX_DEPTH = 256;
 constexpr int MAX_HISTORY = 16384;
+constexpr int WIN_SCORE = 30000;
 
 constexpr int CORRHIST_WEIGHT_SCALE = 256;
 constexpr int CORRHIST_GRAIN = 256;
