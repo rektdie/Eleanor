@@ -565,6 +565,13 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             continue;
         }
 
+        // PVS SEE
+        int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
+
+        if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
+            continue;
+
+
         if (!board.IsLegal(currMove)) continue;
         Board copy = board;
         copy.MakeMove(currMove);
@@ -622,12 +629,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
 
         cutnode |= extension < 0;
-
-        // PVS SEE
-        int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
-
-        if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
-            continue;
 
         int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ttpv, ctx);
 
