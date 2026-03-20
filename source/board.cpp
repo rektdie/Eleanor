@@ -42,6 +42,8 @@ void Board::Reset() {
     pawnKey = 0ULL;
     nonPawnKey = 0ULL;
     majorKey = 0ULL;
+
+    checkZones = std::array<Bitboard, 4>();
 }
 
 void Board::SetByFen(std::string_view fen) {
@@ -97,6 +99,7 @@ void Board::SetByFen(std::string_view fen) {
     hashKey = UTILS::GetHashKey(*this);
     checkers = CalcCheckers();
     pinned = {CalcPinned(White), CalcPinned(Black)};
+    CalcCheckers();
 	MOVEGEN::GenThreatMaps(*this);
 	MOVEGEN::GenerateMoves<All>(*this, true);
 
@@ -504,6 +507,7 @@ void Board::MakeMove(Move move) {
 	MOVEGEN::GenThreatMaps(*this);
     pinned = {CalcPinned(White), CalcPinned(Black)};
     checkers = CalcCheckers();
+    CalcCheckZones();
 
     /*
     sideToMove = !sideToMove;
@@ -926,4 +930,40 @@ bool Board::IsPseudoLegal(Move &move) {
     default:
         return false;
     }
+}
+
+void Board::CalcCheckZones() {
+    int oppKingSquare = (colors[!sideToMove] & pieces[King]).getLS1BIndex();
+
+	checkZones[0] = MOVEGEN::pawnAttacks[!sideToMove][oppKingSquare];
+    checkZones[1] = MOVEGEN::knightAttacks[oppKingSquare];
+    checkZones[2] = MOVEGEN::getBishopAttack(oppKingSquare, occupied);
+    checkZones[3] = MOVEGEN::getRookAttack(oppKingSquare, occupied);
+}
+
+bool Board::GivesDirectCheck(Move &move) {
+    int attackerType = nullPieceType;
+
+    if (move.IsPromo()) {
+        if (move.IsCapture()) {
+            attackerType = move.GetFlags() - 9;
+        } else {
+            attackerType = move.GetFlags() - 5;
+        }
+    } else {
+        attackerType = GetPieceType(move.MoveFrom());
+    }
+
+    if (attackerType == King)
+        return false;
+
+    Bitboard checkZone = 0ULL;
+
+    if (attackerType == Queen) {
+        checkZone = checkZones[Bishop] | checkZones[Rook];
+    } else {
+        checkZone = checkZones[attackerType];
+    }
+
+    return checkZone.IsSet(move.MoveTo());
 }
