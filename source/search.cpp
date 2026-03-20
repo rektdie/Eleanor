@@ -230,6 +230,10 @@ static bool IsDecisive(int score) {
     return std::abs(score) > WIN_SCORE;
 }
 
+static bool IsLoss(int score) {
+    return score < -WIN_SCORE;
+}
+
 template <bool isPV, searchMode mode>
 static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext* ctx) {
     if (ShouldStop<mode>(ctx)) return 0;
@@ -295,12 +299,17 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     Move currMove;
     while ((currMove = mp.Next())) {
-        // QS FP
-        if (!board.InCheck() && currMove.IsCapture() &&
-            fpScore <= alpha && !SEE(board, currMove, 1)) {
+        if (!IsLoss(bestScore)) {
+            // QS FP
+            if (!board.InCheck() && currMove.IsCapture() &&
+                fpScore <= alpha && !SEE(board, currMove, 1)) {
 
-            bestScore = std::max(bestScore, fpScore);
-            continue;
+                bestScore = std::max(bestScore, fpScore);
+                continue;
+            }
+
+            if (!SEE(board, currMove, seeQsThreshold))
+                continue;
         }
 
         if (!board.IsLegal(currMove)) continue;
@@ -310,9 +319,6 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         ctx->ss[ply].pieceType = board.GetPieceType(currMove.MoveFrom());
         ctx->ss[ply].moveTo = currMove.MoveTo();
         ctx->ss[ply].side = board.sideToMove;
-
-        if (!SEE(board, currMove, seeQsThreshold))
-            continue;
 
         if (copy.positionIndex >= ctx->positionHistory.size()) {
             ctx->positionHistory.resize(copy.positionIndex + 100);
