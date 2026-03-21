@@ -518,11 +518,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         && !IsDecisive(entry.score)
         && !IsDecisive(beta)
         && !IsDecisive(sProbcutBeta)
-        && (entry.nodeType == PV || entry.nodeType == CutNode)
+        && entry.nodeType == CutNode
         && entry.score >= sProbcutBeta
-        && entry.depth >= depth - 2)
+        && entry.depth >= depth - 3)
     {
-        return entry.score;
+        return sProbcutBeta;
     }
 
 
