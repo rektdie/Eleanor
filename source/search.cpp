@@ -566,6 +566,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         
         int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
 
+        margin -= (ttHit && entry.nodeType == AllNode) * 20;
+
         if (!isPV && ply && currMove.IsQuiet()
                 && lmrDepth <= 5 && staticEval + margin < alpha && notMated && !board.GivesDirectCheck(currMove)) {
             continue;
