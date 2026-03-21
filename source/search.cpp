@@ -510,6 +510,21 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
     }
 
+    // Small probcut
+    const int sProbcutBeta = beta + sProbcutBetaMargin;
+    if (!isPV
+        && !ctx->excluded
+        && !board.InCheck()
+        && !IsDecisive(entry.score)
+        && !IsDecisive(beta)
+        && !IsDecisive(sProbcutBeta)
+        && (entry.nodeType == PV || entry.nodeType == CutNode)
+        && entry.score >= sProbcutBeta
+        && entry.depth >= depth - 2)
+    {
+        return entry.score;
+    }
+
 
     MovePicker<All> mp(board, ctx, ply, entry.bestMove);
     
