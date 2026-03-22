@@ -72,6 +72,16 @@ bool IsDraw(Board &board, SearchContext* ctx) {
     return IsFifty(board) || IsInsuffMat(board) || IsThreefold(board, ctx);
 }
 
+int GetKingBucket(int square) {
+    int row = square / 8;
+    int col = square % 8;
+
+    int bucketRow = row / 4;
+    int bucketCol = col / 4;
+
+    return bucketRow * 2 + bucketCol;
+}
+
 template <bool isPV>
 static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, bool improving, bool corrplexity, bool ttpv, bool ttpvFailLow, SearchContext* ctx) {
     int reduction = 0;
@@ -116,11 +126,13 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
             int attackerType = board.GetPieceType(move.MoveFrom());
             int targetType = board.GetPieceType(move.MoveTo());
 
+            int kingBucket = GetKingBucket((board.colors[!board.sideToMove] & board.pieces[King]).getLS1BIndex());
+
             if (move.GetFlags() == epCapture) {
                 targetType = Pawn;
             }
             
-            historyReduction = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
+            historyReduction = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()][kingBucket];
         }
 
         historyReduction = historyReduction / lmrHistoryDivisor;
@@ -690,6 +702,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             seenCapturesCount++;
         }
 
+        int kingBucket = GetKingBucket((board.colors[!board.sideToMove] & board.pieces[King]).getLS1BIndex());
+
         // Fail high (beta cutoff)
         if (score >= beta) {
             int bonus = historyBonusMultiplier * (depth + (!board.InCheck() && staticEval <= alpha)) - historyBonusSub;
@@ -751,7 +765,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     capturedPiece = Pawn;
                 }
 
-                ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece, currMove.MoveTo(), bonus);
+                ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece, currMove.MoveTo(), kingBucket, bonus);
             }
 
             // Capthist malus
@@ -768,7 +782,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 }
 
                 ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece,
-                    seenCaptures[moveIndex].MoveTo(), -bonus);
+                    seenCaptures[moveIndex].MoveTo(), kingBucket, -bonus);
             }
 
             if (!ctx->excluded)

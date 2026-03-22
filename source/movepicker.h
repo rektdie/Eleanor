@@ -85,11 +85,13 @@ private:
             int attackerType = board.GetPieceType(move.MoveFrom());
             int targetType   = board.GetPieceType(move.MoveTo());
 
+            int kingBucket = GetKingBucket((board.colors[!board.sideToMove] & board.pieces[King]).getLS1BIndex());
+
             if (move.GetFlags() == epCapture)
                 targetType = Pawn;
 
             int capthistScore =
-                ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
+                ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()][kingBucket];
 
             return 50000 * SEE(board, move, seeOrderingThreshold)
                  + (100 * targetType - attackerType + 105)

@@ -52,17 +52,17 @@ class SearchContext;
 
 class CaptHistory {
 private:
-    // indexed by [stm][moving pt][capture pt][to]
-    MultiArray<int, 2, 6, 6, 64> historyMoves;
+    // indexed by [stm][moving pt][capture pt][to][enemy king bucket]
+    MultiArray<int, 2, 6, 6, 64, 4> historyMoves;
 public:
-    void Update(bool stm, int moving, int capture, int to, int bonus) {
+    void Update(bool stm, int moving, int capture, int to, int kingBucket, int bonus) {
         int clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
-        historyMoves[stm][moving][capture][to] +=
-            clampedBonus - historyMoves[stm][moving][capture][to] * std::abs(clampedBonus) / MAX_HISTORY;
+        historyMoves[stm][moving][capture][to][kingBucket] +=
+            clampedBonus - historyMoves[stm][moving][capture][to][kingBucket] * std::abs(clampedBonus) / MAX_HISTORY;
     }
 
     void Clear() {
-        std::fill(&historyMoves[0][0][0][0], &historyMoves[0][0][0][0] + sizeof(historyMoves) / sizeof(int), 0);
+        std::fill(&historyMoves[0][0][0][0][0], &historyMoves[0][0][0][0][0] + sizeof(historyMoves) / sizeof(int), 0);
     }
 
     auto& operator[](int index) {
@@ -268,4 +268,6 @@ bool IsDraw(Board &board, SearchContext* ctx);
 void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int elapsed);
 
 int MoveEstimatedValue(Board& board, Move& move);
+
+int GetKingBucket(int square);
 }
