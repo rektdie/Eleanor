@@ -208,6 +208,8 @@ public:
     int pieceType = -1;
     int moveTo = -1;
     bool side = -1;
+
+    int reduction = 0;
 };
 
 class SearchContext {

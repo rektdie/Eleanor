@@ -419,6 +419,13 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     if (!board.InCheck() && !ctx->excluded) {
         if (ply) {
+            // Hindsight reduction
+            if (depth >= 2 && ctx->ss[ply - 1].reduction >= 2 && ctx->ss[ply - 1].eval != ScoreNone
+                && staticEval + ctx->ss[ply - 1].eval >= hindsightReductionMargin) {
+
+                depth--;
+            }
+
             // Reverse Futility Pruning
             int margin = rfpBase + rfpMargin * (depth - improving);
             if (!ttpv && ttAdjustedEval - margin >= beta && depth < 7) {
@@ -657,7 +664,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
         } else if (reductions) {
             // Null-window search with reductions
+            ctx->ss[ply].reduction = reductions;
             score = -PVS<false, mode>(copy, newDepth - reductions, -alpha-1, -alpha, ply + 1, ctx, true).score;
+            ctx->ss[ply].reduction = 0;
 
             if (score > alpha) {
                 // Null-window search now without the reduction
