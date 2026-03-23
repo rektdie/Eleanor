@@ -3,8 +3,6 @@
 #include <string>
 #include <array>
 
-#include "../external/fmt/fmt/format.h"
-
 class Board;
 
 #ifdef __AVX512F__

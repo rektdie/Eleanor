@@ -1,7 +1,6 @@
 # Define directories
 SRC_DIR := source
 OBJ_DIR := obj
-FMT_DIR := external/fmt
 
 EXE ?= Eleanor
 EVALFILE := ./nnue.bin
@@ -58,16 +57,10 @@ MAKEFLAGS += -j
 SRCS := $(wildcard $(SRC_DIR)/*.cpp)
 OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
-FMT_SRC := $(FMT_DIR)/format.cc
-FMT_OBJ := $(OBJ_DIR)/format.o
-
-$(EXE)$(EXE_EXT): $(OBJS) $(FMT_OBJ)
+$(EXE)$(EXE_EXT): $(OBJS)
 	$(CXX) $(CXXFLAGS) -DEVALFILE=\"$(EVALFILE)\" $^ -o $@ $(LDFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-$(FMT_OBJ): $(FMT_SRC) | $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(OBJ_DIR):
@@ -82,4 +75,3 @@ else
 	@$(RM) $(OBJ_DIR)
 	@$(DEL) $(EXE)$(EXE_EXT)
 endif
-	$(MAKE)
