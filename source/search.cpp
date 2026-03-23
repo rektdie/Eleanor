@@ -98,6 +98,9 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
         if (ttpvFailLow)
             reduction += lmrTTPVFailLow;
 
+        if (move == ctx->killerMoves[ply])
+            reduction -= lmrKiller;
+
         // History LMR
         int historyReduction = 0;
 
