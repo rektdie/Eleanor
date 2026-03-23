@@ -645,6 +645,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         int newDepth = depth + (copy.InCheck() && !ctx->excluded) - 1 + extension;
 
+        int reducedDepth = newDepth - reductions;
+
         U64 nodesBeforeSearch = ctx->nodes;
 
         // First move (suspected PV node)
@@ -657,11 +659,15 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
         } else if (reductions) {
             // Null-window search with reductions
-            score = -PVS<false, mode>(copy, newDepth - reductions, -alpha-1, -alpha, ply + 1, ctx, true).score;
+            score = -PVS<false, mode>(copy, reducedDepth, -alpha-1, -alpha, ply + 1, ctx, true).score;
 
             if (score > alpha) {
-                // Null-window search now without the reduction
-                score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx, !cutnode).score;
+                if (ply > 0)
+                    newDepth += (score > results.score) * 1;
+            
+                if (newDepth > reducedDepth)
+                    // Null-window search now without the reduction
+                    score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx, !cutnode).score;
             }
         } else {
             // Null-window search
