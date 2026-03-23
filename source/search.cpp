@@ -663,7 +663,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
             if (score > alpha) {
                 if (ply > 0)
-                    newDepth += (score > results.score) * 1;
+                    newDepth += (score > results.score + 600);
             
                 if (newDepth > reducedDepth)
                     // Null-window search now without the reduction
