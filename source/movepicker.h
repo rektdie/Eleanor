@@ -96,11 +96,8 @@ private:
                  + capthistScore;
         }
 
-        if (ctx->killerMoves[0][ply] == move)
+        if (ctx->killerMoves[ply] == move)
             return 41000;
-
-        if (ctx->killerMoves[1][ply] == move)
-            return 40000;
 
         bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
         bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
