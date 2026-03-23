@@ -527,8 +527,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     int seenQuietsCount = 0;
     int seenCapturesCount = 0;
 
-    ctx->killerMoves[0][ply + 1] = Move();
-    ctx->killerMoves[1][ply + 1] = Move();
+    ctx->killerMoves[ply + 1] = Move();
 
     // For all moves
     Move currMove;
@@ -704,8 +703,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             int bonus = historyBonusMultiplier * (depth + (!board.InCheck() && staticEval <= alpha)) - historyBonusSub;
 
             if (!currMove.IsCapture()) {
-                ctx->killerMoves[1][ply] = ctx->killerMoves[0][ply];
-                ctx->killerMoves[0][ply] = currMove;
+                ctx->killerMoves[ply] = currMove;
 
                 ctx->history.Update(board.sideToMove, currMove, sourceThreatened, targetThreatened, bonus);
 
