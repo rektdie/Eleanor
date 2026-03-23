@@ -690,6 +690,15 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             seenCapturesCount++;
         }
 
+        results.score = std::max(score, results.score);
+
+        if (score > alpha) {
+            nodeType = PV;
+            alpha = score;
+            results.bestMove = currMove;
+            ctx->pvLine.SetMove(ply, currMove);
+        }
+
         // Fail high (beta cutoff)
         if (score >= beta) {
             int bonus = historyBonusMultiplier * (depth + (!board.InCheck() && staticEval <= alpha)) - historyBonusSub;
@@ -774,15 +783,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             if (!ctx->excluded)
                 ctx->TT->WriteEntry(board.hashKey, depth, score, CutNode, currMove, ttpv);
             return score;
-        }
-
-        results.score = std::max(score, results.score);
-
-        if (score > alpha) {
-            nodeType = PV;
-            alpha = score;
-            results.bestMove = currMove;
-            ctx->pvLine.SetMove(ply, currMove);
         }
     }
 
