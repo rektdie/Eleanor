@@ -7,10 +7,31 @@
 #include "types.h"
 #include "tunables.h"
 #include "movepicker.h"
+#include "wdl.h"
 #include "termcolor.hpp"
 #include <iomanip>
 
 namespace SEARCH {
+
+static WDLTriplet GetRoundedWDL(int score, Board& board) {
+    WDLTriplet wdl = getWDL(score, board);
+
+    wdl.wins = (wdl.wins + 5) / 10;
+    wdl.losses = (wdl.losses + 5) / 10;
+    wdl.draws = 100 - wdl.wins - wdl.losses;
+
+    if (wdl.draws < 0) {
+        if (wdl.wins >= wdl.losses) {
+            wdl.wins += wdl.draws;
+        } else {
+            wdl.losses += wdl.draws;
+        }
+
+        wdl.draws = 0;
+    }
+
+    return wdl;
+}
 
 void InitLMRTable() {
     for (int i = 0; i < 2; i++) {
@@ -862,18 +883,6 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 
     double nodeScaling = 1;
 
-    if (!UCIEnabled && ctx->doPrint && (mode == normal || mode == nodesMode)) {
-        std::cout << termcolor::bold;
-        std::cout << std::setw(6) << std::left << "Depth" 
-                  << std::setw(10) << std::right << "Time"
-                  << std::setw(9) << std::right << "Score"
-                  << std::setw(11) << std::right << "Nodes"
-                  << std::setw(12) << std::right << "NPS"
-                  << "  PV" << std::endl;
-        std::cout << termcolor::reset;
-        std::cout << std::string(70, '-') << std::endl;
-    }
-
     ctx->sw.Restart();
 
     for (int depth = 1; depth <= toDepth; depth++) {
@@ -911,7 +920,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 
             if constexpr (mode == normal || mode == nodesMode) {
                 if (ctx->doPrint)
-                    PrintSearchInfo(ctx, safeResults, depth, elapsed);
+                    PrintSearchInfo(board, ctx, safeResults, depth, elapsed);
 
                 if constexpr (mode == normal) {
                     if (ctx->sw.GetElapsedMS() >= softTime) {
@@ -981,7 +990,11 @@ int MoveEstimatedValue(Board& board, Move& move) {
     return value;
 }
 
-void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int elapsed) {
+void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, int depth, int elapsed) {
+    WDLTriplet wdl = getWDL(results.score, board);
+    const bool isMateScore = std::abs(results.score) + MAX_DEPTH >= MATE_SCORE;
+    const int normalizedScore = isMateScore ? results.score : scaleEval(results.score, board);
+
     if (UCIEnabled) {
         std::cout << "info ";
         std::cout << "depth " << depth;
@@ -989,13 +1002,17 @@ void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int 
         std::cout << " time " << elapsed;
         std::cout << " score ";
 
-        if (std::abs(results.score) + MAX_DEPTH >= MATE_SCORE) {
+        if (isMateScore) {
             int mateIn = (MATE_SCORE - (std::abs(results.score) - 1)) / 2;
             mateIn  = results.score < 0 ? mateIn * -1 : mateIn;
 
             std::cout << "mate " << mateIn;
         } else {
-            std::cout << "cp " << results.score;
+            std::cout << "cp " << normalizedScore;
+        }
+
+        if (UCIShowWDL) {
+            std::cout << " wdl " << wdl.wins << ' ' << wdl.draws << ' ' << wdl.losses;
         }
 
         std::cout << " nodes " << ctx->nodes << " nps " << int(ctx->nodes/ctx->sw.GetElapsedSec());
@@ -1026,7 +1043,7 @@ void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int 
         bool isMate = false;
         int mateIn = 0;
 
-        if (std::abs(results.score) + MAX_DEPTH >= MATE_SCORE) {
+        if (isMateScore) {
             isMate = true;
             mateIn = (MATE_SCORE - (std::abs(results.score) - 1)) / 2;
             mateIn = results.score < 0 ? mateIn * -1 : mateIn;
@@ -1037,7 +1054,7 @@ void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int 
             }
         } else {
             scoreStr << std::showpos << std::fixed << std::setprecision(2) 
-                     << (results.score / 100.0) << std::noshowpos;
+                     << (normalizedScore / 100.0) << std::noshowpos;
         }
 
         if (isMate) {
@@ -1061,6 +1078,17 @@ void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int 
         } else {
             std::cout << termcolor::color<251>;
         }
+
+        WDLTriplet displayWDL = GetRoundedWDL(results.score, board);
+        std::stringstream wdlStr;
+        wdlStr << displayWDL.wins << "W "
+               << displayWDL.draws << "D "
+               << displayWDL.losses << "L";
+        std::cout << std::setw(14) << std::right << wdlStr.str();
+
+        std::stringstream hashfullStr;
+        hashfullStr << "TT: " << (ctx->TT->GetUsedPercentage() + 5) / 10 << '%';
+        std::cout << std::setw(10) << std::right << hashfullStr.str();
         
         std::stringstream nodesStr;
         if (ctx->nodes >= 1000000) {

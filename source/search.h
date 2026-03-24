@@ -265,7 +265,7 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* c
 
 bool IsDraw(Board &board, SearchContext* ctx);
 
-void PrintSearchInfo(SearchContext* ctx, SearchResults& results, int depth, int elapsed);
+void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, int depth, int elapsed);
 
 int MoveEstimatedValue(Board& board, Move& move);
 }
