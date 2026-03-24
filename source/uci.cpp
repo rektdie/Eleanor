@@ -177,6 +177,12 @@ static void SetOption(std::string& command, SEARCH::SearchContext* ctx) {
         return;
     }
 
+    if (command.find("UCI_ShowWDL") != std::string::npos) {
+        UCIShowWDL = command.find("value true") != std::string::npos
+            || command.find("value 1") != std::string::npos;
+        return;
+    }
+
     #ifdef TUNING
 
     size_t namePos = command.find("name");
@@ -224,6 +230,7 @@ static void PrintEngineInfo() {
     std::cout << "id author rektdie" << std::endl;
     std::cout << "option name Hash type spin default 8 min 1 max 1024" << std::endl;
     std::cout << "option name Threads type spin default 1 min 1 max 512" << std::endl;
+    std::cout << "option name UCI_ShowWDL type check default false" << std::endl;
 
     #ifdef TUNING
         PrintTunablesUCI();
