@@ -91,13 +91,13 @@ private:
             int capthistScore =
                 ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
 
-            return 50000 * SEE(board, move, seeOrderingThreshold)
+            return 500000 * SEE(board, move, seeOrderingThreshold)
                  + (100 * targetType - attackerType + 105)
                  + capthistScore;
         }
 
         if (ctx->killerMoves[ply] == move)
-            return 41000;
+            return 410000;
 
         bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
         bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
@@ -114,11 +114,15 @@ private:
         if (ply > 0) {
             conthistScore = ctx->conthist.GetNPly(board, move, ctx, ply, 1);
 
-            if (ply > 1)
+            if (ply > 1) {
                 conthistScore += ctx->conthist.GetNPly(board, move, ctx, ply, 2);
+
+                if (ply > 3)
+                    conthistScore += ctx->conthist.GetNPly(board, move, ctx, ply, 4);
+            }
         }
 
-        return 20000 + historyScore + conthistScore;
+        return 200000 + historyScore + conthistScore;
     }
 
     void ScoreAllMoves() {
