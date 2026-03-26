@@ -98,55 +98,53 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     int reduction = 0;
 
     // Late Move Reduction
-    if (depth >= 2 && moveSeen >= 2 + (2 * isPV)) {
-        reduction = lmrTable[move.IsQuiet()][depth][moveSeen] * 1024;
+    reduction = lmrTable[move.IsQuiet()][depth][moveSeen] * 1024;
 
-        if (cutnode)
-            reduction += lmrCutnode;
+    if (cutnode)
+        reduction += lmrCutnode;
 
-        if constexpr (isPV)
-            reduction -= lmrIsPV;
-    
-        if (!improving)
-            reduction += lmrImproving;
+    if constexpr (isPV)
+        reduction -= lmrIsPV;
 
-        if (corrplexity)
-            reduction -= lmrCorrplexity;
+    if (!improving)
+        reduction += lmrImproving;
 
-        if (ttpv)
-            reduction -= lmrTTPV;
+    if (corrplexity)
+        reduction -= lmrCorrplexity;
 
-        if (ttpvFailLow)
-            reduction += lmrTTPVFailLow;
+    if (ttpv)
+        reduction -= lmrTTPV;
 
-        // History LMR
-        int historyReduction = 0;
+    if (ttpvFailLow)
+        reduction += lmrTTPVFailLow;
 
-        if (move.IsQuiet()) {
-            bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
-            bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
+    // History LMR
+    int historyReduction = 0;
 
-            historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
-            if (ply > 0) {
-                historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 1);
+    if (move.IsQuiet()) {
+        bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
+        bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
 
-                if (ply > 1)
-                    historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 2);
-            }
-        } else if (move.IsCapture()) {
-            int attackerType = board.GetPieceType(move.MoveFrom());
-            int targetType = board.GetPieceType(move.MoveTo());
+        historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
+        if (ply > 0) {
+            historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 1);
 
-            if (move.GetFlags() == epCapture) {
-                targetType = Pawn;
-            }
-            
-            historyReduction = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
+            if (ply > 1)
+                historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 2);
+        }
+    } else if (move.IsCapture()) {
+        int attackerType = board.GetPieceType(move.MoveFrom());
+        int targetType = board.GetPieceType(move.MoveTo());
+
+        if (move.GetFlags() == epCapture) {
+            targetType = Pawn;
         }
 
-        historyReduction = historyReduction / lmrHistoryDivisor;
-        reduction -= historyReduction * 1024;
+        historyReduction = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
     }
+
+    historyReduction = historyReduction / lmrHistoryDivisor;
+    reduction -= historyReduction * 1024;
 
     reduction /= 1024;
 
@@ -668,7 +666,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         U64 nodesBeforeSearch = ctx->nodes;
 
-        if (reductions > 0) {
+        if (depth >= 2 && moveSeen >= 2 + (2 * isPV)) {
             score = -PVS<false, mode>(copy, reduced, -alpha - 1, -alpha, ply + 1, ctx, true).score;
 
             if (score > alpha && reduced < newDepth) {
