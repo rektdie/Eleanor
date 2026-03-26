@@ -677,11 +677,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                 score = -PVS<false, mode>(copy, newDepth, -alpha - 1, -alpha, ply + 1, ctx, !cutnode).score;
             }
-        } else if (!isPV || moveSeen > 1) {
+        } else if (!isPV || moveSeen > 0) {
             score = -PVS<false, mode>(copy, newDepth, -alpha - 1, -alpha, ply + 1, ctx, !cutnode).score;
         }
 
-        if (isPV && (moveSeen == 1 || score > alpha)) {
+        if (isPV && (moveSeen == 0 || score > alpha)) {
             score = -PVS<true, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, false).score;
         }
 
