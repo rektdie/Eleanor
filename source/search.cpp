@@ -681,8 +681,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             score = -PVS<false, mode>(copy, newDepth, -alpha - 1, -alpha, ply + 1, ctx, !cutnode).score;
         }
 
-        if (isPV && (moveSeen == 0 || score > alpha)) {
-            score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, false).score;
+        if (isPV && (moveSeen == 1 || score > alpha)) {
+            score = -PVS<true, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, false).score;
         }
 
         moveSeen++;
