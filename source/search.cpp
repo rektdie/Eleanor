@@ -664,32 +664,26 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ttpv, ttpvFailLow, ctx);
 
         int newDepth = depth + (copy.InCheck() && !ctx->excluded) - 1 + extension;
+        int reduced = newDepth - reductions;
 
         U64 nodesBeforeSearch = ctx->nodes;
 
-        // First move (suspected PV node)
-        if (!moveSeen) {
-            // Full search
-            if constexpr (isPV) {
-                score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, false).score;
-            } else {
-                score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, !cutnode).score;
-            }
-        } else if (reductions) {
-            // Null-window search with reductions
-            score = -PVS<false, mode>(copy, newDepth - reductions, -alpha-1, -alpha, ply + 1, ctx, true).score;
+        if (reductions > 0) {
+            score = -PVS<false, mode>(copy, reduced, -alpha - 1, -alpha, ply + 1, ctx, true).score;
 
-            if (score > alpha) {
-                // Null-window search now without the reduction
-                score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx, !cutnode).score;
+            if (score > alpha && reduced < newDepth) {
+                const bool goDeeper = score > results.score + lmrDeeperBase + lmrDeeperScalar * newDepth;
+                const bool goShallower = score < results.score + newDepth;
+
+                newDepth += goDeeper - goShallower;
+
+                score = -PVS<false, mode>(copy, newDepth, -alpha - 1, -alpha, ply + 1, ctx, !cutnode).score;
             }
-        } else {
-            // Null-window search
-            score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx, !cutnode).score;
+        } else if (!isPV || moveSeen > 1) {
+            score = -PVS<false, mode>(copy, newDepth, -alpha - 1, -alpha, ply + 1, ctx, !cutnode).score;
         }
 
-        // Check if we need to do full window re-search
-        if (moveSeen && score > alpha && score < beta) {
+        if (isPV && (moveSeen == 0 || score > alpha)) {
             score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, false).score;
         }
 
