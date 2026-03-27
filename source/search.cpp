@@ -262,7 +262,7 @@ template <bool isPV, searchMode mode>
 static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext* ctx) {
     if (ShouldStop<mode>(ctx)) return 0;
 
-    if (ply >= MAX_DEPTH)
+    if (ply + 1 >= MAX_DEPTH)
         return NNUE::net.Evaluate(board);
 
     if (ply > ctx->seldepth)
@@ -378,7 +378,7 @@ template <bool isPV, searchMode mode>
 SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchContext* ctx, bool cutnode) {
     if (ShouldStop<mode>(ctx)) return 0;
 
-    if (ply >= MAX_DEPTH)
+    if (ply + 1 >= MAX_DEPTH)
         return NNUE::net.Evaluate(board);
 
     if (ply > ctx->seldepth)
