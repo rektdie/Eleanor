@@ -148,7 +148,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
 
     reduction /= 1024;
 
-    return reduction;
+    return std::clamp(reduction, -1, depth - 1);
 }
 
 
@@ -666,7 +666,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             const bool ttpvFailLow = ttpv && ttHit && entry.score <= alpha;
 
             int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ttpv, ttpvFailLow, ctx);
-            int reduced = std::min(std::max(newDepth - reductions, 1), newDepth);
+            int reduced = newDepth - reductions;
 
             score = -PVS<false, mode>(copy, reduced, -alpha - 1, -alpha, ply + 1, ctx, true).score;
 
