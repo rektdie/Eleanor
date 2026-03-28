@@ -71,3 +71,16 @@ The engine can be used in any GUI with **UCI support**.
 **The project is a work in progress and actively developed. Contributions are highly appreciated.**
 
 ###### Last updated: 2025-12-05
+
+## Neural Network Visualizer
+
+A colorful NNUE visualizer script is available at `Scripts/nn_visualizer.py`.
+It reads Eleanor-style `nnue.bin` files and writes a standalone HTML report with color heatmaps.
+
+Example:
+
+```bash
+python3 Scripts/nn_visualizer.py --nnue nnue.bin --output nnue_visualizer.html
+```
+
+Open the generated HTML in a browser to inspect pooled accumulator weights, per-bucket output weights, and output-bias bars.
