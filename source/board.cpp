@@ -1,10 +1,13 @@
 #include "board.h"
+#include "accumulator.h"
 #include "movegen.h"
+#include "nnue.h"
 #include "tt.h"
 #include <iostream>
 #include <ranges>
 #include <string_view>
 #include <cassert>
+#include "types.h"
 #include "utils.h"
 
 void Board::Reset() {
@@ -395,6 +398,7 @@ void Board::MakeMove(Move move) {
 	int endPiece = attackerPiece;
 
     bool fullRecalc = false;
+    const auto bucketPair = GetBuckets();
 
     if (attackerPiece == King) {
         const int toFile = move.MoveTo() % 8;
@@ -409,6 +413,10 @@ void Board::MakeMove(Move move) {
                 accPair.mirroredBlack = !accPair.mirroredBlack;
                 fullRecalc = true;
             }
+        }
+
+        if (NNUE::kingBuckets[attackerColor][move.MoveFrom()] != NNUE::kingBuckets[attackerColor][move.MoveTo()]) {
+            fullRecalc = true;
         }
     }
 
@@ -428,13 +436,13 @@ void Board::MakeMove(Move move) {
     if (!fullRecalc) {
         if (move.IsCapture()) {
             if (move.GetFlags() != epCapture) {
-                accPair.addSubSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, move.MoveTo(), targetPiece);
+                accPair.addSubSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, move.MoveTo(), targetPiece, bucketPair);
             } else {
-                accPair.addSubSub(sideToMove, enPassantTarget, endPiece, move.MoveFrom(), attackerPiece, move.MoveTo() - direction, Pawn);
+                accPair.addSubSub(sideToMove, enPassantTarget, endPiece, move.MoveFrom(), attackerPiece, move.MoveTo() - direction, Pawn, bucketPair);
             }
         } else {
             if (move.GetFlags() != kingCastle && move.GetFlags() != queenCastle) {
-                accPair.addSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece);
+                accPair.addSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, bucketPair);
             }
         }
     }
@@ -472,7 +480,7 @@ void Board::MakeMove(Move move) {
 			SetPiece(attackerPiece, move.MoveTo(), attackerColor);
 
             if (!fullRecalc) {
-                accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare - 2, Rook, move.MoveFrom(), King, rookSquare, Rook);
+                accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare - 2, Rook, move.MoveFrom(), King, rookSquare, Rook, bucketPair);
             }
 
 			break;
@@ -490,7 +498,7 @@ void Board::MakeMove(Move move) {
 			SetPiece(attackerPiece, move.MoveTo(), attackerColor);
 
             if (!fullRecalc) {
-                accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare + 3, Rook, move.MoveFrom(), King, rookSquare, Rook);
+                accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare + 3, Rook, move.MoveFrom(), King, rookSquare, Rook, bucketPair);
             }
 
             break;
@@ -553,12 +561,21 @@ bool Board::InPossibleZug() {
     return !toCheck;
 }
 
+ACC::BucketPair Board::GetBuckets() {
+    int wKingSq = (pieces[King] & colors[White]).getLS1BIndex();
+    int bKingSq = (pieces[King] & colors[Black]).getLS1BIndex();
+
+    return {NNUE::kingBuckets[White][wKingSq],NNUE::kingBuckets[Black][bKingSq]};
+}
+
 void Board::ResetAccPair() {
 	Bitboard whitePieces = colors[White];
 	Bitboard blackPieces = colors[Black];
 
 	accPair.white = NNUE::net.accumulator_biases;
 	accPair.black = NNUE::net.accumulator_biases;
+
+    const auto bucketPair = GetBuckets();
 
 	while (whitePieces) {
 		int square = whitePieces.getLS1BIndex();
@@ -567,8 +584,8 @@ void Board::ResetAccPair() {
 		int bInput = ACC::CalculateIndex(Black, White, GetPieceType(square), square, accPair.mirroredBlack);
 
 		for (int i = 0; i < NNUE::HL_SIZE; i++) {
-			accPair.white[i] += NNUE::net.accumulator_weights[wInput * NNUE::HL_SIZE + i];
-			accPair.black[i] += NNUE::net.accumulator_weights[bInput * NNUE::HL_SIZE + i];
+			accPair.white[i] += NNUE::net.accumulator_weights[bucketPair.white][wInput * NNUE::HL_SIZE + i];
+			accPair.black[i] += NNUE::net.accumulator_weights[bucketPair.black][bInput * NNUE::HL_SIZE + i];
 		}
 
 		whitePieces.PopBit(square);
@@ -581,8 +598,8 @@ void Board::ResetAccPair() {
 		int bInput = ACC::CalculateIndex(Black, Black, GetPieceType(square), square, accPair.mirroredBlack);
 
 		for (int i = 0; i < NNUE::HL_SIZE; i++) {
-			accPair.white[i] += NNUE::net.accumulator_weights[wInput * NNUE::HL_SIZE + i];
-			accPair.black[i] += NNUE::net.accumulator_weights[bInput * NNUE::HL_SIZE + i];
+			accPair.white[i] += NNUE::net.accumulator_weights[bucketPair.white][wInput * NNUE::HL_SIZE + i];
+			accPair.black[i] += NNUE::net.accumulator_weights[bucketPair.black][bInput * NNUE::HL_SIZE + i];
 		}
 
 		blackPieces.PopBit(square);
