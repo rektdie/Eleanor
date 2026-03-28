@@ -17,6 +17,8 @@
     X_INT(lmrImproving, 1024, 6000, 10000) \
     X_INT(lmrCorrplexity, 1024, 6000, 10000) \
     X_INT(lmrTTPVFailLow, 1024, 6000, 10000) \
+    X_INT(lmrDeeperBase, 30, 6000, 10000) \
+    X_INT(lmrDeeperScalar, 4, 6000, 10000) \
     X_INT(rfpBase, 25, 50, 200) \
     X_INT(rfpMargin, 100, 50, 200) \
     X_INT(fpMargin, 100, 50, 200) \

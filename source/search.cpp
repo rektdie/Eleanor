@@ -98,55 +98,53 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     int reduction = 0;
 
     // Late Move Reduction
-    if (depth >= 2 && moveSeen >= 2 + (2 * isPV)) {
-        reduction = lmrTable[move.IsQuiet()][depth][moveSeen] * 1024;
+    reduction = lmrTable[move.IsQuiet()][depth][moveSeen] * 1024;
 
-        if (cutnode)
-            reduction += lmrCutnode;
+    if (cutnode)
+        reduction += lmrCutnode;
 
-        if constexpr (isPV)
-            reduction -= lmrIsPV;
-    
-        if (!improving)
-            reduction += lmrImproving;
+    if constexpr (isPV)
+        reduction -= lmrIsPV;
 
-        if (corrplexity)
-            reduction -= lmrCorrplexity;
+    if (!improving)
+        reduction += lmrImproving;
 
-        if (ttpv)
-            reduction -= lmrTTPV;
+    if (corrplexity)
+        reduction -= lmrCorrplexity;
 
-        if (ttpvFailLow)
-            reduction += lmrTTPVFailLow;
+    if (ttpv)
+        reduction -= lmrTTPV;
 
-        // History LMR
-        int historyReduction = 0;
+    if (ttpvFailLow)
+        reduction += lmrTTPVFailLow;
 
-        if (move.IsQuiet()) {
-            bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
-            bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
+    // History LMR
+    int historyReduction = 0;
 
-            historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
-            if (ply > 0) {
-                historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 1);
+    if (move.IsQuiet()) {
+        bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveFrom());
+        bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
 
-                if (ply > 1)
-                    historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 2);
-            }
-        } else if (move.IsCapture()) {
-            int attackerType = board.GetPieceType(move.MoveFrom());
-            int targetType = board.GetPieceType(move.MoveTo());
+        historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
+        if (ply > 0) {
+            historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 1);
 
-            if (move.GetFlags() == epCapture) {
-                targetType = Pawn;
-            }
-            
-            historyReduction = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
+            if (ply > 1)
+                historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 2);
+        }
+    } else if (move.IsCapture()) {
+        int attackerType = board.GetPieceType(move.MoveFrom());
+        int targetType = board.GetPieceType(move.MoveTo());
+
+        if (move.GetFlags() == epCapture) {
+            targetType = Pawn;
         }
 
-        historyReduction = historyReduction / lmrHistoryDivisor;
-        reduction -= historyReduction * 1024;
+        historyReduction = ctx->capthist[board.sideToMove][attackerType][targetType][move.MoveTo()];
     }
+
+    historyReduction = historyReduction / lmrHistoryDivisor;
+    reduction -= historyReduction * 1024;
 
     reduction /= 1024;
 
@@ -659,38 +657,33 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         cutnode |= extension < 0;
 
-        const bool ttpvFailLow = ttpv && ttHit && entry.score <= alpha;
-
-        int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ttpv, ttpvFailLow, ctx);
 
         int newDepth = depth + (copy.InCheck() && !ctx->excluded) - 1 + extension;
 
         U64 nodesBeforeSearch = ctx->nodes;
 
-        // First move (suspected PV node)
-        if (!moveSeen) {
-            // Full search
-            if constexpr (isPV) {
-                score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, false).score;
-            } else {
-                score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, !cutnode).score;
-            }
-        } else if (reductions) {
-            // Null-window search with reductions
-            score = -PVS<false, mode>(copy, newDepth - reductions, -alpha-1, -alpha, ply + 1, ctx, true).score;
+        if (depth >= 2 && moveSeen >= 2 + (2 * isPV)) {
+            const bool ttpvFailLow = ttpv && ttHit && entry.score <= alpha;
 
-            if (score > alpha) {
-                // Null-window search now without the reduction
-                score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx, !cutnode).score;
+            int reductions = GetReductions<isPV>(board, currMove, depth, moveSeen, ply, cutnode, improving, corrplexity, ttpv, ttpvFailLow, ctx);
+            int reduced = newDepth - reductions;
+
+            score = -PVS<false, mode>(copy, reduced, -alpha - 1, -alpha, ply + 1, ctx, true).score;
+
+            if (score > alpha && reduced < newDepth) {
+                const bool goDeeper = score > results.score + lmrDeeperBase + lmrDeeperScalar * newDepth;
+                const bool goShallower = score < results.score + newDepth;
+
+                newDepth += goDeeper - goShallower;
+
+                score = -PVS<false, mode>(copy, newDepth, -alpha - 1, -alpha, ply + 1, ctx, !cutnode).score;
             }
-        } else {
-            // Null-window search
-            score = -PVS<false, mode>(copy, newDepth, -alpha-1, -alpha, ply + 1, ctx, !cutnode).score;
+        } else if (!isPV || moveSeen > 0) {
+            score = -PVS<false, mode>(copy, newDepth, -alpha - 1, -alpha, ply + 1, ctx, !cutnode).score;
         }
 
-        // Check if we need to do full window re-search
-        if (moveSeen && score > alpha && score < beta) {
-            score = -PVS<isPV, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, false).score;
+        if (isPV && (moveSeen == 0 || score > alpha)) {
+            score = -PVS<true, mode>(copy, newDepth, -beta, -alpha, ply + 1, ctx, false).score;
         }
 
         moveSeen++;
