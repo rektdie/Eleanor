@@ -394,6 +394,24 @@ void Board::MakeMove(Move move) {
 
 	int endPiece = attackerPiece;
 
+    bool fullRecalc = false;
+
+    if (attackerPiece == King) {
+        const int toFile = move.MoveTo() % 8;
+
+        if (attackerColor == White) {
+            if ((toFile > 3) != accPair.mirroredWhite) {
+                accPair.mirroredWhite = !accPair.mirroredWhite;
+                fullRecalc = true;
+            }
+        } else {
+            if ((toFile > 3) != accPair.mirroredBlack) {
+                accPair.mirroredBlack = !accPair.mirroredBlack;
+                fullRecalc = true;
+            }
+        }
+    }
+
 	// Removing attacker piece from old position
 	RemovePiece(attackerPiece, move.MoveFrom(), attackerColor);
 
@@ -407,17 +425,19 @@ void Board::MakeMove(Move move) {
 		}
 	}
 
-	if (move.IsCapture()) {
-		if (move.GetFlags() != epCapture) {
-			accPair.addSubSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, move.MoveTo(), targetPiece);
-		} else {
-			accPair.addSubSub(sideToMove, enPassantTarget, endPiece, move.MoveFrom(), attackerPiece, move.MoveTo() - direction, Pawn);
-		}
-	} else {
-		if (move.GetFlags() != kingCastle && move.GetFlags() != queenCastle) {
-			accPair.addSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece);
-		}
-	}
+    if (!fullRecalc) {
+        if (move.IsCapture()) {
+            if (move.GetFlags() != epCapture) {
+                accPair.addSubSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, move.MoveTo(), targetPiece);
+            } else {
+                accPair.addSubSub(sideToMove, enPassantTarget, endPiece, move.MoveFrom(), attackerPiece, move.MoveTo() - direction, Pawn);
+            }
+        } else {
+            if (move.GetFlags() != kingCastle && move.GetFlags() != queenCastle) {
+                accPair.addSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece);
+            }
+        }
+    }
 
 	switch (move.GetFlags())
 	{
@@ -451,7 +471,10 @@ void Board::MakeMove(Move move) {
 
 			SetPiece(attackerPiece, move.MoveTo(), attackerColor);
 
-			accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare - 2, Rook, move.MoveFrom(), King, rookSquare, Rook);
+            if (!fullRecalc) {
+                accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare - 2, Rook, move.MoveFrom(), King, rookSquare, Rook);
+            }
+
 			break;
 		}
 	case queenCastle:
@@ -465,27 +488,19 @@ void Board::MakeMove(Move move) {
 			SetPiece(Rook, rookSquare + 3, attackerColor);
 
 			SetPiece(attackerPiece, move.MoveTo(), attackerColor);
-			accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare + 3, Rook, move.MoveFrom(), King, rookSquare, Rook);
-			break;
+
+            if (!fullRecalc) {
+                accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare + 3, Rook, move.MoveFrom(), King, rookSquare, Rook);
+            }
+
+            break;
 		}
 	default:
 		break;
 	}
 
-    if (attackerPiece == King) {
-        const int toFile = move.MoveTo() % 8;
-
-        if (attackerColor == White) {
-            if ((toFile > 3) != accPair.mirroredWhite) {
-                accPair.mirroredWhite = !accPair.mirroredWhite;
-                ResetAccPair();
-            }
-        } else {
-            if ((toFile > 3) != accPair.mirroredBlack) {
-                accPair.mirroredBlack = !accPair.mirroredBlack;
-                ResetAccPair();
-            }
-        }
+    if (fullRecalc) {
+        ResetAccPair();
     }
 
 	// Removing the right to castle on king and rook movement
