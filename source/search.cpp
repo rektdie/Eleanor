@@ -638,7 +638,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
                 if constexpr (!isPV) {
                     // Double extension
-                    if (singularScore <= sBeta - 1 - doubleExtMargin) {
+                    if (singularScore < sBeta - doubleExtMargin) {
                         extension++;
                     }
                 }
