@@ -617,7 +617,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         int extension = 0;
 
-        if (ply
+        if (ply && ply < ctx->rootDepth * 2
             && depth >= 8
             && ttHit
             && currMove == entry.bestMove
@@ -882,6 +882,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
         ctx->timeToSearch = std::max((fullTime / movesToGo) + (inc / 2), 4);
         int softTime = ctx->timeToSearch * 0.65 * nodeScaling;
         ctx->seldepth = 0;
+        ctx->rootDepth = depth;
 
         SearchResults currentResults = PVS<true, mode>(board, depth, aw.alpha, aw.beta, 0, ctx, false);
 

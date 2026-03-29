@@ -221,6 +221,7 @@ public:
     std::array<U64, 4096> nodesTable{};
 
     int seldepth = 0;
+    int rootDepth = 0;
 
     Move excluded = Move();
 
