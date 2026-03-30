@@ -31,7 +31,6 @@ constexpr int CORRHIST_LIMIT = 1024;
 constexpr int CORRHIST_SIZE = 16384;
 constexpr int CORRHIST_MAX = 16384;
 
-constexpr int32_t ScoreNone = -255000;
 constexpr int inf = 100000;
 
 // first index: [0] noisy, [1] quiet

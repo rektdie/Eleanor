@@ -2,7 +2,7 @@
 
 TTable SharedTT;
 
-void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove, bool ttpv) {
+void TTable::WriteEntry(U64 &hashKey, int depth, int score, int staticEval, int nodeType, Move bestMove, bool ttpv) {
     TTBucket *bucket = &table[hashKey % table.size()];
     TTEntry *current = nullptr;
 
@@ -39,6 +39,7 @@ void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move b
     current->hashKey = hashKey;
     current->nodeType = nodeType;
     current->score = score;
+    current->staticEval = staticEval;
     current->depth = depth;
     
     if (bestMove || !samePosition) {
