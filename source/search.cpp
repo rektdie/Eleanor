@@ -321,6 +321,8 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     Move currMove;
     while ((currMove = mp.Next())) {
+        if (!board.IsLegal(currMove)) continue;
+
         if (!IsLoss(bestScore)) {
             // QS FP
             if (!board.InCheck() && currMove.IsCapture() &&
@@ -334,7 +336,6 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
                 continue;
         }
 
-        if (!board.IsLegal(currMove)) continue;
         Board copy = board;
         copy.MakeMove(currMove);
 
@@ -502,10 +503,11 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             if (ctx->excluded == currMove)
                 continue;
 
+            if (!board.IsLegal(currMove)) continue;
+
             if (!SEE(board, currMove, seeThreshold))
                 continue;
 
-            if (!board.IsLegal(currMove)) continue;
             Board copy = board;
             copy.MakeMove(currMove);
 
@@ -555,6 +557,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ctx->excluded == currMove)
             continue;
 
+        if (!board.IsLegal(currMove)) continue;
+
         bool notMated = results.score > (-MATE_SCORE + MAX_DEPTH);
         int lmrDepth = depth - lmrTable[currMove.IsQuiet()][depth][moveSeen];
 
@@ -598,8 +602,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
             continue;
 
-
-        if (!board.IsLegal(currMove)) continue;
         Board copy = board;
         copy.MakeMove(currMove);
 
