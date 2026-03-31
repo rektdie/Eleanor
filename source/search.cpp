@@ -457,7 +457,12 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     Board copy = board;
                     copy.MakeMove(Move());
 
-                    const int reduction = 4 + improving + depth / 3 + entry.bestMove.IsCapture();
+                    int redFactor = nmpReduction; 
+                    redFactor += improving * 128;
+                    redFactor += entry.bestMove.IsCapture() * 128;
+                    redFactor += depth * nmpDepthScale;
+
+                    const int reduction = redFactor / 128;
 
                     ctx->TT->PrefetchEntry(copy.hashKey);
 
