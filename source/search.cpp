@@ -617,41 +617,42 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         int extension = 0;
 
-        if (ply && ply < ctx->rootDepth * 2
-            && depth >= 8
-            && ttHit
-            && currMove == entry.bestMove
-            && ctx->excluded == 0
-            && entry.depth >= depth - 3
-            && entry.nodeType != AllNode)
-        {
-            const int sBeta = std::max(-inf + 1, entry.score - depth * 2);
-            const int sDepth = (depth - 1) / 2;
+        if (ply && ply < ctx->rootDepth * 2 && currMove == entry.bestMove && ctx->excluded == 0) {
+            if (depth >= 8
+                && ttHit
+                && entry.depth >= depth - 3
+                && entry.nodeType != AllNode)
+            {
+                const int sBeta = std::max(-inf + 1, entry.score - depth * 2);
+                const int sDepth = (depth - 1) / 2;
 
-            ctx->excluded = currMove;
-            const int singularScore = PVS<false, mode>(board, sDepth, sBeta-1, sBeta, ply, ctx, cutnode).score;
-            ctx->excluded = Move();
-            
-            // Singular extension
-            if (singularScore < sBeta) {
-                extension++;
+                ctx->excluded = currMove;
+                const int singularScore = PVS<false, mode>(board, sDepth, sBeta-1, sBeta, ply, ctx, cutnode).score;
+                ctx->excluded = Move();
 
-                if constexpr (!isPV) {
-                    // Double extension
-                    if (singularScore <= sBeta - 1 - doubleExtMargin) {
-                        extension++;
+                // Singular extension
+                if (singularScore < sBeta) {
+                    extension++;
+
+                    if constexpr (!isPV) {
+                        // Double extension
+                        if (singularScore <= sBeta - 1 - doubleExtMargin) {
+                            extension++;
+                        }
                     }
                 }
-            }
-            // Multicut
-            else if (sBeta >= beta) {
-                return sBeta;
-            }
-            // Negative extension
-            else if (entry.score >= beta) {
-                extension--;
-            } else if (cutnode) {
-                extension--;
+                // Multicut
+                else if (sBeta >= beta) {
+                    return sBeta;
+                }
+                // Negative extension
+                else if (entry.score >= beta) {
+                    extension--;
+                } else if (cutnode) {
+                    extension--;
+                }
+            } else if (depth <= 7 && !board.InCheck() && staticEval <= alpha - ldseMargin && entry.nodeType == CutNode) {
+                extension++;
             }
         }
 
