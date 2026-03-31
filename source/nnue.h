@@ -14,7 +14,7 @@ constexpr size_t ALIGNMENT = 32;
 namespace NNUE {
 
 constexpr size_t INPUT_SIZE = 768;
-constexpr size_t HL_SIZE = 1024;
+constexpr size_t HL_SIZE = 1536;
 constexpr size_t INPUT_BUCKETS = 4;
 constexpr size_t OUTPUT_BUCKETS = 8;
 
