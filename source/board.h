@@ -62,6 +62,7 @@ public:
 	void ResetMoves();
 	void ListMoves();
 
+	ACC::BucketPair GetBuckets();
 	void ResetAccPair();
 
 	int GetPieceType(int square);

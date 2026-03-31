@@ -17,7 +17,9 @@ void Network::Load(const std::string& path) {
 
     // HL weights
     for (size_t i = 0; i < accumulator_weights.size(); i++) {
-        file.read(reinterpret_cast<char*>(&accumulator_weights[i]), sizeof(int16_t));
+        for (size_t j = 0; j < accumulator_weights[i].size(); j++) {
+            file.read(reinterpret_cast<char*>(&accumulator_weights[i][j]), sizeof(int16_t));
+        }
     }
 
     // HL biases
