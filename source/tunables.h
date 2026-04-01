@@ -21,6 +21,7 @@
     X_INT(lmrDeeperScalar, 4, 6000, 10000) \
     X_INT(rfpBase, 25, 50, 200) \
     X_INT(rfpMargin, 100, 50, 200) \
+    X_INT(rfpCorrplexity, 25, 50, 200) \
     X_INT(fpMargin, 100, 50, 200) \
     X_INT(razoringScalar, 200, 50, 200) \
     X_INT(doubleExtMargin, 30, 10, 60) \
