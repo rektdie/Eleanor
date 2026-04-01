@@ -210,6 +210,8 @@ public:
     bool side = -1;
 };
 
+inline CorrHist sharedCorrhist;
+
 class SearchContext {
 public:
     bool doPrint = false;
@@ -230,7 +232,7 @@ public:
     PVLine pvLine;
     History history;
     ContHistory conthist;
-    CorrHist corrhist;
+    CorrHist* corrhist = &sharedCorrhist;
     CaptHistory capthist;
 
     std::array<Move, MAX_DEPTH> killerMoves{};
@@ -244,10 +246,11 @@ public:
     Stopwatch sw;
 
     SearchContext(){
+        TT->Clear();
         pvLine.Clear();
         history.Clear();
         conthist.Clear();
-        corrhist.Clear();
+        corrhist->Clear();
         capthist.Clear();
         sw.Restart();
         killerMoves = {};

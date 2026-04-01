@@ -61,7 +61,7 @@ int16_t ContHistory::GetNPly(Board& board, Move& move, SearchContext* ctx, int p
 }
 
 static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
-    int corrhist = ctx->corrhist.GetAllHist(board);
+    int corrhist = ctx->corrhist->GetAllHist(board);
 
     int mateFound = MATE_SCORE - MAX_DEPTH;
 
@@ -815,7 +815,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
             int corrHistBonus = std::clamp(results.score - staticEval, -CORRHIST_LIMIT, CORRHIST_LIMIT);
 
-            ctx->corrhist.UpdateAll(board, depth, corrHistBonus);
+            ctx->corrhist->UpdateAll(board, depth, corrHistBonus);
         }
 
         ctx->TT->WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove, ttpv);

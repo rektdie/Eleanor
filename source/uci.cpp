@@ -267,11 +267,10 @@ void UCILoop(Board &board) {
 
             // Clearing
             ctx->TT->Clear();
-
             ctx->killerMoves = {};
             ctx->history.Clear();
             ctx->conthist.Clear();
-            ctx->corrhist.Clear();
+            ctx->corrhist->Clear();
             ctx->positionHistory = {};
             ctx->ss = {};
 

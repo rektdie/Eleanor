@@ -65,8 +65,11 @@ void RunBenchmark() {
     Board board;
 
     TTable BenchTT;
+    CorrHist BenchCorrhist;
+
     auto ctx = std::make_unique<SearchContext>();
     ctx->TT = &BenchTT;
+    ctx->corrhist = &BenchCorrhist;
 
     Stopwatch sw;
     for (int i = 0; i < fenPositions.size(); i++) {
