@@ -558,24 +558,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         bool notMated = results.score > (-MATE_SCORE + MAX_DEPTH);
         int lmrDepth = depth - lmrTable[currMove.IsQuiet()][depth][moveSeen];
 
-        // Late move pruning
-        // If we are near a leaf node we prune moves
-        // that are late in the list
-        if (currMove.IsQuiet() && notMated) {
-
-            int lmpThreshold = 7 + depth * depth * (1 + improving);
-
-            if (moveSeen >= lmpThreshold) {
-                continue;
-            }
-        }
-
         bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveFrom());
         bool targetThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveTo());
 
-        // Futility pruning
-        // If our static eval is far below alpha, there is only a small chance
-        // that a quiet move will help us so we skip them
         int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()][sourceThreatened][targetThreatened];
         
         if (ply > 0) {
@@ -584,19 +569,39 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             if (ply > 1)
                 historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
         }
-        
-        int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
 
-        if (!isPV && ply && currMove.IsQuiet()
-                && lmrDepth <= 7 && staticEval + margin < alpha && notMated && !board.GivesDirectCheck(currMove)) {
-            continue;
+        if (mode != datagen) {
+
+            // Late move pruning
+            // If we are near a leaf node we prune moves
+            // that are late in the list
+            if (currMove.IsQuiet() && notMated) {
+
+                int lmpThreshold = 7 + depth * depth * (1 + improving);
+
+                if (moveSeen >= lmpThreshold) {
+                    continue;
+                }
+            }
+
+            // Futility pruning
+            // If our static eval is far below alpha, there is only a small chance
+            // that a quiet move will help us so we skip them
+
+            int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
+
+            if (!isPV && ply && currMove.IsQuiet()
+                    && lmrDepth <= 7 && staticEval + margin < alpha && notMated && !board.GivesDirectCheck(currMove)) {
+                continue;
+            }
+
+            // PVS SEE
+            int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
+
+            if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
+                continue;
+
         }
-
-        // PVS SEE
-        int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
-
-        if (ply && depth <= 10 && !SEE(board, currMove, SEEThreshold))
-            continue;
 
 
         if (!board.IsLegal(currMove)) continue;
