@@ -50,6 +50,19 @@ void InitLMRTable() {
     }
 }
 
+#ifdef TUNING
+void InitSEEPieceValues() {
+    SEEPieceValues = {
+        seePawnValue, seeKnightValue, seeBishopValue, seeRookValue, seeQueenValue, 0
+    };
+}
+
+void RefreshTunableCaches() {
+    InitLMRTable();
+    InitSEEPieceValues();
+}
+#endif
+
 int16_t ContHistory::GetNPly(Board& board, Move& move, SearchContext* ctx, int ply, int n) {
     int prevType = ctx->ss[ply-n].pieceType;
     int prevTo = ctx->ss[ply-n].moveTo;

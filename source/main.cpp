@@ -47,7 +47,11 @@ int main(int argc, char* argv[]) {
 	MOVEGEN::initLeaperAttacks();
 	MOVEGEN::initSliderAttacks();
     UTILS::InitZobrist();
-    SEARCH::InitLMRTable();
+    #ifdef TUNING
+        SEARCH::RefreshTunableCaches();
+    #else
+        SEARCH::InitLMRTable();
+    #endif
 
 	Board board;
 

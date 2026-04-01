@@ -206,6 +206,7 @@ static void SetOption(std::string& command, SEARCH::SearchContext* ctx) {
             if (v < min_val) v = min_val; \
             if (v > max_val) v = max_val; \
             paramName = v; \
+            SEARCH::RefreshTunableCaches(); \
             return; \
         }
 
@@ -215,6 +216,7 @@ static void SetOption(std::string& command, SEARCH::SearchContext* ctx) {
             if (v < min_val) v = min_val; \
             if (v > max_val) v = max_val; \
             paramName = v; \
+            SEARCH::RefreshTunableCaches(); \
             return; \
         }
 

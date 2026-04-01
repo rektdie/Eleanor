@@ -48,6 +48,12 @@ constexpr std::array<int, 6> SEEPieceValues = {
 #endif
 
 void InitLMRTable();
+
+#ifdef TUNING
+void InitSEEPieceValues();
+void RefreshTunableCaches();
+#endif
+
 class SearchContext;
 
 class CaptHistory {
