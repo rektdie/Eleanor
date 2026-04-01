@@ -876,12 +876,16 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
     int elapsed = 0;
 
     double nodeScaling = 1;
+    double bmScaling = 1;
+
+    int bmStability = 0;
+    Move prevMove;
 
     ctx->sw.Restart();
 
     for (int depth = 1; depth <= toDepth; depth++) {
         ctx->timeToSearch = std::max((fullTime / movesToGo) + (inc / 2), 4);
-        int softTime = ctx->timeToSearch * 0.65 * nodeScaling;
+        int softTime = ctx->timeToSearch * 0.65 * nodeScaling * bmScaling;
         ctx->seldepth = 0;
         ctx->rootDepth = depth;
 
@@ -891,6 +895,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 
         if (depth > 6) {
             nodeScaling = ScaleTime(ctx, currentResults.bestMove);
+            bmScaling = std::max<double>(1.8 - 0.1 * static_cast<double>(bmStability), 0.9); 
         }
 
         if (aw.alpha != -inf && currentResults.score <= aw.alpha) {
@@ -930,6 +935,14 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
                 }
             }
         }
+
+        if (currentResults.bestMove == prevMove) {
+            bmStability++;
+        } else {
+            bmStability++;
+        }
+
+        prevMove = currentResults.bestMove;
     }
 
     return safeResults;
