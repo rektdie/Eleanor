@@ -23,9 +23,11 @@
     X_INT(lmrTTPVFailLow, 1024, 256, 2048) \
     X_INT(lmrDeeperBase, 30, 0, 96) \
     X_INT(lmrDeeperScalar, 4, 0, 16) \
+    X_INT(corrplexityThreshold, 70, 32, 128) \
     X_INT(rfpBase, 25, 50, 200) \
     X_INT(rfpMargin, 100, 50, 200) \
     X_INT(fpMargin, 100, 50, 200) \
+    X_INT(probcutBetaMargin, 200, 100, 300) \
     X_INT(razoringScalar, 200, 80, 320) \
     X_INT(doubleExtMargin, 30, 8, 64) \
     X_INT(seeQuietThreshold, -80, -160, 0) \
@@ -40,8 +42,18 @@
     X_INT(seeQsThreshold, 0, -120, 120) \
     X_INT(seeOrderingThreshold, -100, -200, 0) \
     X_INT(ldseMargin, 25, 0, 96) \
-    X_INT(historyBonusMultiplier, 300, 200, 500) \
-    X_INT(historyBonusSub, 250, 128, 384)
+    X_INT(historyBonusMultiplier, 300, 270, 330) \
+    X_INT(historyBonusSub, 250, 230, 280) \
+    X_INT(historyMalusMultiplier, 300, 270, 330) \
+    X_INT(historyMalusSub, 250, 230, 280) \
+    X_INT(contHistoryBonusMultiplier, 300, 270, 330) \
+    X_INT(contHistoryBonusSub, 250, 230, 280) \
+    X_INT(contHistoryMalusMultiplier, 300, 270, 330) \
+    X_INT(contHistoryMalusSub, 250, 230, 280) \
+    X_INT(captHistoryBonusMultiplier, 300, 270, 330) \
+    X_INT(captHistoryBonusSub, 250, 230, 280) \
+    X_INT(captHistoryMalusMultiplier, 300, 270, 330) \
+    X_INT(captHistoryMalusSub, 250, 230, 280)
 
 #ifdef TUNING
     #define X_DOUBLE(name, default_val, min_val, max_val) \
