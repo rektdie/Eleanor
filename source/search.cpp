@@ -435,7 +435,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         ttAdjustedEval = entry.score;
     }
 
-    bool corrplexity = std::abs(rawEval - staticEval) > corrplexityThreshold;
+    bool corrplexity = std::abs(rawEval - staticEval) > 70;
 
     const bool improving = [&]
     {
@@ -685,7 +685,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             score = -PVS<false, mode>(copy, reduced, -alpha - 1, -alpha, ply + 1, ctx, true).score;
 
             if (score > alpha && reduced < newDepth) {
-                const bool goDeeper = score > results.score + lmrDeeperBase + lmrDeeperScalar * newDepth;
+                const bool goDeeper = score > results.score + lmrDeeperBase + 4 * newDepth;
                 const bool goShallower = score < results.score + newDepth;
 
                 newDepth += goDeeper - goShallower;

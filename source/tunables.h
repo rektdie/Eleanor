@@ -22,8 +22,6 @@
     X_INT(lmrCorrplexity, 1024, 256, 2048) \
     X_INT(lmrTTPVFailLow, 1024, 256, 2048) \
     X_INT(lmrDeeperBase, 30, 0, 96) \
-    X_INT(lmrDeeperScalar, 4, 0, 16) \
-    X_INT(corrplexityThreshold, 70, 32, 128) \
     X_INT(rfpBase, 25, 50, 200) \
     X_INT(rfpMargin, 100, 50, 200) \
     X_INT(fpMargin, 100, 50, 200) \
