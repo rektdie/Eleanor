@@ -587,7 +587,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         
         int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
 
-        if (!isPV && ply && currMove.IsQuiet()
+        if (!isPV && !board.InCheck() && ply && currMove.IsQuiet()
                 && lmrDepth <= 7 && staticEval + margin < alpha && notMated && !board.GivesDirectCheck(currMove)) {
             continue;
         }
