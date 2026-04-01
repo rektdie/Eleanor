@@ -23,22 +23,15 @@
     X_INT(lmrTTPVFailLow, 1024, 256, 2048) \
     X_INT(lmrDeeperBase, 30, 0, 96) \
     X_INT(lmrDeeperScalar, 4, 0, 16) \
-    X_INT(rfpBase, 3200, 1600, 6400) \
-    X_INT(rfpMargin, 12800, 6400, 25600) \
-    X_INT(rfpImprovingMargin, 12800, 0, 25600) \
-    X_INT(fpMargin, 12800, 6400, 25600) \
-    X_INT(fpImprovingMargin, 12800, 0, 25600) \
-    X_INT(fpHistoryMargin, 4, -64, 64) \
+    X_INT(rfpBase, 25, 50, 200) \
+    X_INT(rfpMargin, 100, 50, 200) \
+    X_INT(fpMargin, 100, 50, 200) \
     X_INT(razoringScalar, 200, 80, 320) \
     X_INT(doubleExtMargin, 30, 8, 64) \
     X_INT(seeQuietThreshold, -80, -160, 0) \
     X_INT(seeNoisyThreshold, -30, -120, 40) \
     X_INT(aspInitialDelta, 30, 8, 96) \
     X_INT(nmpBetaMargin, 30, 8, 96) \
-    X_INT(nmpBaseReduction, 768, 384, 1152) \
-    X_INT(nmpImprovingReduction, 192, 0, 384) \
-    X_INT(nmpDepthReduction, 64, 32, 128) \
-    X_INT(nmpCaptureReduction, 192, 0, 384) \
     X_INT(seePawnValue, 100, 80, 140) \
     X_INT(seeKnightValue, 300, 240, 420) \
     X_INT(seeBishopValue, 350, 250, 450) \

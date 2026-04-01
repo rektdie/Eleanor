@@ -452,13 +452,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (!board.InCheck() && !ctx->excluded) {
         if (ply) {
             // Reverse Futility Pruning
-
-            int margin = (
-                rfpBase
-                + depth * rfpMargin
-                - improving * rfpImprovingMargin
-            ) / 128;
-            
+            int margin = rfpBase + rfpMargin * (depth - improving);
             if (!ttpv && ttAdjustedEval - margin >= beta && depth < 7) {
                 return !IsDecisive(ttAdjustedEval) && !IsDecisive(beta)
                     ? ((ttAdjustedEval + beta) / 2)
@@ -476,12 +470,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     Board copy = board;
                     copy.MakeMove(Move());
 
-                    const int reduction = (
-                        nmpBaseReduction
-                        + improving * nmpImprovingReduction
-                        + depth * nmpDepthReduction
-                        + entry.bestMove.IsCapture() * nmpCaptureReduction
-                    ) / 192;
+                    const int reduction = 4 + improving + depth / 3 + entry.bestMove.IsCapture();
 
                     ctx->TT->PrefetchEntry(copy.hashKey);
 
@@ -609,9 +598,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
         }
         
-        int margin =
-            (lmrDepth * fpMargin + improving * fpImprovingMargin) / 128
-            + (historyScore * fpHistoryMargin) / 128;
+        int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
 
         if (!isPV && ply && currMove.IsQuiet()
                 && lmrDepth <= 7 && staticEval + margin < alpha && notMated && !board.GivesDirectCheck(currMove)) {
