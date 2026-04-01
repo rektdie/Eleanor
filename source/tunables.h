@@ -1,9 +1,13 @@
 #pragma once
+#include <algorithm>
 #include <iostream>
 
 //#define TUNING
 
 #define AUTO_STEP(min_val, max_val) ((max_val - min_val) / 20.0)
+#define AUTO_R_END_INT(min_val, max_val) \
+    (0.002 / (std::min(0.5, static_cast<double>(AUTO_STEP(min_val, max_val))) / 0.5))
+#define AUTO_R_END_FLOAT 0.002
 
 #define TUNABLE_LIST \
     X_DOUBLE(lmrBaseQuiet, 1.1, 0.5, 1.5) \
@@ -66,14 +70,14 @@ inline void PrintTunables() {
                   << ", " << min_val \
                   << ", " << max_val \
                   << ", " << name##_step \
-                  << ", 0.002" << std::endl;
+                  << ", " << AUTO_R_END_FLOAT << std::endl;
 
     #define X_INT(name, default_val, min_val, max_val) \
         std::cout << #name << ", int, " << name \
                   << ", " << min_val \
                   << ", " << max_val \
                   << ", " << name##_step \
-                  << ", 0.002" << std::endl;
+                  << ", " << AUTO_R_END_INT(min_val, max_val) << std::endl;
 
     TUNABLE_LIST
 
