@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <iostream>
 
-#define TUNING
+//#define TUNING
 
 #define AUTO_STEP(min_val, max_val) ((max_val - min_val) / 20.0)
 #define AUTO_R_END_INT(min_val, max_val) \
