@@ -498,7 +498,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     }
 
     // Probcut
-    const int probcutBeta = beta + 200;
+    const int probcutBeta = beta + probcutBetaMargin;
     const int probcutDepth = std::max(depth - 3, 1);
 
     if (depth >= 7 && std::abs(beta) < MATE_SCORE - MAX_DEPTH
@@ -685,7 +685,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             score = -PVS<false, mode>(copy, reduced, -alpha - 1, -alpha, ply + 1, ctx, true).score;
 
             if (score > alpha && reduced < newDepth) {
-                const bool goDeeper = score > results.score + lmrDeeperBase + lmrDeeperScalar * newDepth;
+                const bool goDeeper = score > results.score + lmrDeeperBase + 4 * newDepth;
                 const bool goShallower = score < results.score + newDepth;
 
                 newDepth += goDeeper - goShallower;
@@ -728,12 +728,18 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         // Fail high (beta cutoff)
         if (score >= beta) {
-            int bonus = historyBonusMultiplier * (depth + (!board.InCheck() && staticEval <= alpha)) - historyBonusSub;
+            const int bonusDepth = depth + (!board.InCheck() && staticEval <= alpha);
+            int historyBonus = historyBonusMultiplier * bonusDepth - historyBonusSub;
+            int historyMalus = historyMalusMultiplier * bonusDepth - historyMalusSub;
+            int contHistoryBonus = contHistoryBonusMultiplier * bonusDepth - contHistoryBonusSub;
+            int contHistoryMalus = contHistoryMalusMultiplier * bonusDepth - contHistoryMalusSub;
+            int captHistoryBonus = captHistoryBonusMultiplier * bonusDepth - captHistoryBonusSub;
+            int captHistoryMalus = captHistoryMalusMultiplier * bonusDepth - captHistoryMalusSub;
 
             if (!currMove.IsCapture()) {
                 ctx->killerMoves[ply] = currMove;
 
-                ctx->history.Update(board.sideToMove, currMove, sourceThreatened, targetThreatened, bonus);
+                ctx->history.Update(board.sideToMove, currMove, sourceThreatened, targetThreatened, historyBonus);
 
                 if (ply > 0) {
                     int prevType = ctx->ss[ply-1].pieceType;
@@ -742,14 +748,14 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     int to = ctx->ss[ply].moveTo;
                     bool otherColor = ctx->ss[ply-1].side;
 
-                    ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, bonus);
+                    ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, contHistoryBonus);
 
                     // Malus
                     for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
                         int pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
                         int to = seenQuiets[moveIndex].MoveTo();
 
-                        ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, -bonus);
+                        ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, -contHistoryMalus);
                     }
 
                     if (ply > 1) {
@@ -757,14 +763,14 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                         prevTo = ctx->ss[ply-2].moveTo;
                         otherColor = ctx->ss[ply-2].side;
 
-                        ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, bonus);
+                        ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, contHistoryBonus);
 
                         // Malus
                         for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
                             int pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
                             int to = seenQuiets[moveIndex].MoveTo();
 
-                            ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, -bonus);
+                            ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, -contHistoryMalus);
                         }
 
                     }
@@ -776,7 +782,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     sourceThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[moveIndex].MoveFrom());
                     targetThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[moveIndex].MoveTo());
 
-                    ctx->history.Update(board.sideToMove, seenQuiets[moveIndex], sourceThreatened, targetThreatened, -bonus);
+                    ctx->history.Update(board.sideToMove, seenQuiets[moveIndex], sourceThreatened, targetThreatened, -historyMalus);
                 }
             } else {
                 int movingPiece = board.GetPieceType(currMove.MoveFrom());
@@ -786,7 +792,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     capturedPiece = Pawn;
                 }
 
-                ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece, currMove.MoveTo(), bonus);
+                ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece, currMove.MoveTo(), captHistoryBonus);
             }
 
             // Capthist malus
@@ -803,7 +809,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 }
 
                 ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece,
-                    seenCaptures[moveIndex].MoveTo(), -bonus);
+                    seenCaptures[moveIndex].MoveTo(), -captHistoryMalus);
             }
 
             if (!ctx->excluded)

@@ -10,38 +10,48 @@
 #define AUTO_R_END_FLOAT 0.002
 
 #define TUNABLE_LIST \
-    X_DOUBLE(lmrBaseQuiet, 1.1, 0.5, 1.5) \
-    X_DOUBLE(lmrDivisorQuiet, 2.33, 1.5, 3.5) \
-    X_DOUBLE(lmrBaseNoisy, 0.41, 0.5, 1.5) \
-    X_DOUBLE(lmrDivisorNoisy, 3.20, 1.5, 3.5) \
-    X_INT(lmrCutnode, 2048, 1024, 3072) \
-    X_INT(lmrIsPV, 1024, 512, 2048) \
-    X_INT(lmrTTPV, 1024, 512, 2048) \
-    X_INT(lmrHistoryDivisor, 8192, 6000, 10000) \
-    X_INT(lmrImproving, 1024, 6000, 10000) \
-    X_INT(lmrCorrplexity, 1024, 6000, 10000) \
-    X_INT(lmrTTPVFailLow, 1024, 6000, 10000) \
-    X_INT(lmrDeeperBase, 30, 6000, 10000) \
-    X_INT(lmrDeeperScalar, 4, 6000, 10000) \
-    X_INT(rfpBase, 25, 50, 200) \
-    X_INT(rfpMargin, 100, 50, 200) \
-    X_INT(fpMargin, 100, 50, 200) \
-    X_INT(razoringScalar, 200, 50, 200) \
-    X_INT(doubleExtMargin, 30, 10, 60) \
-    X_INT(seeQuietThreshold, -80, -150, -20) \
-    X_INT(seeNoisyThreshold, -30, -80, 20) \
-    X_INT(aspInitialDelta, 30, 20, 80) \
-    X_INT(nmpBetaMargin, 30, 20, 80) \
-    X_INT(seePawnValue, 100, 80, 120) \
-    X_INT(seeKnightValue, 300, 250, 350) \
-    X_INT(seeBishopValue, 350, 300, 400) \
-    X_INT(seeRookValue, 500, 400, 600) \
-    X_INT(seeQueenValue, 900, 750, 1100) \
-    X_INT(seeQsThreshold, 0, -50, 50) \
-    X_INT(seeOrderingThreshold, -100, -120, -80) \
-    X_INT(ldseMargin, 25, -120, -80) \
-    X_INT(historyBonusMultiplier, 300, 270, 330) \
-    X_INT(historyBonusSub, 250, 230, 280)
+    X_DOUBLE(lmrBaseQuiet, 1.1029723689888005, 0.6, 1.6) \
+    X_DOUBLE(lmrDivisorQuiet, 2.3063513397139945, 1.6, 3.6) \
+    X_DOUBLE(lmrBaseNoisy, 0.451805556082857, 0.1, 1.1) \
+    X_DOUBLE(lmrDivisorNoisy, 3.1355330830404338, 2.0, 4.5) \
+    X_INT(lmrCutnode, 2005, 1024, 3072) \
+    X_INT(lmrIsPV, 982, 256, 2048) \
+    X_INT(lmrTTPV, 936, 256, 2048) \
+    X_INT(lmrHistoryDivisor, 8377, 4096, 16384) \
+    X_INT(lmrImproving, 1131, 256, 2048) \
+    X_INT(lmrCorrplexity, 830, 256, 2048) \
+    X_INT(lmrTTPVFailLow, 913, 256, 2048) \
+    X_INT(lmrDeeperBase, 46, 0, 96) \
+    X_INT(rfpBase, 21, 0, 100) \
+    X_INT(rfpMargin, 97, 50, 200) \
+    X_INT(fpMargin, 86, 50, 200) \
+    X_INT(probcutBetaMargin, 190, 100, 300) \
+    X_INT(razoringScalar, 195, 80, 320) \
+    X_INT(doubleExtMargin, 32, 8, 64) \
+    X_INT(seeQuietThreshold, -81, -160, 0) \
+    X_INT(seeNoisyThreshold, -32, -120, 40) \
+    X_INT(aspInitialDelta, 26, 8, 96) \
+    X_INT(nmpBetaMargin, 25, 8, 96) \
+    X_INT(seePawnValue, 98, 80, 140) \
+    X_INT(seeKnightValue, 301, 240, 420) \
+    X_INT(seeBishopValue, 346, 250, 450) \
+    X_INT(seeRookValue, 507, 400, 700) \
+    X_INT(seeQueenValue, 924, 700, 1300) \
+    X_INT(seeQsThreshold, -13, -120, 120) \
+    X_INT(seeOrderingThreshold, -102, -200, 0) \
+    X_INT(ldseMargin, 26, 0, 96) \
+    X_INT(historyBonusMultiplier, 306, 280, 320) \
+    X_INT(historyBonusSub, 252, 235, 265) \
+    X_INT(historyMalusMultiplier, 301, 280, 320) \
+    X_INT(historyMalusSub, 250, 235, 265) \
+    X_INT(contHistoryBonusMultiplier, 300, 280, 320) \
+    X_INT(contHistoryBonusSub, 252, 235, 265) \
+    X_INT(contHistoryMalusMultiplier, 300, 280, 320) \
+    X_INT(contHistoryMalusSub, 249, 235, 265) \
+    X_INT(captHistoryBonusMultiplier, 302, 280, 320) \
+    X_INT(captHistoryBonusSub, 249, 235, 265) \
+    X_INT(captHistoryMalusMultiplier, 300, 280, 320) \
+    X_INT(captHistoryMalusSub, 249, 235, 265)
 
 #ifdef TUNING
     #define X_DOUBLE(name, default_val, min_val, max_val) \
