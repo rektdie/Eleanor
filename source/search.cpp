@@ -325,8 +325,10 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     }
 
     const int fpScore = bestScore + 100;
+    const bool forceEvasions =
+        !isPV && ttHit && entry.bestMove && entry.nodeType != AllNode && entry.bestMove.IsQuiet();
 
-    MovePicker<Noisy> mp(board, ctx, ply, entry.bestMove);
+    MovePicker<Noisy> mp(board, ctx, ply, entry.bestMove, forceEvasions);
 
     SearchResults results;
 

@@ -24,12 +24,13 @@ private:
 
     int index;
     bool generated;
+    bool forceEvasions;
 
     int scores[MAX_MOVES];
 
 public:
-    MovePicker(Board& b, SearchContext* c, int p, Move tt)
-        : board(b), ctx(c), ttMove(tt), ply(p), stage(TT), index(0), generated(false)
+    MovePicker(Board& b, SearchContext* c, int p, Move tt, bool force = false)
+        : board(b), ctx(c), ttMove(tt), ply(p), stage(TT), index(0), generated(false), forceEvasions(force)
     {
     }
 
@@ -40,8 +41,14 @@ public:
                 case TT: {
                     stage = Rest;
 
-                    if (ttMove && board.IsPseudoLegal(ttMove))
-                        return ttMove;
+                    if (ttMove && board.IsPseudoLegal(ttMove)) {
+                        if constexpr (mode != Noisy) {
+                            return ttMove;
+                        }
+
+                        if (board.InCheck() || forceEvasions || !ttMove.IsQuiet())
+                            return ttMove;
+                    }
                     break;
                 }
 
@@ -50,7 +57,15 @@ public:
                     if (!generated) {
                         generated = true;
 
-                        MOVEGEN::GenerateMoves<mode>(board, true);
+                        if constexpr (mode == Noisy) {
+                            if (board.InCheck() || forceEvasions) {
+                                MOVEGEN::GenerateMoves<All>(board, true);
+                            } else {
+                                MOVEGEN::GenerateMoves<Noisy>(board, true);
+                            }
+                        } else {
+                            MOVEGEN::GenerateMoves<mode>(board, true);
+                        }
 
                         ScoreAllMoves();
                         index = 0;
