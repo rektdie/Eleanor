@@ -33,7 +33,7 @@ constexpr int kingBuckets[2][64] = {
         3, 3, 3, 3, 3, 3, 3, 3,
         3, 3, 3, 3, 3, 3, 3, 3
     },
-    
+
     {
         3, 3, 3, 3, 3, 3, 3, 3,
         3, 3, 3, 3, 3, 3, 3, 3,
@@ -45,7 +45,7 @@ constexpr int kingBuckets[2][64] = {
         0, 0, 1, 1, 1, 1, 0, 0
     }
 };
-    
+
 struct Network {
     alignas(ALIGNMENT) std::array<std::array<int16_t, HL_SIZE * INPUT_SIZE>, INPUT_BUCKETS> accumulator_weights;
     alignas(ALIGNMENT) std::array<int16_t, HL_SIZE> accumulator_biases;
@@ -54,7 +54,7 @@ struct Network {
 
     void Load(const std::string& path);
 
-    int16_t Evaluate(const Board& board);
+    int16_t Evaluate(const Board& board, bool datagen = false);
 };
 
 inline Network net;

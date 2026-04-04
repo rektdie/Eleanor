@@ -187,8 +187,9 @@ int Forward(const Board& board, const Network& net) {
     return (eval * SCALE) / (QA * QB);
 }
 
-int16_t Network::Evaluate(const Board& board) {
-    const int materialScale = 2048
+int16_t Network::Evaluate(const Board& board, bool datagen) {
+    // Disabled in datagen
+    const int materialScale = datagen ? 4096 : 2048
         +  90 * board.pieces[Knight].PopCount()
         +  90 * board.pieces[Bishop].PopCount()
         + 180 * board.pieces[Rook].PopCount()
