@@ -274,12 +274,12 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     if (ShouldStop<mode>(ctx)) return 0;
 
     if (ply + 1 >= MAX_DEPTH)
-        return NNUE::net.Evaluate(board);
+        return NNUE::net.Evaluate(board, mode == datagen);
 
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
 
-    int bestScore = AdjustEval(board, ctx, NNUE::net.Evaluate(board));
+    int bestScore = AdjustEval(board, ctx, NNUE::net.Evaluate(board, mode == datagen));
     ctx->ss[ply].eval = bestScore;
 
     TTEntry entry;
@@ -390,7 +390,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (ShouldStop<mode>(ctx)) return 0;
 
     if (ply + 1 >= MAX_DEPTH)
-        return NNUE::net.Evaluate(board);
+        return NNUE::net.Evaluate(board, mode == datagen);
 
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
@@ -421,13 +421,13 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     if (depth <= 0) return Quiescence<isPV, mode>(board, alpha, beta, ply, ctx);
 
-    int rawEval = NNUE::net.Evaluate(board);
+    int rawEval = NNUE::net.Evaluate(board, mode == datagen);
     const int staticEval = AdjustEval(board, ctx, rawEval);
     ctx->ss[ply].eval = staticEval;
 
     int ttAdjustedEval = staticEval;
 
-    if (!ctx->excluded && !board.InCheck() && ttHit && 
+    if (!ctx->excluded && !board.InCheck() && ttHit &&
         ((entry.nodeType == PV) ||
         (entry.nodeType == AllNode && entry.score <= staticEval) ||
         (entry.nodeType == CutNode && entry.score >= staticEval))) {
@@ -547,7 +547,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
 
     MovePicker<All> mp(board, ctx, ply, entry.bestMove);
-    
+
 
     int score = -inf;
     int nodeType = AllNode;
@@ -590,14 +590,14 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         // If our static eval is far below alpha, there is only a small chance
         // that a quiet move will help us so we skip them
         int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()][sourceThreatened][targetThreatened];
-        
+
         if (ply > 0) {
             historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 1);
-            
+
             if (ply > 1)
                 historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
         }
-        
+
         int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
 
         if (!isPV && ply && currMove.IsQuiet()
@@ -867,10 +867,10 @@ public:
 };
 
 static double ScaleTime(SearchContext *ctx, Move &move) {
-    double notBmNodesFraction = 
+    double notBmNodesFraction =
        ctx->nodesTable[move % 4096] / double(ctx->nodes);
     double nodeScalingFactor = (1.5f - notBmNodesFraction) * 1.35f;
-    
+
     return nodeScalingFactor;
 }
 
@@ -1040,11 +1040,11 @@ void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, i
         } else {
             std::cout << termcolor::color<251>;
         }
-        
+
         std::stringstream depthStr;
         depthStr << depth << '/' << ctx->seldepth;
         std::cout << std::setw(6) << std::left << depthStr.str();
-        
+
         std::stringstream timeStr;
         if (elapsed >= 1000) {
             timeStr << std::fixed << std::setprecision(1) << (elapsed / 1000.0) << "s";
@@ -1052,7 +1052,7 @@ void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, i
             timeStr << elapsed << "ms";
         }
         std::cout << std::setw(10) << std::right << timeStr.str();
-        
+
         std::stringstream scoreStr;
         bool isMate = false;
         int mateIn = 0;
@@ -1067,7 +1067,7 @@ void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, i
                 scoreStr << "+M" << mateIn;
             }
         } else {
-            scoreStr << std::showpos << std::fixed << std::setprecision(2) 
+            scoreStr << std::showpos << std::fixed << std::setprecision(2)
                      << (normalizedScore / 100.0) << std::noshowpos;
         }
 
@@ -1084,7 +1084,7 @@ void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, i
                 std::cout << termcolor::red;
             }
         }
-        
+
         std::cout << std::setw(9) << std::right << scoreStr.str();
         std::cout << termcolor::reset;
         if (depth % 2 == 0) {
@@ -1103,7 +1103,7 @@ void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, i
         std::stringstream hashfullStr;
         hashfullStr << "TT: " << (ctx->TT->GetUsedPercentage() + 5) / 10 << '%';
         std::cout << std::setw(10) << std::right << hashfullStr.str();
-        
+
         std::stringstream nodesStr;
         if (ctx->nodes >= 1000000) {
             nodesStr << std::fixed << std::setprecision(1) << (ctx->nodes / 1000000.0) << "M";
@@ -1113,7 +1113,7 @@ void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, i
             nodesStr << ctx->nodes;
         }
         std::cout << std::setw(11) << std::right << nodesStr.str();
-        
+
         int nps = int(ctx->nodes/ctx->sw.GetElapsedSec());
         std::stringstream npsStr;
         if (nps >= 1000000) {
@@ -1124,10 +1124,10 @@ void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, i
             npsStr << nps << "/s";
         }
         std::cout << std::setw(12) << std::right << npsStr.str();
-        
+
         std::cout << "  ";
         ctx->pvLine.Print(0, depth % 2 == 0);
-        
+
         std::cout << termcolor::reset << std::endl;
     }
 }
