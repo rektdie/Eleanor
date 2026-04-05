@@ -393,10 +393,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
 
-
     ctx->pvLine.SetLength(ply);
     if (ply && (IsDraw(board, ctx))) return 0;
-
 
     TTEntry entry;
     if (!ctx->excluded)
@@ -561,7 +559,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     ctx->killerMoves[ply + 1] = Move();
 
-    // For all moves
+    // Move-loop
     Move currMove;
     while ((currMove = mp.Next())) {
 
@@ -586,14 +584,14 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveFrom());
         bool targetThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveTo());
 
-        // Futility pruning
-        // If our static eval is far below alpha, there is only a small chance
-        // that a quiet move will help us so we skip them
         int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()][sourceThreatened][targetThreatened];
 
         if (ply > 0) historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 1);
         if (ply > 1) historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
 
+        // Futility pruning
+        // If our static eval is far below alpha, there is only a small chance
+        // that a quiet move will help us so we skip them
         int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
 
         if (!isPV && ply && currMove.IsQuiet()
