@@ -22,11 +22,11 @@
 // OS-dependent threading includes
 #ifdef _WIN32
     #include <windows.h>
-    #include <io.h>       // for _commit (if you ever use it)
-    #include <process.h>  // _beginthreadex / _endthreadex
+    #include <io.h>
+    #include <process.h>
 #else
     #include <pthread.h>
-    #include <unistd.h>  // for sync
+    #include <unistd.h>
 #endif
 
 static std::filesystem::path MakeTempPath(const std::string& prefix, const std::string& ext) {
@@ -84,9 +84,6 @@ static void ShowCursor() { std::cout << "\033[?25h"; }
 
 namespace DATAGEN {
 
-// ============================================================================
-// HTTP CLIENT FUNCTIONS (using system curl commands)
-// ============================================================================
 
 static bool PostJSON(const std::string& url, const std::string& jsonBody, std::string& response) {
     namespace fs = std::filesystem;
@@ -199,9 +196,6 @@ static std::string ExtractJSONValue(const std::string& json, const std::string& 
     }
 }
 
-// ============================================================================
-// HEARTBEAT THREAD
-// ============================================================================
 
 static void HeartbeatThread(const std::string& username, int threads,
                            std::atomic<bool>& stopFlag, const std::string& serverUrl) {
@@ -217,10 +211,6 @@ static void HeartbeatThread(const std::string& username, int threads,
         PostJSON(serverUrl + "/api/session/heartbeat", heartbeatJSON, response);
     }
 }
-
-// ============================================================================
-// EXISTING DATAGEN FUNCTIONS
-// ============================================================================
 
 // Signal handling globals
 static std::atomic<bool> g_shutdownRequested(false);
@@ -553,10 +543,6 @@ static void* ThreadFunc(void* arg) {
 
 #endif
 
-// ============================================================================
-// MAIN RUN FUNCTIONS
-// ============================================================================
-
 void Run(int targetPositions, int threads) {
     SetupSignalHandlers();
 
@@ -575,7 +561,7 @@ void Run(int targetPositions, int threads) {
     std::vector<HANDLE> workerThreads;
     workerThreads.reserve((threads > 1) ? (threads - 1) : 0);
 
-    const size_t stackSizeBytes = 8ull * 1024ull * 1024ull; // change to 16/32 MiB if needed
+    const size_t stackSizeBytes = 8ull * 1024ull * 1024ull;
 
     for (int i = 0; i < threads - 1; ++i) {
         CreateWorkerThread(i, positions, stopFlag, workerThreads, stackSizeBytes);
@@ -697,7 +683,7 @@ void RunOnline(const std::string& username, int targetPositions, int threads) {
         std::vector<HANDLE> workerThreads;
         workerThreads.reserve((threads > 1) ? (threads - 1) : 0);
 
-        const size_t stackSizeBytes = 8ull * 1024ull * 1024ull; // change to 16/32 MiB if needed
+        const size_t stackSizeBytes = 8ull * 1024ull * 1024ull;
 
         for (int i = 0; i < threads - 1; ++i) {
             CreateWorkerThread(i, positions, stopFlag, workerThreads, stackSizeBytes);
