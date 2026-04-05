@@ -25,6 +25,7 @@
     X_INT(rfpBase, 21, 0, 100) \
     X_INT(rfpMargin, 97, 50, 200) \
     X_INT(fpMargin, 86, 50, 200) \
+    X_INT(qsFPMargin, 100, 50, 200) \
     X_INT(probcutBetaMargin, 190, 100, 300) \
     X_INT(razoringScalar, 195, 80, 320) \
     X_INT(doubleExtMargin, 32, 8, 64) \

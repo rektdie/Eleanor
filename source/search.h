@@ -178,7 +178,7 @@ public:
                 std::cout << termcolor::bright_cyan;
                 table[n][i].PrintMove();
                 std::cout << termcolor::reset;
-                
+
                 if (isEven) {
                     std::cout << termcolor::color<247>;
                 } else {
