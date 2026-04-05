@@ -174,11 +174,7 @@ bool SEE(Board& board, Move& move, int threshold) {
 
     // Next victim is moved piece or promo piece
     if (move.IsPromo()) {
-        if (move.IsCapture()) {
-            nextVictim = move.GetFlags() - 9;
-        } else {
-            nextVictim = move.GetFlags() - 5;
-        }
+        nextVictim = move.GetPromoPiece();
     }
 
     int balance = MoveEstimatedValue(board, move) - threshold;
@@ -956,12 +952,7 @@ int MoveEstimatedValue(Board& board, Move& move) {
     int value = pieceType != nullPieceType ? SEEPieceValues[pieceType] : 0;
 
     if (move.IsPromo()) {
-        int promoPiece = -1;
-        if (move.IsCapture()) {
-            promoPiece = move.GetFlags() - 9;
-        } else {
-            promoPiece = move.GetFlags() - 5;
-        }
+        int promoPiece = move.GetPromoPiece();
 
         value += SEEPieceValues[promoPiece] - SEEPieceValues[Pawn];
     } else if (move.GetFlags() == epCapture) {
