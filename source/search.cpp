@@ -81,7 +81,7 @@ static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
     return std::clamp(eval + corrhist / CORRHIST_GRAIN, -mateFound + 1, mateFound - 1);
 }
 
-static bool IsThreefold(Board &board, SearchContext* ctx) {
+static bool IsTwoFold(Board &board, SearchContext* ctx) {
     for (int i = 0; i < board.positionIndex; i++) {
         if (ctx->positionHistory[i] == board.hashKey) {
             // repetition found
@@ -103,7 +103,7 @@ static bool IsInsuffMat(Board &board) {
 }
 
 bool IsDraw(Board &board, SearchContext* ctx) {
-    return IsFifty(board) || IsInsuffMat(board) || IsThreefold(board, ctx);
+    return IsFifty(board) || IsInsuffMat(board) || IsTwoFold(board, ctx);
 }
 
 template <bool isPV>
@@ -174,11 +174,7 @@ bool SEE(Board& board, Move& move, int threshold) {
 
     // Next victim is moved piece or promo piece
     if (move.IsPromo()) {
-        if (move.IsCapture()) {
-            nextVictim = move.GetFlags() - 9;
-        } else {
-            nextVictim = move.GetFlags() - 5;
-        }
+        nextVictim = move.GetPromoPiece();
     }
 
     int balance = MoveEstimatedValue(board, move) - threshold;
@@ -324,7 +320,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         alpha = bestScore;
     }
 
-    const int fpScore = bestScore + 100;
+    const int fpScore = bestScore + qsFPMargin;
 
     MovePicker<Noisy> mp(board, ctx, ply, entry.bestMove);
 
@@ -332,11 +328,13 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     int nodeType = AllNode;
 
+    const bool inCheck = board.InCheck();
+
     Move currMove;
     while ((currMove = mp.Next())) {
         if (!IsLoss(bestScore)) {
             // QS FP
-            if (!board.InCheck() && currMove.IsCapture() &&
+            if (!inCheck && currMove.IsCapture() &&
                 fpScore <= alpha && !SEE(board, currMove, 1)) {
 
                 bestScore = std::max(bestScore, fpScore);
@@ -395,10 +393,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
 
-
     ctx->pvLine.SetLength(ply);
     if (ply && (IsDraw(board, ctx))) return 0;
-
 
     TTEntry entry;
     if (!ctx->excluded)
@@ -427,7 +423,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     int ttAdjustedEval = staticEval;
 
-    if (!ctx->excluded && !board.InCheck() && ttHit &&
+    const bool inCheck = board.InCheck();
+
+    if (!ctx->excluded && !inCheck && ttHit &&
         ((entry.nodeType == PV) ||
         (entry.nodeType == AllNode && entry.score <= staticEval) ||
         (entry.nodeType == CutNode && entry.score >= staticEval))) {
@@ -439,7 +437,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     const bool improving = [&]
     {
-        if (board.InCheck())
+        if (inCheck)
             return false;
         if (ply > 1 && ctx->ss[ply - 2].eval != ScoreNone)
             return staticEval > ctx->ss[ply - 2].eval;
@@ -449,7 +447,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         return true;
     }();
 
-    if (!board.InCheck() && !ctx->excluded) {
+    if (!inCheck && !ctx->excluded) {
         if (ply) {
             // Reverse Futility Pruning
             int margin = rfpBase + rfpMargin * (depth - improving);
@@ -561,7 +559,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     ctx->killerMoves[ply + 1] = Move();
 
-    // For all moves
+    // Move-loop
     Move currMove;
     while ((currMove = mp.Next())) {
 
@@ -586,18 +584,14 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveFrom());
         bool targetThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveTo());
 
+        int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()][sourceThreatened][targetThreatened];
+
+        if (ply > 0) historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 1);
+        if (ply > 1) historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
+
         // Futility pruning
         // If our static eval is far below alpha, there is only a small chance
         // that a quiet move will help us so we skip them
-        int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()][sourceThreatened][targetThreatened];
-
-        if (ply > 0) {
-            historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 1);
-
-            if (ply > 1)
-                historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
-        }
-
         int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
 
         if (!isPV && ply && currMove.IsQuiet()
@@ -664,7 +658,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 } else if (cutnode) {
                     extension--;
                 }
-            } else if (depth <= 7 && !board.InCheck() && staticEval <= alpha - ldseMargin && entry.nodeType == CutNode) {
+            } else if (depth <= 7 && !inCheck && staticEval <= alpha - ldseMargin && entry.nodeType == CutNode) {
                 extension++;
             }
         }
@@ -728,7 +722,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         // Fail high (beta cutoff)
         if (score >= beta) {
-            const int bonusDepth = depth + (!board.InCheck() && staticEval <= alpha);
+            const int bonusDepth = depth + (!inCheck && staticEval <= alpha);
             int historyBonus = historyBonusMultiplier * bonusDepth - historyBonusSub;
             int historyMalus = historyMalusMultiplier * bonusDepth - historyMalusSub;
             int contHistoryBonus = contHistoryBonusMultiplier * bonusDepth - contHistoryBonusSub;
@@ -736,80 +730,49 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             int captHistoryBonus = captHistoryBonusMultiplier * bonusDepth - captHistoryBonusSub;
             int captHistoryMalus = captHistoryMalusMultiplier * bonusDepth - captHistoryMalusSub;
 
+            auto UpdateCaptHist = [&](Move move, int bonus) {
+                int movingPiece   = board.GetPieceType(move.MoveFrom());
+                int capturedPiece = move.GetFlags() == epCapture ? Pawn : board.GetPieceType(move.MoveTo());
+                ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece, move.MoveTo(), bonus);
+            };
+
+            auto UpdateContHistNPly = [&](int n) {
+                int prevType    = ctx->ss[ply - n].pieceType;
+                int prevTo      = ctx->ss[ply - n].moveTo;
+                bool otherColor = ctx->ss[ply - n].side;
+                int pieceType   = ctx->ss[ply].pieceType;
+                int to          = ctx->ss[ply].moveTo;
+
+                ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, contHistoryBonus);
+
+                for (int i = 0; i < seenQuietsCount - 1; i++) {
+                    int pt = board.GetPieceType(seenQuiets[i].MoveFrom());
+                    int t  = seenQuiets[i].MoveTo();
+                    ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pt, t, -contHistoryMalus);
+                }
+            };
+
             if (!currMove.IsCapture()) {
                 ctx->killerMoves[ply] = currMove;
 
                 ctx->history.Update(board.sideToMove, currMove, sourceThreatened, targetThreatened, historyBonus);
 
-                if (ply > 0) {
-                    int prevType = ctx->ss[ply-1].pieceType;
-                    int prevTo = ctx->ss[ply-1].moveTo;
-                    int pieceType = ctx->ss[ply].pieceType;
-                    int to = ctx->ss[ply].moveTo;
-                    bool otherColor = ctx->ss[ply-1].side;
-
-                    ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, contHistoryBonus);
-
-                    // Malus
-                    for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
-                        int pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
-                        int to = seenQuiets[moveIndex].MoveTo();
-
-                        ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, -contHistoryMalus);
-                    }
-
-                    if (ply > 1) {
-                        prevType = ctx->ss[ply-2].pieceType;
-                        prevTo = ctx->ss[ply-2].moveTo;
-                        otherColor = ctx->ss[ply-2].side;
-
-                        ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, contHistoryBonus);
-
-                        // Malus
-                        for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
-                            int pieceType = board.GetPieceType(seenQuiets[moveIndex].MoveFrom());
-                            int to = seenQuiets[moveIndex].MoveTo();
-
-                            ctx->conthist.Update(board.sideToMove, otherColor, prevType, prevTo, pieceType, to, -contHistoryMalus);
-                        }
-
-                    }
-                }
-
+                if (ply > 0) UpdateContHistNPly(1);
+                if (ply > 1) UpdateContHistNPly(2);
 
                 // Malus
-                for (int moveIndex = 0; moveIndex < seenQuietsCount - 1; moveIndex++) {
-                    sourceThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[moveIndex].MoveFrom());
-                    targetThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[moveIndex].MoveTo());
-
-                    ctx->history.Update(board.sideToMove, seenQuiets[moveIndex], sourceThreatened, targetThreatened, -historyMalus);
+                for (int i = 0; i < seenQuietsCount - 1; i++) {
+                    sourceThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[i].MoveFrom());
+                    targetThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[i].MoveTo());
+                    ctx->history.Update(board.sideToMove, seenQuiets[i], sourceThreatened, targetThreatened, -historyMalus);
                 }
             } else {
-                int movingPiece = board.GetPieceType(currMove.MoveFrom());
-                int capturedPiece = board.GetPieceType(currMove.MoveTo());
-
-                if (currMove.GetFlags() == epCapture) {
-                    capturedPiece = Pawn;
-                }
-
-                ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece, currMove.MoveTo(), captHistoryBonus);
+                UpdateCaptHist(currMove, captHistoryBonus);
             }
 
             // Capthist malus
-            for (int moveIndex = 0; moveIndex < seenCapturesCount - currMove.IsCapture(); moveIndex++) {
-                int movingPiece = board.GetPieceType(seenCaptures[moveIndex].MoveFrom());
-                int capturedPiece = board.GetPieceType(seenCaptures[moveIndex].MoveTo());
-
-                if (seenCaptures[moveIndex].GetFlags() == epCapture) {
-                    capturedPiece = Pawn;
-                }
-
-                if (movingPiece == nullPieceType || capturedPiece == nullPieceType) {
-                    std::cout << "asd\n";
-                }
-
-                ctx->capthist.Update(board.sideToMove, movingPiece, capturedPiece,
-                    seenCaptures[moveIndex].MoveTo(), -captHistoryMalus);
+            for (int i = 0; i < seenCapturesCount - currMove.IsCapture(); i++) {
+                UpdateCaptHist(seenCaptures[i], -captHistoryMalus);
             }
 
             if (!ctx->excluded)
@@ -819,7 +782,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     }
 
     if (moveSeen == 0) {
-        if (board.InCheck()) { // checkmate
+        if (inCheck) { // checkmate
             return -MATE_SCORE + ply;
         } else { // stalemate
             return 0;
@@ -829,7 +792,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (searchStopped) return 0;
     if (!ctx->excluded) {
 
-        if (!board.InCheck() && ((results.bestMove.IsQuiet() || !results.bestMove))
+        if (!inCheck && ((results.bestMove.IsQuiet() || !results.bestMove))
                 && !(nodeType == AllNode && results.score >= staticEval)) {
 
             int corrHistBonus = std::clamp(results.score - staticEval, -CORRHIST_LIMIT, CORRHIST_LIMIT);
@@ -987,12 +950,7 @@ int MoveEstimatedValue(Board& board, Move& move) {
     int value = pieceType != nullPieceType ? SEEPieceValues[pieceType] : 0;
 
     if (move.IsPromo()) {
-        int promoPiece = -1;
-        if (move.IsCapture()) {
-            promoPiece = move.GetFlags() - 9;
-        } else {
-            promoPiece = move.GetFlags() - 5;
-        }
+        int promoPiece = move.GetPromoPiece();
 
         value += SEEPieceValues[promoPiece] - SEEPieceValues[Pawn];
     } else if (move.GetFlags() == epCapture) {

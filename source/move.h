@@ -65,7 +65,7 @@ public:
     }
 
     bool IsCastle() {
-        return (GetFlags() == kingCastle || GetFlags() == queenCastle); 
+        return (GetFlags() == kingCastle || GetFlags() == queenCastle);
     }
 
     void PrintMove() {
@@ -84,7 +84,7 @@ public:
         }
     }
 
-    std::string GetMoveString() { 
+    std::string GetMoveString() {
         std::string result = squareCoords[MoveFrom()];
         result += squareCoords[MoveTo()];
 
@@ -106,7 +106,7 @@ public:
     uint16_t ConvertToViriMoveFormat() {
         uint16_t viriMove = 0;
         int flags = GetFlags();
-    
+
         viriMove = MoveFrom();
 
         if (flags == kingCastle || flags == queenCastle) {
@@ -148,6 +148,14 @@ public:
         }
 
         return viriMove;
+    }
+
+    int GetPromoPiece() {
+        if (IsCapture()) {
+            return GetFlags() - 9;
+        } else {
+            return GetFlags() - 5;
+        }
     }
 
     operator uint16_t() {

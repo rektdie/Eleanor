@@ -24,7 +24,7 @@ void Board::Reset() {
 
     mailbox = std::array<int, 64>();
     mailbox.fill(nullPieceType);
-    
+
     pinned = std::array<Bitboard, 2>();
 
 	pieces = std::array<Bitboard, 6>();
@@ -424,11 +424,10 @@ void Board::MakeMove(Move move) {
 	RemovePiece(attackerPiece, move.MoveFrom(), attackerColor);
 
 	if (move.IsPromo()) {
+		endPiece = move.GetPromoPiece();
 		if (move.IsCapture()) {
-			endPiece = move.GetFlags() - 9;
 			Promote(move.MoveTo(), endPiece, sideToMove, true);
 		} else {
-			endPiece = move.GetFlags() - 5;
 			Promote(move.MoveTo(), endPiece, sideToMove, false);
 		}
 	}
@@ -708,7 +707,7 @@ Bitboard Board::CalcPinned(bool color) {
     int kingSquare = (pieces[King] & colors[color]).getLS1BIndex();
 
     assert(kingSquare != -1);
-    
+
     Bitboard oppQueens = pieces[Queen] & colors[!color];
 
     Bitboard potentialAttackers = MOVEGEN::getBishopAttack(kingSquare, colors[!color]) & (oppQueens | (pieces[Bishop] & colors[!color]))
@@ -977,11 +976,7 @@ bool Board::GivesDirectCheck(Move &move) {
     int attackerType = nullPieceType;
 
     if (move.IsPromo()) {
-        if (move.IsCapture()) {
-            attackerType = move.GetFlags() - 9;
-        } else {
-            attackerType = move.GetFlags() - 5;
-        }
+        attackerType = move.GetPromoPiece();
     } else {
         attackerType = GetPieceType(move.MoveFrom());
     }
