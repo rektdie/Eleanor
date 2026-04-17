@@ -39,7 +39,7 @@ ifeq ($(PLATFORM),mac)
 	endif
 else ifeq ($(PLATFORM),windows)
 	ARCH_FLAGS := -march=native
-	LDFLAGS += -static
+	LDFLAGS += -static -Wl,--stack,8388608
 else
 	ifeq ($(ARCH),aarch64)
 	    ARCH_FLAGS := -mcpu=native
