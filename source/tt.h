@@ -67,13 +67,11 @@ public:
     TTable() : table(defaultHash) {};
 
     void Resize(U64 size) {
-        table.resize(size);
+        table.assign(size, {});
     }
 
     void Clear() {
-        U64 size = table.size();
-        table.clear();
-        table.resize(size);
+        std::fill(table.begin(), table.end(), TTBucket());
     }
 
     void PrefetchEntry(U64 &hashKey) {

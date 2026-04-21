@@ -1,11 +1,12 @@
 #pragma once
+#include <atomic>
 #include "move.h"
 #include "board.h"
 
 inline bool UCIEnabled = false;
 inline bool UCIShowWDL = false;
 inline int threads = 1;
-inline bool searchStopped = false;
+inline std::atomic<bool> searchStopped = false;
 
 class SearchParams {
 public:

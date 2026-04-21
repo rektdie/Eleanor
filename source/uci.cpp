@@ -4,6 +4,7 @@
 #include <string>
 #include <tuple>
 #include <memory>
+#include <algorithm>
 #include "types.h"
 #include "movegen.h"
 #include "search.h"
@@ -20,9 +21,55 @@
     #include <pthread.h>
 #endif
 
+namespace {
+
+constexpr size_t DefaultPositionHistorySize = 1000;
+
+static void EnsurePositionHistory(SEARCH::SearchContext* ctx, int positionIndex) {
+    if (positionIndex >= static_cast<int>(ctx->positionHistory.size())) {
+        ctx->positionHistory.resize(positionIndex + 100);
+    }
+}
+
+static void ResetPositionHistory(SEARCH::SearchContext* ctx, const Board& board) {
+    const size_t historySize = std::max(DefaultPositionHistorySize, static_cast<size_t>(board.positionIndex + 100));
+    ctx->positionHistory.assign(historySize, 0);
+    ctx->positionHistory[board.positionIndex] = board.hashKey;
+}
+
+#ifdef _WIN32
+static std::vector<std::thread> searchThreads;
+#else
+static std::vector<pthread_t> searchThreads;
+#endif
+
+static void JoinSearchThreads() {
+#ifdef _WIN32
+    for (auto& thread : searchThreads) {
+        if (thread.joinable()) {
+            thread.join();
+        }
+    }
+#else
+    for (pthread_t& thread : searchThreads) {
+        pthread_join(thread, nullptr);
+    }
+#endif
+
+    searchThreads.clear();
+}
+
+static void StopSearchThreads() {
+    searchStopped.store(true, std::memory_order_relaxed);
+    JoinSearchThreads();
+}
+
+} // namespace
+
 static void ParsePosition(Board &board, std::string_view command, SEARCH::SearchContext* ctx) {
     if (command.find("startpos") != std::string::npos) {
         board.SetByFen(StartingFen);
+        ResetPositionHistory(ctx, board);
     }
 
     int fenIndex = command.find("fen");
@@ -34,6 +81,8 @@ static void ParsePosition(Board &board, std::string_view command, SEARCH::Search
         } else {
             board.SetByFen(command.substr(fenIndex + 4, command.length() - (fenIndex + 3)));
         }
+
+        ResetPositionHistory(ctx, board);
     }
 
     if (movesIndex != std::string::npos) {
@@ -41,6 +90,7 @@ static void ParsePosition(Board &board, std::string_view command, SEARCH::Search
 
         for (std::string_view move : moves) {
             board.MakeMove(UTILS::parseMove(board, move));
+            EnsurePositionHistory(ctx, board.positionIndex);
             ctx->positionHistory[board.positionIndex] = board.hashKey;
         }
     }
@@ -89,22 +139,21 @@ static double ReadParam(const std::string& param, const std::string &command) {
 #ifdef _WIN32
 // Windows implementation using std::thread
 template <SEARCH::searchMode mode>
-static void ThreadFunc(Board* board, SearchParams params, SEARCH::SearchContext* ctx) {
-    SEARCH::SearchPosition<mode>(*board, params, ctx);
+static void ThreadFunc(Board board, SearchParams params, SEARCH::SearchContext* ctx) {
+    SEARCH::SearchPosition<mode>(board, params, ctx);
     delete ctx;
 }
 
 static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchContext* ctx, int id) {
-    std::thread searchThread;
     SEARCH::SearchContext* ctxCopy = new SEARCH::SearchContext(*ctx);
     if (id == 0)
         ctxCopy->doPrint = true;
+
     if (params.nodes) {
-        searchThread = std::thread(ThreadFunc<SEARCH::nodesMode>, &board, params, ctxCopy);
+        searchThreads.emplace_back(ThreadFunc<SEARCH::nodesMode>, board, params, ctxCopy);
     } else {
-        searchThread = std::thread(ThreadFunc<SEARCH::normal>, &board, params, ctxCopy);
+        searchThreads.emplace_back(ThreadFunc<SEARCH::normal>, board, params, ctxCopy);
     }
-    searchThread.detach();
 }
 
 #else
@@ -124,25 +173,46 @@ static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchC
     pthread_attr_init(&attr);
     pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);  // 8 MB stack
 
-    pthread_t thread;
-
     SEARCH::SearchContext* ctxCopy = new SEARCH::SearchContext(*ctx);
     if (id == 0)
         ctxCopy->doPrint = true;
+
+    pthread_t thread;
+    int rc = 0;
+
     if (params.nodes) {
         auto* arg = new std::tuple<Board, SearchParams, SEARCH::SearchContext*>(board, params, ctxCopy);
-        pthread_create(&thread, &attr, ThreadFunc<SEARCH::nodesMode>, arg);
+        rc = pthread_create(&thread, &attr, ThreadFunc<SEARCH::nodesMode>, arg);
+        if (rc != 0) {
+            delete std::get<2>(*arg);
+            delete arg;
+            ctxCopy = nullptr;
+        }
     } else {
         auto* arg = new std::tuple<Board, SearchParams, SEARCH::SearchContext*>(board, params, ctxCopy);
-        pthread_create(&thread, &attr, ThreadFunc<SEARCH::normal>, arg);
+        rc = pthread_create(&thread, &attr, ThreadFunc<SEARCH::normal>, arg);
+        if (rc != 0) {
+            delete std::get<2>(*arg);
+            delete arg;
+            ctxCopy = nullptr;
+        }
     }
 
     pthread_attr_destroy(&attr);
-    pthread_detach(thread);
+
+    if (rc == 0) {
+        searchThreads.push_back(thread);
+    } else {
+        delete ctxCopy;
+    }
 }
 #endif
 
 static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* ctx) {
+    StopSearchThreads();
+    searchStopped.store(false, std::memory_order_relaxed);
+    ctx->TT->IncreaseAge();
+
     SearchParams params;
 
     params.wtime = ReadParam("wtime", command);
@@ -160,12 +230,15 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* c
         params.btime = 99999999;
     }
 
+    searchThreads.reserve(threads);
     for (int i = 0; i < threads; i++) {
         StartSearchThread(board, params, ctx, i);
     }
 }
 
 static void SetOption(std::string& command, SEARCH::SearchContext* ctx) {
+    StopSearchThreads();
+
     if (command.find("Hash") != std::string::npos) {
         U64 hashSize = (ReadParam("value", command) * 1000000ULL) / sizeof(TTEntry);
         ctx->TT->Resize(hashSize);
@@ -265,6 +338,7 @@ void UCILoop(Board &board) {
 
         // parse UCI "ucinewgame" command
         if (input.find("ucinewgame") != std::string::npos) {
+            StopSearchThreads();
             board.SetByFen(StartingFen);
 
             // Clearing
@@ -274,7 +348,7 @@ void UCILoop(Board &board) {
             ctx->history.Clear();
             ctx->conthist.Clear();
             ctx->corrhist.Clear();
-            ctx->positionHistory = {};
+            ResetPositionHistory(ctx.get(), board);
             ctx->ss = {};
 
             continue;
@@ -288,14 +362,14 @@ void UCILoop(Board &board) {
 
         // parse UCI "quit" command
         if (input.find("quit") != std::string::npos) {
+            StopSearchThreads();
             // stop the loop
             break;
         }
 
         // parse UCI "stop" command
         if (input.find("stop") != std::string::npos) {
-            // stop the loop
-            searchStopped = true;
+            StopSearchThreads();
             continue;
         }
 
