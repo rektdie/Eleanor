@@ -32,7 +32,8 @@ A 1536-hidden-layer *perspective net* with 8 input buckets, 8 output buckets and
 ## Installation
 
 > **Prerequisites:**  
-> - `clang++` on linux, `g++` on windows  
+> - `clang++` compiler
+> - On Windows, `clang++` must have access to a MinGW GNU toolchain/runtime because the build targets `x86_64-w64-windows-gnu`
 > - Access to `make` command  
 
 1. Clone the repository  

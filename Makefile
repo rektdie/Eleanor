@@ -5,14 +5,16 @@ OBJ_DIR := obj
 EXE ?= Eleanor
 EVALFILE := ./nnue.bin
 
+CXX := clang++
+
 ifeq ($(OS),Windows_NT)
 	UNAME_S := Windows
+	ARCH := x86_64
 	EXE_EXT := .exe
 	MKDIR := mkdir
 	RM := rmdir /s /q
 	DEL := del /q
 	PLATFORM := windows
-	CXX := g++
 else
 	UNAME_S := $(shell uname -s)
 	ARCH := $(shell uname -m)
@@ -20,7 +22,6 @@ else
 	MKDIR := mkdir -p
 	RM := rm -rf
 	DEL := rm -f
-	CXX := clang++
 	ifeq ($(UNAME_S),Darwin)
 	    PLATFORM := mac
 	else
@@ -28,6 +29,8 @@ else
 	endif
 endif
 
+CXX_BASE := $(notdir $(firstword $(CXX)))
+CXX_DRIVER_FLAGS :=
 CXXFLAGS := -std=c++20 -O3 -flto -Wall
 LDFLAGS := -O3 -flto
 
@@ -39,6 +42,9 @@ ifeq ($(PLATFORM),mac)
 	endif
 else ifeq ($(PLATFORM),windows)
 	ARCH_FLAGS := -march=native
+	CXX_DRIVER_FLAGS += --target=$(ARCH)-w64-windows-gnu
+	CXXFLAGS += -pthread
+	LDFLAGS += -pthread
 	LDFLAGS += -static -Wl,--stack,8388608
 else
 	ifeq ($(ARCH),aarch64)
@@ -58,10 +64,10 @@ SRCS := $(wildcard $(SRC_DIR)/*.cpp)
 OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
 $(EXE)$(EXE_EXT): $(OBJS)
-	$(CXX) $(CXXFLAGS) -DEVALFILE=\"$(EVALFILE)\" $^ -o $@ $(LDFLAGS)
+	$(CXX) $(CXX_DRIVER_FLAGS) $(CXXFLAGS) -DEVALFILE=\"$(EVALFILE)\" $^ -o $@ $(LDFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(CXX_DRIVER_FLAGS) $(CXXFLAGS) -c -o $@ $<
 
 $(OBJ_DIR):
 	$(MKDIR) $(OBJ_DIR)
