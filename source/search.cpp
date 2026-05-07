@@ -496,7 +496,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     }
 
     // Probcut
-    const int probcutBeta = beta + probcutBetaMargin;
+    const int probcutBeta = beta + probcutBetaMargin - 60 * improving;
     const int probcutDepth = std::max(depth - 3, 1);
 
     if (depth >= 7 && std::abs(beta) < MATE_SCORE - MAX_DEPTH
