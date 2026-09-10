@@ -275,16 +275,14 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
 
-    int bestScore = AdjustEval(board, ctx, NNUE::net.Evaluate(board, mode == datagen));
+    TTEntry entry = ctx->TT->GetEntry(board.hashKey);
+    bool ttHit = entry.hashKey == board.hashKey;
+
+    int rawEval = ttHit ? entry.eval : NNUE::net.Evaluate(board, mode == datagen);
+    int bestScore = AdjustEval(board, ctx, rawEval);
     ctx->ss[ply].eval = bestScore;
 
-    TTEntry entry;
-    bool ttHit = false;
-    entry = ctx->TT->GetEntry(board.hashKey);
-
-    if (entry.hashKey == board.hashKey) {
-        ttHit = true;
-
+    if (ttHit) {
         switch (entry.nodeType) {
             case PV:
                 return entry.score;
@@ -364,7 +362,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         int score = -Quiescence<isPV, mode>(copy, -beta, -alpha, ply + 1, ctx).score;
 
         if (score >= beta) {
-            ctx->TT->WriteEntry(board.hashKey, 0, score, CutNode, currMove, ttpv);
+            ctx->TT->WriteEntry(board.hashKey, 0, score, CutNode, currMove, ttpv, rawEval);
             return score;
         }
 
@@ -379,7 +377,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     results.score = bestScore;
     if (searchStopped.load(std::memory_order_relaxed)) return 0;
-    ctx->TT->WriteEntry(board.hashKey, 0, results.score, nodeType, results.bestMove, ttpv);
+    ctx->TT->WriteEntry(board.hashKey, 0, results.score, nodeType, results.bestMove, ttpv, rawEval);
     return results;
 }
 
@@ -410,6 +408,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 (entry.nodeType == AllNode && entry.score <= alpha) ||
                 (entry.nodeType == CutNode && entry.score >= beta))) {
 
+                ctx->ss[ply].eval = AdjustEval(board, ctx, entry.eval);
+
                 return SearchResults(entry.score, entry.bestMove);
             }
         }
@@ -417,7 +417,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     if (depth <= 0) return Quiescence<isPV, mode>(board, alpha, beta, ply, ctx);
 
-    int rawEval = NNUE::net.Evaluate(board, mode == datagen);
+    int rawEval = ttHit ? entry.eval : NNUE::net.Evaluate(board, mode == datagen);
     const int staticEval = AdjustEval(board, ctx, rawEval);
     ctx->ss[ply].eval = staticEval;
 
@@ -536,7 +536,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             if (searchStopped.load(std::memory_order_relaxed)) return 0;
 
             if (score >= probcutBeta) {
-                ctx->TT->WriteEntry(board.hashKey, probcutDepth, score, CutNode, currMove, ttpv);
+                ctx->TT->WriteEntry(board.hashKey, probcutDepth, score, CutNode, currMove, ttpv, rawEval);
 
                 return score;
             }
@@ -776,7 +776,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
 
             if (!ctx->excluded)
-                ctx->TT->WriteEntry(board.hashKey, depth, score, CutNode, currMove, ttpv);
+                ctx->TT->WriteEntry(board.hashKey, depth, score, CutNode, currMove, ttpv, rawEval);
             return score;
         }
     }
@@ -800,7 +800,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             ctx->corrhist.UpdateAll(board, depth, corrHistBonus);
         }
 
-        ctx->TT->WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove, ttpv);
+        ctx->TT->WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove, ttpv, rawEval);
     }
     return results;
 }

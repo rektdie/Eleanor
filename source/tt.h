@@ -23,6 +23,7 @@ class TTEntry {
 public:
     U64 hashKey = 0;
     int16_t score = 0;
+    int16_t eval = 0;
     Move bestMove = Move();
     uint8_t depth = 0;
     uint8_t nodeType = 0;
@@ -104,7 +105,7 @@ public:
         return count;
     }
 
-    void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove, bool ttpv);
+    void WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove, bool ttpv, int eval);
 };
 
 extern TTable SharedTT;
