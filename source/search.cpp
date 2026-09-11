@@ -837,6 +837,10 @@ static double ScaleTime(SearchContext *ctx, Move &move) {
     return nodeScalingFactor;
 }
 
+static double BestMoveStabilityScale(int stability) {
+    return std::max(bmStabilityMin, bmStabilityBase - bmStabilityStep * stability);
+}
+
 // Iterative deepening
 template <searchMode mode>
 static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
@@ -858,12 +862,15 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
     int elapsed = 0;
 
     double nodeScaling = 1;
+    double stabilityScale = 1;
+    Move prevBestMove = Move();
+    int bestMoveStability = 0;
 
     ctx->sw.Restart();
 
     for (int depth = 1; depth <= toDepth; depth++) {
         ctx->timeToSearch = std::max((fullTime / movesToGo) + (inc / 2), 4);
-        int softTime = ctx->timeToSearch * 0.65 * nodeScaling;
+        int softTime = ctx->timeToSearch * 0.65 * nodeScaling * stabilityScale;
         ctx->seldepth = 0;
         ctx->rootDepth = depth;
 
@@ -887,6 +894,14 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
         }
 
         aw.Set(currentResults.score);
+
+        if (currentResults.bestMove == prevBestMove) {
+            bestMoveStability = std::min(bestMoveStability + 1, 10);
+        } else {
+            bestMoveStability = 0;
+        }
+        prevBestMove = currentResults.bestMove;
+        stabilityScale = BestMoveStabilityScale(bestMoveStability);
 
         if (searchStopped.load(std::memory_order_relaxed)) {
             break;

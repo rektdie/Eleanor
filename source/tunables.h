@@ -14,6 +14,9 @@
     X_DOUBLE(lmrDivisorQuiet, 2.3063513397139945, 1.6, 3.6) \
     X_DOUBLE(lmrBaseNoisy, 0.451805556082857, 0.1, 1.1) \
     X_DOUBLE(lmrDivisorNoisy, 3.1355330830404338, 2.0, 4.5) \
+    X_DOUBLE(bmStabilityBase, 1.30, 1.0, 1.7) \
+    X_DOUBLE(bmStabilityStep, 0.05, 0.0, 0.15) \
+    X_DOUBLE(bmStabilityMin, 0.85, 0.5, 1.2) \
     X_INT(lmrCutnode, 2005, 1024, 3072) \
     X_INT(lmrIsPV, 982, 256, 2048) \
     X_INT(lmrTTPV, 936, 256, 2048) \
@@ -52,7 +55,7 @@
     X_INT(captHistoryBonusMultiplier, 302, 280, 320) \
     X_INT(captHistoryBonusSub, 249, 235, 265) \
     X_INT(captHistoryMalusMultiplier, 300, 280, 320) \
-    X_INT(captHistoryMalusSub, 249, 235, 265)
+    X_INT(captHistoryMalusSub, 249, 235, 265) \
 
 #ifdef TUNING
     #define X_DOUBLE(name, default_val, min_val, max_val) \
