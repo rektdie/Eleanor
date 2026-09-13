@@ -468,7 +468,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     Board copy = board;
                     copy.MakeMove(Move());
 
-                    const int reduction = 4 + improving + depth / 3 + entry.bestMove.IsCapture();
+                    const int evalMargin = std::clamp((ttAdjustedEval - beta) / 256, 0, 3);
+                    const int reduction = 4 + improving + depth / 3 + entry.bestMove.IsCapture() + evalMargin;
 
                     ctx->TT->PrefetchEntry(copy.hashKey);
 
