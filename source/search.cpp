@@ -282,7 +282,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     bool ttHit = false;
     entry = ctx->TT->GetEntry(board.hashKey);
 
-    if (entry.hashKey == board.hashKey) {
+    if (entry.IsFilled() && entry.hashKey == board.hashKey) {
         ttHit = true;
 
         switch (entry.nodeType) {
@@ -400,7 +400,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (!ctx->excluded)
         entry = ctx->TT->GetEntry(board.hashKey);
 
-    const bool ttHit = entry.hashKey == board.hashKey;
+    const bool ttHit = (entry.IsFilled() && entry.hashKey == board.hashKey);
     const bool ttpv = isPV | entry.ttpv;
 
     if constexpr (!isPV) {

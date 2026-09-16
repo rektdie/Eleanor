@@ -6,13 +6,13 @@ void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move b
     TTBucket *bucket = &table[hashKey % table.size()];
     TTEntry *current = nullptr;
 
-    if (bucket->depthPreferred && bucket->depthPreferred.hashKey == hashKey) {
+    if (bucket->depthPreferred.IsFilled() && bucket->depthPreferred.hashKey == hashKey) {
         current = &bucket->depthPreferred;
-    } else if (bucket->alwaysReplace && bucket->alwaysReplace.hashKey == hashKey) {
+    } else if (bucket->alwaysReplace.IsFilled() && bucket->alwaysReplace.hashKey == hashKey) {
         current = &bucket->alwaysReplace;
-    } else if (!bucket->alwaysReplace) {
+    } else if (!bucket->alwaysReplace.IsFilled()) {
         current = &bucket->alwaysReplace;
-    } else if (!bucket->depthPreferred) {
+    } else if (!bucket->depthPreferred.IsFilled()) {
         current = &bucket->depthPreferred;
     } else if (ttpv) {
         current = &bucket->depthPreferred;

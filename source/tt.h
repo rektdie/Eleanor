@@ -38,6 +38,8 @@ public:
     operator U64() {
         return hashKey;
     }
+
+    inline bool IsFilled() const { return depth != 0; }
 };
 
 class TTBucket {
@@ -84,9 +86,9 @@ public:
 
     TTEntry GetEntry(U64 &hashKey) {
         TTBucket *current = &table[hashKey % table.size()];
-        if (current->depthPreferred.hashKey == hashKey) {
+        if (current->depthPreferred.IsFilled() && current->depthPreferred.hashKey == hashKey) {
             return current->depthPreferred;
-        } else if (current->alwaysReplace.hashKey == hashKey) {
+        } else if (current->alwaysReplace.IsFilled() && current->alwaysReplace.hashKey == hashKey) {
             return current->alwaysReplace;
         }
 
@@ -98,7 +100,7 @@ public:
         int count = 0;
 
         for (int i = 0; i < 1000; i++) {
-            if (table[i].depthPreferred || table[i].alwaysReplace) count++;
+            if (table[i].depthPreferred.IsFilled() || table[i].alwaysReplace.IsFilled()) count++;
         }
 
         return count;
