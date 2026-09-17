@@ -599,6 +599,12 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             continue;
         }
 
+        // Quiet history pruning
+        if (!isPV && ply && currMove.IsQuiet() && notMated && depth <= 6
+                && historyScore < historyPruningMargin * depth) {
+            continue;
+        }
+
         // PVS SEE
         int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
 
