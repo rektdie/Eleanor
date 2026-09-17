@@ -275,9 +275,6 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
 
-    int bestScore = AdjustEval(board, ctx, NNUE::net.Evaluate(board, mode == datagen));
-    ctx->ss[ply].eval = bestScore;
-
     TTEntry entry;
     bool ttHit = false;
     entry = ctx->TT->GetEntry(board.hashKey);
@@ -298,6 +295,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     }
 
     const bool ttpv = isPV | entry.ttpv;
+
+    int bestScore = AdjustEval(board, ctx, NNUE::net.Evaluate(board, mode == datagen));
+    ctx->ss[ply].eval = bestScore;
 
     if (ttHit) {
         switch (entry.nodeType) {
