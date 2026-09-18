@@ -334,7 +334,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     while ((currMove = mp.Next())) {
         if (!IsLoss(bestScore)) {
             // QS FP
-            if (!inCheck && currMove.IsCapture() &&
+            if (currMove.IsCapture() &&
                 fpScore <= alpha && !SEE(board, currMove, 1)) {
 
                 bestScore = std::max(bestScore, fpScore);
