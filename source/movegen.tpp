@@ -270,14 +270,14 @@ void GenKingMoves(Board &board) {
 }
 
 template <MovegenMode mode>
-void GenerateMoves(Board &board, bool clear) {
+void GenerateMoves(Board &board, bool clear, bool recalcThreats) {
     if (clear) {
         board.ResetMoves();
-        board.pieceThreats = {};
-        board.colorThreats = {};
     }
 
-    GenThreatMaps(board);
+    if (recalcThreats) {
+        GenThreatMaps(board);
+    }
 
 	GenPawnMoves<mode>(board);
 	GenKnightMoves<mode>(board);
