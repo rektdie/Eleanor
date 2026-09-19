@@ -53,7 +53,8 @@
     X_INT(captHistoryBonusMultiplier, 302, 280, 320) \
     X_INT(captHistoryBonusSub, 249, 235, 265) \
     X_INT(captHistoryMalusMultiplier, 300, 280, 320) \
-    X_INT(captHistoryMalusSub, 249, 235, 265)
+    X_INT(captHistoryMalusSub, 249, 235, 265) \
+    X_INT(fiftyMoveScaleBase, 200, 100, 400)
 
 #ifdef TUNING
     #define X_DOUBLE(name, default_val, min_val, max_val) \
