@@ -38,7 +38,7 @@ template <MovegenMode mode>
 void GenKingMoves(Board &board);
 
 template <MovegenMode mode>
-void GenerateMoves(Board &board, bool clear);
+void GenerateMoves(Board &board, bool clear, bool recalcThreats = true);
 
 void GenThreatMaps(Board &board);
 

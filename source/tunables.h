@@ -41,6 +41,7 @@
     X_INT(seeQsThreshold, -13, -120, 120) \
     X_INT(seeOrderingThreshold, -102, -200, 0) \
     X_INT(ldseMargin, 26, 0, 96) \
+    X_INT(noisyScoreScale, 32, 0, 96) \
     X_INT(historyBonusMultiplier, 306, 280, 320) \
     X_INT(historyBonusSub, 252, 235, 265) \
     X_INT(historyMalusMultiplier, 301, 280, 320) \
