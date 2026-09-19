@@ -25,7 +25,6 @@ constexpr int MAX_DEPTH = 256;
 constexpr int MAX_HISTORY = 16384;
 constexpr int WIN_SCORE = 30000;
 
-constexpr int CORRHIST_WEIGHT_SCALE = 256;
 constexpr int CORRHIST_GRAIN = 256;
 constexpr int CORRHIST_LIMIT = 1024;
 constexpr int CORRHIST_SIZE = 16384;
@@ -83,18 +82,19 @@ private:
     MultiArray<int, 2, CORRHIST_SIZE> nonPawnHist;
     MultiArray<int, 2, CORRHIST_SIZE> majorHist;
 public:
-    void Update(Board& board, int depth, int diff, int* entry) {
+    void Update(int depth, int diff, int* entry) {
         const int scaledDiff = diff * CORRHIST_GRAIN;
-        const int newWeight = std::min(depth * depth + 2 * depth + 1, 128);
+        const int bonus = std::clamp(scaledDiff * std::min(depth, corrHistMaxDepth) / corrHistMaxDepth,
+                                      -corrHistBonusMax, corrHistBonusMax);
 
-        *entry = (*entry * (CORRHIST_WEIGHT_SCALE - newWeight) + scaledDiff * newWeight) / CORRHIST_WEIGHT_SCALE;
+        *entry += bonus - *entry * std::abs(bonus) / CORRHIST_MAX;
         *entry = std::clamp(*entry, -CORRHIST_MAX, CORRHIST_MAX);
     }
 
     void UpdateAll(Board& board, int depth, int diff) {
-        Update(board, depth, diff, &pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]);
-        Update(board, depth, diff, &nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE]);
-        Update(board, depth, diff, &majorHist[board.sideToMove][board.majorKey % CORRHIST_SIZE]);
+        Update(depth, diff, &pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]);
+        Update(depth, diff, &nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE]);
+        Update(depth, diff, &majorHist[board.sideToMove][board.majorKey % CORRHIST_SIZE]);
     }
 
     int GetAllHist(Board& board) {

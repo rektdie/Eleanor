@@ -41,6 +41,8 @@
     X_INT(seeQsThreshold, -13, -120, 120) \
     X_INT(seeOrderingThreshold, -102, -200, 0) \
     X_INT(ldseMargin, 26, 0, 96) \
+    X_INT(corrHistMaxDepth, 16, 4, 32) \
+    X_INT(corrHistBonusMax, 8192, 1024, 16384) \
     X_INT(noisyScoreScale, 32, 0, 96) \
     X_INT(historyBonusMultiplier, 306, 280, 320) \
     X_INT(historyBonusSub, 252, 235, 265) \
