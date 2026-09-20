@@ -658,8 +658,13 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 } else if (cutnode) {
                     extension--;
                 }
-            } else if (depth <= 7 && !inCheck && staticEval <= alpha - ldseMargin && entry.nodeType == CutNode) {
-                extension++;
+            } else if (depth <= 7 && !inCheck && entry.nodeType == CutNode) {
+                int corrHistRaw = ctx->corrhist.GetAllHist(board);
+                int ldseAdjustedMargin = ldseMargin + ldseCorrhistWeight * std::abs(corrHistRaw) / LDSE_CORRHIST_SCALE;
+
+                if (ttAdjustedEval <= alpha - ldseAdjustedMargin) {
+                    extension++;
+                }
             }
         }
 

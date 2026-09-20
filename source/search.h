@@ -31,6 +31,8 @@ constexpr int CORRHIST_LIMIT = 1024;
 constexpr int CORRHIST_SIZE = 16384;
 constexpr int CORRHIST_MAX = 16384;
 
+constexpr int LDSE_CORRHIST_SCALE = 98304;
+
 constexpr int32_t ScoreNone = -255000;
 constexpr int inf = 100000;
 
