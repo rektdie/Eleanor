@@ -78,7 +78,12 @@ static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
 
     int mateFound = MATE_SCORE - MAX_DEPTH;
 
-    return std::clamp(eval + corrhist / CORRHIST_GRAIN, -mateFound + 1, mateFound - 1);
+    int adjusted = eval + corrhist / CORRHIST_GRAIN;
+
+    const int scaleNumerator = std::max(0, fiftyMoveScaleBase - board.halfMoves);
+    adjusted = adjusted * scaleNumerator / fiftyMoveScaleBase;
+
+    return std::clamp(adjusted, -mateFound + 1, mateFound - 1);
 }
 
 static bool IsTwoFold(Board &board, SearchContext* ctx) {
