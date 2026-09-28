@@ -780,6 +780,12 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 UpdateCaptHist(seenCaptures[i], -captHistoryMalus);
             }
 
+            // Corrhist update on fail high
+            if (!ctx->excluded && !inCheck && currMove.IsQuiet() && score > staticEval) {
+                int corrHistBonus = std::clamp(score - staticEval, -CORRHIST_LIMIT, CORRHIST_LIMIT);
+                ctx->corrhist.UpdateAll(board, depth, corrHistBonus);
+            }
+
             if (!ctx->excluded)
                 ctx->TT->WriteEntry(board.hashKey, depth, score, CutNode, currMove, ttpv);
             return score;
