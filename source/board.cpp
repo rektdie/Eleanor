@@ -45,6 +45,7 @@ void Board::Reset() {
     pawnKey = 0ULL;
     nonPawnKey = 0ULL;
     majorKey = 0ULL;
+    minorKey = 0ULL;
 
     checkZones = std::array<Bitboard, 4>();
 }
@@ -97,6 +98,7 @@ void Board::SetByFen(std::string_view fen) {
     pawnKey = 0ULL;
     nonPawnKey = 0ULL;
     majorKey = 0ULL;
+    minorKey = 0ULL;
 
     occupied = colors[White] | colors[Black];
     hashKey = UTILS::GetHashKey(*this);
@@ -310,6 +312,8 @@ void Board::SetPiece(int piece, int square, bool color) {
 
         if (piece == King || piece == Rook || piece == Queen) {
             majorKey ^= UTILS::zKeys[color][piece][square];
+        } else if (piece == Knight || piece == Bishop) {
+            minorKey ^= UTILS::zKeys[color][piece][square];
         }
     }
 }
@@ -330,6 +334,8 @@ void Board::RemovePiece(int piece, int square, bool color) {
 
         if (piece == King || piece == Rook || piece == Queen) {
             majorKey ^= UTILS::zKeys[color][piece][square];
+        } else if (piece == Knight || piece == Bishop) {
+            minorKey ^= UTILS::zKeys[color][piece][square];
         }
     }
 }
