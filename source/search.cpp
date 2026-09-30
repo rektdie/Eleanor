@@ -620,14 +620,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         Board copy = board;
         copy.MakeMove(currMove);
 
-        ctx->ss[ply].pieceType = board.GetPieceType(currMove.MoveFrom());
-        ctx->ss[ply].moveTo = currMove.MoveTo();
-        ctx->ss[ply].side = board.sideToMove;
-
-        if (copy.positionIndex >= ctx->positionHistory.size()) {
-            ctx->positionHistory.resize(copy.positionIndex + 100);
-        }
-        ctx->positionHistory[copy.positionIndex] = copy.hashKey;
         ctx->nodes++;
 
         ctx->TT->PrefetchEntry(copy.hashKey);
@@ -675,6 +667,14 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         cutnode |= extension < 0;
 
+        ctx->ss[ply].pieceType = board.GetPieceType(currMove.MoveFrom());
+        ctx->ss[ply].moveTo = currMove.MoveTo();
+        ctx->ss[ply].side = board.sideToMove;
+
+        if (copy.positionIndex >= ctx->positionHistory.size()) {
+            ctx->positionHistory.resize(copy.positionIndex + 100);
+        }
+        ctx->positionHistory[copy.positionIndex] = copy.hashKey;
 
         int newDepth = depth + (copy.InCheck() && !ctx->excluded) - 1 + extension;
 
