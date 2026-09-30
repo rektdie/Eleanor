@@ -296,9 +296,11 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
             case CutNode:
                 if (entry.score >= beta)
                     return entry.score;
+                break;
             case AllNode:
                 if (entry.score <= alpha)
                     return entry.score;
+                break;
         }
     }
 
@@ -308,12 +310,15 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         switch (entry.nodeType) {
             case PV:
                 bestScore = entry.score;
+                break;
             case CutNode:
                 if (entry.score > bestScore)
                     bestScore = entry.score;
+                break;
             case AllNode:
                 if (entry.score < bestScore)
                     bestScore = entry.score;
+                break;
         }
     }
 
