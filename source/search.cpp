@@ -798,11 +798,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     }
 
     if (moveSeen == 0) {
-        if (inCheck) { // checkmate
-            return -MATE_SCORE + ply;
-        } else { // stalemate
-            return 0;
-        }
+        if (ctx->excluded) return alpha;
+        return inCheck ? -MATE_SCORE + ply : 0;
     }
 
     if (searchStopped.load(std::memory_order_relaxed)) return 0;
