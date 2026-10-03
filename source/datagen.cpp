@@ -13,8 +13,10 @@
 #include <csignal>
 #include <cstdlib>
 #include <cerrno>
+#include <vector>
 
 #include "datagen.h"
+#include "datagenui.h"
 #include "movegen.h"
 #include "search.h"
 #include "utils.h"
@@ -277,7 +279,8 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext* ctx) {
     }
 }
 
-static void WriteToFile(std::vector<Game> &gamesBuffer, const std::string& basePath, int& fileCounter) {
+static void WriteToFile(std::vector<Game> &gamesBuffer, const std::string& basePath, int& fileCounter,
+                        std::atomic<int>& files) {
     if (gamesBuffer.empty()) return;
 
     int32_t zeroes = 0;
@@ -330,6 +333,7 @@ static void WriteToFile(std::vector<Game> &gamesBuffer, const std::string& baseP
         return;
     }
 
+    files.fetch_add(1, std::memory_order_relaxed);
     fileCounter++;
 }
 
@@ -395,7 +399,7 @@ static std::string MergeThreadFiles() {
     return finalFileName;
 }
 
-static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& stopFlag) {
+static void PlayGames(int id, DatagenStats& stats, std::atomic<bool>& stopFlag) {
     std::vector<Game> gamesBuffer;
     gamesBuffer.reserve(GAME_BUFFER);
 
@@ -416,9 +420,15 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
             PlayRandMoves(board, ctx.get());
             if (IsGameOver(board, ctx.get())) continue;
 
+            ctx->nodes = 0;
             const int startingScore = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx.get()).score;
 
-            if (std::abs(startingScore) >= evenityMargin) continue;
+            stats.nodes.fetch_add(ctx->nodes, std::memory_order_relaxed);
+
+            if (std::abs(startingScore) >= evenityMargin) {
+                stats.rejected.fetch_add(1, std::memory_order_relaxed);
+                continue;
+            }
 
             ctx->nodes = 0;
 
@@ -433,7 +443,9 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
             while (!IsGameOver(board, ctx.get())) {
                 if (g_shutdownRequested) break;
 
+                ctx->nodes = 0;
                 SearchResults results = SEARCH::SearchPosition<SEARCH::datagen>(board, SearchParams(), ctx.get());
+                stats.nodes.fetch_add(ctx->nodes, std::memory_order_relaxed);
 
                 if (!results.bestMove) break;
                 safeResults = results;
@@ -444,7 +456,7 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
                 board.MakeMove(results.bestMove);
                 ctx->positionHistory[board.positionIndex] = board.hashKey;
 
-                positions++;
+                stats.positions.fetch_add(1, std::memory_order_relaxed);
 
                 MOVEGEN::GenerateMoves<All>(board, true);
             }
@@ -455,21 +467,22 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
 
             game.format.packFrom(startpos, staticEval, wdl);
             gamesBuffer.emplace_back(game);
+            stats.games.fetch_add(1, std::memory_order_relaxed);
 
             if (gamesBuffer.size() >= GAME_BUFFER) {
-                WriteToFile(gamesBuffer, basePath, fileCounter);
+                WriteToFile(gamesBuffer, basePath, fileCounter, stats.files);
                 gamesBuffer.clear();
             }
         }
     } catch (...) {
         if (!gamesBuffer.empty()) {
-            WriteToFile(gamesBuffer, basePath, fileCounter);
+            WriteToFile(gamesBuffer, basePath, fileCounter, stats.files);
         }
         throw;
     }
 
     if (!gamesBuffer.empty()) {
-        WriteToFile(gamesBuffer, basePath, fileCounter);
+        WriteToFile(gamesBuffer, basePath, fileCounter, stats.files);
         gamesBuffer.clear();
     }
 
@@ -482,23 +495,23 @@ static void PlayGames(int id, std::atomic<int>& positions, std::atomic<bool>& st
 
 struct WinThreadArgs {
     int id;
-    std::atomic<int>* positions;
+    DatagenStats* stats;
     std::atomic<bool>* stopFlag;
 };
 
 static unsigned __stdcall WinThreadEntry(void* p) {
     std::unique_ptr<WinThreadArgs> args(static_cast<WinThreadArgs*>(p));
-    PlayGames(args->id, *args->positions, *args->stopFlag);
+    PlayGames(args->id, *args->stats, *args->stopFlag);
     _endthreadex(0);
     return 0;
 }
 
 static bool CreateWorkerThread(int id,
-                               std::atomic<int>& positions,
+                               DatagenStats& stats,
                                std::atomic<bool>& stopFlag,
                                std::vector<HANDLE>& threads,
                                size_t stackSizeBytes) {
-    auto* args = new WinThreadArgs{ id, &positions, &stopFlag };
+    auto* args = new WinThreadArgs{ id, &stats, &stopFlag };
 
     unsigned tid = 0;
     HANDLE h = reinterpret_cast<HANDLE>(
@@ -535,7 +548,7 @@ static void JoinWorkerThreads(std::vector<HANDLE>& threads) {
 #else
 
 static void* ThreadFunc(void* arg) {
-    auto* tup = static_cast<std::tuple<int, std::atomic<int>*, std::atomic<bool>*>*>(arg);
+    auto* tup = static_cast<std::tuple<int, DatagenStats*, std::atomic<bool>*>*>(arg);
     PlayGames(std::get<0>(*tup), *std::get<1>(*tup), *std::get<2>(*tup));
     delete tup;
     return nullptr;
@@ -554,7 +567,7 @@ void Run(int targetPositions, int threads) {
     HideCursor();
 #endif
 
-    std::atomic<int> positions = 0;
+    DatagenStats stats;
     std::atomic<bool> stopFlag = false;
 
 #ifdef _WIN32
@@ -564,7 +577,7 @@ void Run(int targetPositions, int threads) {
     const size_t stackSizeBytes = 8ull * 1024ull * 1024ull;
 
     for (int i = 0; i < threads - 1; ++i) {
-        CreateWorkerThread(i, positions, stopFlag, workerThreads, stackSizeBytes);
+        CreateWorkerThread(i, stats, stopFlag, workerThreads, stackSizeBytes);
     }
 #else
     std::vector<pthread_t> workerThreads;
@@ -574,7 +587,7 @@ void Run(int targetPositions, int threads) {
         pthread_attr_init(&attr);
         pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
 
-        auto* args = new std::tuple<int, std::atomic<int>*, std::atomic<bool>*>(i, &positions, &stopFlag);
+        auto* args = new std::tuple<int, DatagenStats*, std::atomic<bool>*>(i, &stats, &stopFlag);
 
         pthread_t thread;
         if (pthread_create(&thread, &attr, ThreadFunc, args) == 0) {
@@ -589,12 +602,13 @@ void Run(int targetPositions, int threads) {
 #endif
 
     Stopwatch sw;
-    while (positions < targetPositions && !g_shutdownRequested) {
-        PrintProgress(positions, targetPositions, sw, threads);
+    while (stats.positions.load(std::memory_order_relaxed) < targetPositions && !g_shutdownRequested) {
+        PrintProgress(stats, targetPositions, sw, threads);
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    PrintProgress(positions, targetPositions, sw, threads);
+    PrintProgress(stats, targetPositions, sw, threads);
+    PrintSummary(stats, targetPositions, sw, threads);
 
     stopFlag = true;
 
@@ -676,7 +690,7 @@ void RunOnline(const std::string& username, int targetPositions, int threads) {
         HideCursor();
 #endif
 
-        std::atomic<int> positions = 0;
+        DatagenStats stats;
         std::atomic<bool> stopFlag = false;
 
 #ifdef _WIN32
@@ -686,7 +700,7 @@ void RunOnline(const std::string& username, int targetPositions, int threads) {
         const size_t stackSizeBytes = 8ull * 1024ull * 1024ull;
 
         for (int i = 0; i < threads - 1; ++i) {
-            CreateWorkerThread(i, positions, stopFlag, workerThreads, stackSizeBytes);
+            CreateWorkerThread(i, stats, stopFlag, workerThreads, stackSizeBytes);
         }
 #else
         std::vector<pthread_t> workerThreads;
@@ -696,7 +710,7 @@ void RunOnline(const std::string& username, int targetPositions, int threads) {
             pthread_attr_init(&attr);
             pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
 
-            auto* args = new std::tuple<int, std::atomic<int>*, std::atomic<bool>*>(i, &positions, &stopFlag);
+            auto* args = new std::tuple<int, DatagenStats*, std::atomic<bool>*>(i, &stats, &stopFlag);
 
             pthread_t thread;
             if (pthread_create(&thread, &attr, ThreadFunc, args) == 0) {
@@ -711,12 +725,13 @@ void RunOnline(const std::string& username, int targetPositions, int threads) {
 #endif
 
         Stopwatch sw;
-        while (positions < targetPositions && !g_shutdownRequested) {
-            PrintProgress(positions, targetPositions, sw, threads);
+        while (stats.positions.load(std::memory_order_relaxed) < targetPositions && !g_shutdownRequested) {
+            PrintProgress(stats, targetPositions, sw, threads);
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 
-        PrintProgress(positions, targetPositions, sw, threads);
+        PrintProgress(stats, targetPositions, sw, threads);
+        PrintSummary(stats, targetPositions, sw, threads);
 
         stopFlag = true;
 
@@ -750,7 +765,7 @@ void RunOnline(const std::string& username, int targetPositions, int threads) {
             std::cout << "Uploading file to server..." << std::endl;
             std::string uploadUrl = SERVER_URL + "/api/upload/" + sessionId;
 
-            if (UploadFile(uploadUrl, mergedFile, username, positions.load())) {
+            if (UploadFile(uploadUrl, mergedFile, username, stats.positions.load())) {
                 std::cout << "Upload successful!" << std::endl;
 
                 std::error_code ec;
@@ -770,111 +785,6 @@ void RunOnline(const std::string& username, int targetPositions, int threads) {
     }
 
     std::cout << "\nOnline mode shutdown complete." << std::endl;
-}
-
-void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int threads) {
-    const std::string COLOR_RESET = "\033[0m";
-    const std::string COLOR_TITLE = "\033[1;36m";
-    const std::string COLOR_SECTION = "\033[1;33m";
-    const std::string COLOR_VALUE = "\033[1;32m";
-    const std::string COLOR_BAR = "\033[1;34m";
-
-    static double lastPositions = 0;
-    static double lastElapsed = 0;
-    static double refreshInterval = 1.0;
-
-    double elapsed = stopwatch.GetElapsedSec();
-    double positionsPerSec = 0;
-
-    if (elapsed - lastElapsed >= refreshInterval) {
-        positionsPerSec = (positions - lastPositions) / (elapsed - lastElapsed);
-        lastPositions = positions;
-        lastElapsed = elapsed;
-    }
-
-    std::cout << "\033[H";
-
-    int width = 60;
-
-    std::string title = "Eleanor - Datagen";
-    int titlePadding = (width - static_cast<int>(title.length())) / 2;
-    std::cout << COLOR_TITLE << std::setw(titlePadding + static_cast<int>(title.length())) << title << COLOR_RESET << std::endl;
-
-    std::cout << std::string(width, '=') << std::endl;
-    std::cout << std::endl;
-
-    std::cout << std::fixed << std::setprecision(0);
-
-    std::ostringstream datagenTextStream;
-    datagenTextStream << std::fixed << std::setprecision(2)
-                      << "Positions processed: " << positions / 1000.0 << "K | Target: " << targetPositions / 1000.0 << "K";
-    std::string datagenText = datagenTextStream.str();
-    int datagenPadding = (width - static_cast<int>(datagenText.length())) / 2;
-    std::cout << COLOR_SECTION << std::setw(datagenPadding + static_cast<int>(datagenText.length())) << datagenText << COLOR_RESET << std::endl;
-
-    std::cout << std::endl;
-
-    std::string elapsedText = "Elapsed Time: " + std::to_string(static_cast<int>(round(elapsed))) + " sec";
-    int elapsedPadding = (width - static_cast<int>(elapsedText.length())) / 2;
-    std::cout << COLOR_SECTION << std::setw(elapsedPadding + static_cast<int>(elapsedText.length())) << elapsedText << COLOR_RESET << std::endl;
-
-    std::string positionsPerSecText = "Positions/sec: " + std::to_string(static_cast<int>(round(positionsPerSec)));
-    int positionsPerSecPadding = (width - static_cast<int>(positionsPerSecText.length())) / 2;
-    std::cout << COLOR_VALUE << std::setw(positionsPerSecPadding + static_cast<int>(positionsPerSecText.length())) << positionsPerSecText << COLOR_RESET << std::endl;
-
-    std::cout << std::endl;
-
-    std::string threadsText = "Threads: " + std::to_string(static_cast<int>(threads));
-    int threadsTextPadding = (width - static_cast<int>(threadsText.length())) / 2;
-    std::cout << COLOR_SECTION << std::setw(threadsTextPadding + static_cast<int>(threadsText.length())) << threadsText << COLOR_RESET << std::endl;
-
-    std::cout << std::endl;
-
-    double remainingTime = 0.0;
-    if (positions > 0 && elapsed > 0.0) {
-        double pps = positions / elapsed;
-        remainingTime = (targetPositions - positions) / pps;
-    }
-
-    remainingTime = (std::max)(0.0, remainingTime);
-
-    int remainingHours = static_cast<int>(remainingTime) / 3600;
-    int remainingMinutes = (static_cast<int>(remainingTime) % 3600) / 60;
-    int remainingSeconds = static_cast<int>(remainingTime) % 60;
-
-    std::ostringstream remainingTimeStream;
-    remainingTimeStream << "Estimated Time Left: "
-                        << std::setfill('0') << std::setw(2) << remainingHours << "h "
-                        << std::setw(2) << remainingMinutes << "m "
-                        << std::setw(2) << remainingSeconds << "s";
-
-    std::string remainingTimeText = remainingTimeStream.str();
-    int remainingPadding = (width - static_cast<int>(remainingTimeText.length())) / 2;
-    std::cout << COLOR_SECTION
-              << std::setw(remainingPadding + static_cast<int>(remainingTimeText.length()))
-              << remainingTimeText << COLOR_RESET << std::endl;
-
-    std::cout << std::endl;
-
-    int barWidth = 50;
-    double progress = (double)positions / targetPositions;
-    int pos = (int)(progress * barWidth);
-
-    std::string progressBar = "[";
-
-    for (int i = 0; i < barWidth; ++i) {
-        if (i < pos) progressBar += "=";
-        else if (i == pos) progressBar += ">";
-        else progressBar += " ";
-    }
-
-    progressBar += "] " + std::to_string(static_cast<int>(round(progress * 100.0))) + " %";
-
-    int progressPadding = (width - static_cast<int>(progressBar.length())) / 2;
-    std::cout << COLOR_BAR << std::setw(progressPadding + static_cast<int>(progressBar.length()))
-              << progressBar << COLOR_RESET << std::endl;
-
-    std::cout << std::endl;
 }
 
 } // namespace DATAGEN
