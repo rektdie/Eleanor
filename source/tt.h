@@ -19,9 +19,16 @@ public:
     }
 };
 
+constexpr U64 hashKeyMask = 0xFFFF;
+
+// only the lowest bits of the hashkey are stored, the rest is only used for indexing
+inline uint16_t PackHashKey(U64 &hashKey) {
+    return uint16_t(hashKey & hashKeyMask);
+}
+
 class TTEntry {
 public:
-    U64 hashKey = 0;
+    uint16_t hashKey = 0;
     int16_t score = 0;
     Move bestMove = Move();
     uint8_t depth = 0;
@@ -45,6 +52,8 @@ public:
     TTEntry depthPreferred;
     TTEntry alwaysReplace;
 };
+
+static_assert(sizeof(TTEntry) == 10);
 
 // 1024 MB
 constexpr U64 maxHash = (1024 * 1000000) / sizeof(TTBucket);
@@ -84,9 +93,11 @@ public:
 
     TTEntry GetEntry(U64 &hashKey) {
         TTBucket *current = &table[hashKey % table.size()];
-        if (current->depthPreferred.hashKey == hashKey) {
+        const uint16_t packedKey = PackHashKey(hashKey);
+
+        if (current->depthPreferred.hashKey == packedKey) {
             return current->depthPreferred;
-        } else if (current->alwaysReplace.hashKey == hashKey) {
+        } else if (current->alwaysReplace.hashKey == packedKey) {
             return current->alwaysReplace;
         }
 

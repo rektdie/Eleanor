@@ -4,11 +4,12 @@ TTable SharedTT;
 
 void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move bestMove, bool ttpv) {
     TTBucket *bucket = &table[hashKey % table.size()];
+    const uint16_t packedKey = PackHashKey(hashKey);
     TTEntry *current = nullptr;
 
-    if (bucket->depthPreferred && bucket->depthPreferred.hashKey == hashKey) {
+    if (bucket->depthPreferred && bucket->depthPreferred.hashKey == packedKey) {
         current = &bucket->depthPreferred;
-    } else if (bucket->alwaysReplace && bucket->alwaysReplace.hashKey == hashKey) {
+    } else if (bucket->alwaysReplace && bucket->alwaysReplace.hashKey == packedKey) {
         current = &bucket->alwaysReplace;
     } else if (!bucket->alwaysReplace) {
         current = &bucket->alwaysReplace;
@@ -27,7 +28,7 @@ void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move b
         }
     }
 
-    const bool samePosition = current->hashKey == hashKey;
+    const bool samePosition = current->hashKey == packedKey;
     const bool exactBound = nodeType == PV;
     const bool entryFromCurrentAge = current->age == age;
     const int writeDepth = depth + 4 + ttpv * 2;
@@ -36,7 +37,7 @@ void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move b
         return;
     }
 
-    current->hashKey = hashKey;
+    current->hashKey = packedKey;
     current->nodeType = nodeType;
     current->score = score;
     current->depth = depth;
