@@ -89,12 +89,10 @@ static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
 static bool IsTwoFold(Board &board, SearchContext* ctx) {
     for (int i = 0; i < board.positionIndex; i++) {
         if (ctx->positionHistory[i] == board.hashKey) {
-            // repetition found
             return true;
         }
     }
 
-    // no repetition
     return false;
 }
 
@@ -115,7 +113,6 @@ template <bool isPV>
 static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int ply, bool cutnode, bool improving, bool corrplexity, bool ttpv, bool ttpvFailLow, SearchContext* ctx) {
     int reduction = 0;
 
-    // Late Move Reduction
     reduction = lmrTable[move.IsQuiet()][depth][moveSeen] * 1024;
 
     if (cutnode)
@@ -136,7 +133,6 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
     if (ttpvFailLow)
         reduction += lmrTTPVFailLow;
 
-    // History LMR
     int historyReduction = 0;
 
     if (move.IsQuiet()) {
@@ -177,7 +173,6 @@ bool SEE(Board& board, Move& move, int threshold) {
 
     int nextVictim = board.GetPieceType(from);
 
-    // Next victim is moved piece or promo piece
     if (move.IsPromo()) {
         nextVictim = move.GetPromoPiece();
     }
@@ -270,17 +265,35 @@ static bool IsLoss(int score) {
     return score < -WIN_SCORE;
 }
 
+template <searchMode mode>
+static inline int StaticEval(Board& board, SearchContext* ctx, int ply) {
+    board.UpdateAccumulator(ctx->accStack, ply);
+
+#ifdef ACC_VERIFY
+    {
+        ACC::AccumulatorPair ref;
+        board.RefreshAccumulator(ref);
+        if (ref.white != ctx->accStack.cur[ply]->white || ref.black != ctx->accStack.cur[ply]->black) {
+            std::cerr << "ACC MISMATCH ply " << ply << " fen " << board.GetFen() << std::endl;
+            std::abort();
+        }
+    }
+#endif
+
+    return NNUE::net.Evaluate(board, *ctx->accStack.cur[ply], mode == datagen);
+}
+
 template <bool isPV, searchMode mode>
 static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, SearchContext* ctx) {
     if (ShouldStop<mode>(ctx)) return 0;
 
     if (ply + 1 >= MAX_DEPTH)
-        return NNUE::net.Evaluate(board, mode == datagen);
+        return StaticEval<mode>(board, ctx, ply);
 
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
 
-    int bestScore = AdjustEval(board, ctx, NNUE::net.Evaluate(board, mode == datagen));
+    int bestScore = AdjustEval(board, ctx, StaticEval<mode>(board, ctx, ply));
     ctx->ss[ply].eval = bestScore;
 
     TTEntry entry;
@@ -343,7 +356,6 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     Move currMove;
     while ((currMove = mp.Next())) {
         if (!IsLoss(bestScore)) {
-            // QS FP
             if (!inCheck && currMove.IsCapture() &&
                 fpScore <= alpha && !SEE(board, currMove, 1)) {
 
@@ -399,7 +411,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (ShouldStop<mode>(ctx)) return 0;
 
     if (ply + 1 >= MAX_DEPTH)
-        return NNUE::net.Evaluate(board, mode == datagen);
+        return StaticEval<mode>(board, ctx, ply);
 
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
@@ -428,7 +440,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     if (depth <= 0) return Quiescence<isPV, mode>(board, alpha, beta, ply, ctx);
 
-    int rawEval = NNUE::net.Evaluate(board, mode == datagen);
+    int rawEval = StaticEval<mode>(board, ctx, ply);
     const int staticEval = AdjustEval(board, ctx, rawEval);
     ctx->ss[ply].eval = staticEval;
 
@@ -460,7 +472,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     if (!inCheck && !ctx->excluded) {
         if (ply) {
-            // Reverse Futility Pruning
             int margin = rfpBase + rfpMargin * (depth - improving);
             if (!ttpv && ttAdjustedEval - margin >= beta && depth < 7) {
                 return !IsDecisive(ttAdjustedEval) && !IsDecisive(beta)
@@ -468,12 +479,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     :  ttAdjustedEval;
             }
 
-            // Razoring
             if (!isPV && depth <= 3 && staticEval + razoringScalar * depth < alpha && entry.nodeType != CutNode) {
                 return Quiescence<isPV, mode>(board, alpha, beta, ply, ctx).score;
             }
 
-            // Null Move Pruning
             if (ply > ctx->minNmpPly && ttAdjustedEval >= beta + nmpBetaMargin) {
                 if (depth > 1 && !board.InPossibleZug()) {
                     Board copy = board;
@@ -506,7 +515,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
     }
 
-    // Probcut
     const int probcutBeta = beta + probcutBetaMargin;
     const int probcutDepth = std::max(depth - 3, 1);
 
@@ -570,7 +578,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     ctx->killerMoves[ply + 1] = Move();
 
-    // Move-loop
     Move currMove;
     while ((currMove = mp.Next())) {
 
@@ -580,9 +587,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         bool notMated = results.score > (-MATE_SCORE + MAX_DEPTH);
         int lmrDepth = depth - lmrTable[currMove.IsQuiet()][depth][moveSeen];
 
-        // Late move pruning
-        // If we are near a leaf node we prune moves
-        // that are late in the list
         if (currMove.IsQuiet() && notMated) {
 
             int lmpThreshold = 7 + depth * depth * (1 + improving);
@@ -600,9 +604,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply > 0) historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 1);
         if (ply > 1) historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
 
-        // Futility pruning
-        // If our static eval is far below alpha, there is only a small chance
-        // that a quiet move will help us so we skip them
         int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
 
         if (!isPV && ply && currMove.IsQuiet()
@@ -610,7 +611,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             continue;
         }
 
-        // PVS SEE
         int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
 
         if (ply && depth <= 10 && notMated && !SEE(board, currMove, SEEThreshold))
@@ -640,22 +640,18 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 const int singularScore = PVS<false, mode>(board, sDepth, sBeta-1, sBeta, ply, ctx, cutnode).score;
                 ctx->excluded = Move();
 
-                // Singular extension
                 if (singularScore < sBeta) {
                     extension++;
 
                     if constexpr (!isPV) {
-                        // Double extension
                         if (singularScore <= sBeta - 1 - doubleExtMargin) {
                             extension++;
                         }
                     }
                 }
-                // Multicut
                 else if (sBeta >= beta) {
                     return sBeta;
                 }
-                // Negative extension
                 else if (entry.score >= beta) {
                     extension--;
                 } else if (cutnode) {
@@ -707,7 +703,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         moveSeen++;
 
-        // Root
         if (!ply) {
             ctx->nodesTable[currMove % 4096] += ctx->nodes - nodesBeforeSearch;
         }
@@ -731,7 +726,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             ctx->pvLine.SetMove(ply, currMove);
         }
 
-        // Fail high (beta cutoff)
         if (score >= beta) {
             const int bonusDepth = depth + (!inCheck && staticEval <= alpha);
             int historyBonus = historyBonusMultiplier * bonusDepth - historyBonusSub;
@@ -771,7 +765,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 if (ply > 0) UpdateContHistNPly(1);
                 if (ply > 1) UpdateContHistNPly(2);
 
-                // Malus
                 for (int i = 0; i < seenQuietsCount - 1; i++) {
                     sourceThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[i].MoveFrom());
                     targetThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[i].MoveTo());
@@ -781,12 +774,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 UpdateCaptHist(currMove, captHistoryBonus);
             }
 
-            // Capthist malus
             for (int i = 0; i < seenCapturesCount - currMove.IsCapture(); i++) {
                 UpdateCaptHist(seenCaptures[i], -captHistoryMalus);
             }
 
-            // Corrhist update on fail high
             if (!ctx->excluded && !inCheck && currMove.IsQuiet() && score > staticEval) {
                 int corrHistBonus = std::clamp(score - staticEval, -CORRHIST_LIMIT, CORRHIST_LIMIT);
                 ctx->corrhist.UpdateAll(board, depth, corrHistBonus);
@@ -851,7 +842,6 @@ static double ScaleTime(SearchContext *ctx, Move &move) {
     return nodeScalingFactor;
 }
 
-// Iterative deepening
 template <searchMode mode>
 static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
     int fullTime = board.sideToMove ? params.btime : params.wtime;
@@ -937,6 +927,9 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* c
         searchStopped.store(false, std::memory_order_relaxed);
         ctx->TT->IncreaseAge();
     }
+
+    board.MarkAccumulatorDirty();
+    ctx->accStack.finny.Reset();
 
     ctx->seldepth = 0;
     ctx->nodesTable = {};

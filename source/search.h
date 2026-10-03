@@ -34,7 +34,6 @@ constexpr int CORRHIST_MAX = 16384;
 constexpr int32_t ScoreNone = -255000;
 constexpr int inf = 100000;
 
-// first index: [0] noisy, [1] quiet
 inline int lmrTable[2][MAX_DEPTH+1][MAX_MOVES];
 
 #ifdef TUNING
@@ -58,7 +57,6 @@ class SearchContext;
 
 class CaptHistory {
 private:
-    // indexed by [stm][moving pt][capture pt][to]
     MultiArray<int, 2, 6, 6, 64> historyMoves;
 public:
     void Update(bool stm, int moving, int capture, int to, int bonus) {
@@ -78,7 +76,6 @@ public:
 
 class CorrHist {
 private:
-    // indexed by [stm][key]
     MultiArray<int, 2, CORRHIST_SIZE> pawnHist;
     MultiArray<int, 2, CORRHIST_SIZE> nonPawnHist;
     MultiArray<int, 2, CORRHIST_SIZE> majorHist;
@@ -112,7 +109,6 @@ public:
 
 class ContHistory {
 private:
-    // indexed by [other color][prev move piece][stm][prev move to][piece][to]
     MultiArray<int16_t, 2, 6, 64, 2, 6, 64> contHistMoves;
 public:
     void Update(bool stm, bool otherColor, int prevType, int prevTo, int type, int to, int bonus) {
@@ -135,7 +131,6 @@ public:
 
 class History {
 private:
-    // indexed by [stm][from][to][threatenedSource][threatenedTarget]
     MultiArray<int, 2, 64, 64, 2, 2> historyMoves;
 public:
     void Update(bool stm, Move move, bool source, bool target, int bonus) {
@@ -246,6 +241,8 @@ public:
     TTable* TT = &SharedTT;
 
     std::array<Stack, MAX_DEPTH> ss{};
+
+    ACC::AccStack accStack{MAX_DEPTH + 2};
 
     Stopwatch sw;
 

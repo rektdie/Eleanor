@@ -26,7 +26,9 @@ public:
     std::array<Bitboard, 2> pinned;
     Bitboard checkers;
 
-    ACC::AccumulatorPair accPair;
+    ACC::Update accUpdate;
+    bool mirroredWhite = false;
+    bool mirroredBlack = false;
 
     std::array<Bitboard, 6> pieceThreats;
 	std::array<Bitboard, 2> colorThreats;
@@ -63,7 +65,11 @@ public:
 	void ListMoves();
 
 	ACC::BucketPair GetBuckets();
-	void ResetAccPair();
+	void RefreshAccumulator(ACC::AccumulatorPair& out) const;
+	void UpdateAccumulator(ACC::AccStack& stack, int ply);
+	void RefreshPerspective(ACC::FinnyTable& finny, bool perspective, ACC::Accumulator& out) const;
+	void ApplyDeltaPerspective(bool perspective, ACC::Accumulator& dst, const ACC::Accumulator& src) const;
+	void MarkAccumulatorDirty() { accUpdate.setRefresh(); }
 
 	int GetPieceType(int square);
 	int GetPieceColor(int square);

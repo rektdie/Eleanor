@@ -5,6 +5,10 @@
 
 class Board;
 
+namespace ACC {
+struct AccumulatorPair;
+}
+
 #ifdef __AVX512F__
 constexpr size_t ALIGNMENT = 64;
 #else
@@ -53,6 +57,8 @@ struct Network {
     std::array<int16_t, OUTPUT_BUCKETS> output_bias;
 
     void Load(const std::string& path);
+
+    int16_t Evaluate(const Board& board, const ACC::AccumulatorPair& acc, bool datagen = false);
 
     int16_t Evaluate(const Board& board, bool datagen = false);
 };

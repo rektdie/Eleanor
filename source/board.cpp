@@ -1,3 +1,4 @@
+#include <bit>
 #include "board.h"
 #include "accumulator.h"
 #include "movegen.h"
@@ -30,7 +31,9 @@ void Board::Reset() {
 	pieces = std::array<Bitboard, 6>();
 	colors = std::array<Bitboard, 2>();
 
-	accPair = ACC::AccumulatorPair();
+	accUpdate.setRefresh();
+	mirroredWhite = false;
+	mirroredBlack = false;
 
 	pieceThreats = std::array<Bitboard, 6>();
 	colorThreats = std::array<Bitboard, 2>();
@@ -52,7 +55,6 @@ void Board::Reset() {
 void Board::SetByFen(std::string_view fen) {
 	Reset();
 
-	// Starting from top left
 	int currSquare = a8;
 
 	std::vector<std::string> tokens = UTILS::split(fen, ' ');
@@ -88,7 +90,6 @@ void Board::SetByFen(std::string_view fen) {
 
     if (tokens[3] != "-") enPassantTarget = UTILS::parseSquare(tokens[3]);
 
-	// full and half move
 	if (tokens.size() > 4) {
 		halfMoves = std::stoi(tokens[4]);
 		fullMoves = std::stoi(tokens[5]);
@@ -110,13 +111,13 @@ void Board::SetByFen(std::string_view fen) {
     int blackKingFile = (pieces[King] & colors[Black]).getLS1BIndex() % 8;
 
     if (whiteKingFile > 3) {
-        accPair.mirroredWhite = true;
+        mirroredWhite = true;
     }
     if (blackKingFile > 3) {
-        accPair.mirroredBlack = true;
+        mirroredBlack = true;
     }
 
-    ResetAccPair();
+    accUpdate.setRefresh();
 }
 
 std::string Board::GetFen() {
@@ -334,10 +335,8 @@ void Board::RemovePiece(int piece, int square, bool color) {
     }
 }
 
-// Updates castling rights
 static void UpdateCastlingRights(Board &board, int square, int type, int color) {
 	if (type == Rook) {
-        // Removing old rights
         board.hashKey ^= UTILS::zCastle[board.castlingRights];
 		int queenSideRook = color ? a8 : a1;
 		int kingSideRook = color ? h8 : h1;
@@ -350,7 +349,6 @@ static void UpdateCastlingRights(Board &board, int square, int type, int color) 
 
         board.hashKey ^= UTILS::zCastle[board.castlingRights];
 	} else if (type == King) {
-        // Removing old rights
         board.hashKey ^= UTILS::zCastle[board.castlingRights];
 
         board.castlingRights &= color ? ~blackKingRight : ~whiteKingRight;
@@ -371,8 +369,13 @@ void Board::Promote(int square, int pieceType, int color, bool isCapture) {
 }
 
 void Board::MakeMove(Move move) {
-	// Null Move
+    const bool accParentClean = accUpdate.type == ACC::UpdateType::None;
+    accUpdate = ACC::Update();
+
     if (!move) {
+        if (accParentClean) accUpdate.type = ACC::UpdateType::Copy;
+        else accUpdate.setRefresh();
+
 		int newEpTarget = noEPTarget;
 
         sideToMove = !sideToMove;
@@ -397,30 +400,28 @@ void Board::MakeMove(Move move) {
 
 	int endPiece = attackerPiece;
 
-    bool fullRecalc = false;
-    const auto bucketPair = GetBuckets();
+    uint8_t refreshMask = 0;
 
     if (attackerPiece == King) {
         const int toFile = move.MoveTo() % 8;
 
         if (attackerColor == White) {
-            if ((toFile > 3) != accPair.mirroredWhite) {
-                accPair.mirroredWhite = !accPair.mirroredWhite;
-                fullRecalc = true;
+            if ((toFile > 3) != mirroredWhite) {
+                mirroredWhite = !mirroredWhite;
+                refreshMask |= 1 << White;
             }
         } else {
-            if ((toFile > 3) != accPair.mirroredBlack) {
-                accPair.mirroredBlack = !accPair.mirroredBlack;
-                fullRecalc = true;
+            if ((toFile > 3) != mirroredBlack) {
+                mirroredBlack = !mirroredBlack;
+                refreshMask |= 1 << Black;
             }
         }
 
         if (NNUE::kingBuckets[attackerColor][move.MoveFrom()] != NNUE::kingBuckets[attackerColor][move.MoveTo()]) {
-            fullRecalc = true;
+            refreshMask |= 1 << attackerColor;
         }
     }
 
-	// Removing attacker piece from old position
 	RemovePiece(attackerPiece, move.MoveFrom(), attackerColor);
 
 	if (move.IsPromo()) {
@@ -432,16 +433,16 @@ void Board::MakeMove(Move move) {
 		}
 	}
 
-    if (!fullRecalc) {
+    {
         if (move.IsCapture()) {
             if (move.GetFlags() != epCapture) {
-                accPair.addSubSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, move.MoveTo(), targetPiece, bucketPair);
+                accUpdate.setAddSubSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, move.MoveTo(), targetPiece);
             } else {
-                accPair.addSubSub(sideToMove, enPassantTarget, endPiece, move.MoveFrom(), attackerPiece, move.MoveTo() - direction, Pawn, bucketPair);
+                accUpdate.setAddSubSub(sideToMove, enPassantTarget, endPiece, move.MoveFrom(), attackerPiece, move.MoveTo() - direction, Pawn);
             }
         } else {
             if (move.GetFlags() != kingCastle && move.GetFlags() != queenCastle) {
-                accPair.addSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece, bucketPair);
+                accUpdate.setAddSub(sideToMove, move.MoveTo(), endPiece, move.MoveFrom(), attackerPiece);
             }
         }
     }
@@ -470,16 +471,14 @@ void Board::MakeMove(Move move) {
 		{
 			int rookSquare = attackerColor ? h8 : h1;
 
-			// Removing rook from old position
 			RemovePiece(Rook, rookSquare, attackerColor);
 
-			// Setting rook on new position
 			SetPiece(Rook, rookSquare - 2, attackerColor);
 
 			SetPiece(attackerPiece, move.MoveTo(), attackerColor);
 
-            if (!fullRecalc) {
-                accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare - 2, Rook, move.MoveFrom(), King, rookSquare, Rook, bucketPair);
+            {
+                accUpdate.setAddAddSubSub(sideToMove, move.MoveTo(), King, rookSquare - 2, Rook, move.MoveFrom(), King, rookSquare, Rook);
             }
 
 			break;
@@ -488,16 +487,14 @@ void Board::MakeMove(Move move) {
 		{
 			int rookSquare = attackerColor ? a8 : a1;
 
-			// Removing rook from old position
 			RemovePiece(Rook, rookSquare, attackerColor);
 
-			// Setting rook on new position
 			SetPiece(Rook, rookSquare + 3, attackerColor);
 
 			SetPiece(attackerPiece, move.MoveTo(), attackerColor);
 
-            if (!fullRecalc) {
-                accPair.addAddSubSub(sideToMove, move.MoveTo(), King, rookSquare + 3, Rook, move.MoveFrom(), King, rookSquare, Rook, bucketPair);
+            {
+                accUpdate.setAddAddSubSub(sideToMove, move.MoveTo(), King, rookSquare + 3, Rook, move.MoveFrom(), King, rookSquare, Rook);
             }
 
             break;
@@ -506,11 +503,12 @@ void Board::MakeMove(Move move) {
 		break;
 	}
 
-    if (fullRecalc) {
-        ResetAccPair();
+    if (!accParentClean || accUpdate.type == ACC::UpdateType::None) {
+        accUpdate.setRefresh();
+    } else {
+        accUpdate.refreshMask = refreshMask;
     }
 
-	// Removing the right to castle on king and rook movement
 	UpdateCastlingRights(*this, move.MoveFrom(), attackerPiece, attackerColor);
 
 	sideToMove = !attackerColor;
@@ -531,13 +529,6 @@ void Board::MakeMove(Move move) {
     checkers = CalcCheckers();
     CalcCheckZones();
 
-    /*
-    sideToMove = !sideToMove;
-    if (InCheck())  {
-		return false;
-	}
-    sideToMove = !sideToMove;
-    */
 
 	if (attackerColor == Black) fullMoves++;
 	if (attackerPiece == Pawn || move.IsCapture()) {
@@ -552,7 +543,6 @@ void Board::MakeMove(Move move) {
 bool Board::InPossibleZug() {
     Bitboard toCheck;
 
-    // For all pieces other than pawns and king
     for (int piece = Knight; piece <= Queen; piece++) {
         toCheck |= (pieces[piece] & colors[sideToMove]);
     }
@@ -567,68 +557,141 @@ ACC::BucketPair Board::GetBuckets() {
     return {NNUE::kingBuckets[White][wKingSq],NNUE::kingBuckets[Black][bKingSq]};
 }
 
-void Board::ResetAccPair() {
-	Bitboard whitePieces = colors[White];
-	Bitboard blackPieces = colors[Black];
+void Board::RefreshAccumulator(ACC::AccumulatorPair& out) const {
+	const int wKingSq = (pieces[King] & colors[White]).getLS1BIndex();
+	const int bKingSq = (pieces[King] & colors[Black]).getLS1BIndex();
+	const ACC::BucketPair bucketPair = {NNUE::kingBuckets[White][wKingSq], NNUE::kingBuckets[Black][bKingSq]};
 
-	accPair.white = NNUE::net.accumulator_biases;
-	accPair.black = NNUE::net.accumulator_biases;
+	out.white = NNUE::net.accumulator_biases;
+	out.black = NNUE::net.accumulator_biases;
 
-    const auto bucketPair = GetBuckets();
+	for (int color = White; color <= Black; color++) {
+		Bitboard bb = colors[color];
 
-	while (whitePieces) {
-		int square = whitePieces.getLS1BIndex();
+		while (bb) {
+			int square = bb.getLS1BIndex();
 
-		int wInput = ACC::CalculateIndex(White, White, GetPieceType(square), square, accPair.mirroredWhite);
-		int bInput = ACC::CalculateIndex(Black, White, GetPieceType(square), square, accPair.mirroredBlack);
+			int wInput = ACC::CalculateIndex(White, color, mailbox[square], square, mirroredWhite);
+			int bInput = ACC::CalculateIndex(Black, color, mailbox[square], square, mirroredBlack);
 
-		for (int i = 0; i < NNUE::HL_SIZE; i++) {
-			accPair.white[i] += NNUE::net.accumulator_weights[bucketPair.white][wInput * NNUE::HL_SIZE + i];
-			accPair.black[i] += NNUE::net.accumulator_weights[bucketPair.black][bInput * NNUE::HL_SIZE + i];
+			ACC::AddRow(out.white, &NNUE::net.accumulator_weights[bucketPair.white][wInput * NNUE::HL_SIZE]);
+			ACC::AddRow(out.black, &NNUE::net.accumulator_weights[bucketPair.black][bInput * NNUE::HL_SIZE]);
+
+			bb.PopBit(square);
 		}
+	}
+}
 
-		whitePieces.PopBit(square);
+void Board::RefreshPerspective(ACC::FinnyTable& finny, bool perspective, ACC::Accumulator& out) const {
+	const bool mirrored = perspective == White ? mirroredWhite : mirroredBlack;
+	const int kingSq = (pieces[King] & colors[perspective]).getLS1BIndex();
+	const int bucket = NNUE::kingBuckets[perspective][kingSq];
+
+	ACC::FinnyEntry& entry = finny.entries[perspective][mirrored][bucket];
+
+	const int16_t* adds[32];
+	const int16_t* subs[32];
+	int nAdds = 0;
+	int nSubs = 0;
+
+	for (int color = White; color <= Black; color++) {
+		for (int pt = Pawn; pt <= King; pt++) {
+			Bitboard tmp = pieces[pt] & colors[color];
+			const uint64_t now = tmp;
+			const uint64_t old = entry.bb[color][pt];
+
+			uint64_t added = now & ~old;
+			uint64_t removed = old & ~now;
+
+			while (added) {
+				const int square = std::countr_zero(added);
+				added &= added - 1;
+				adds[nAdds++] = ACC::Row(bucket, ACC::CalculateIndex(perspective, color, pt, square, mirrored));
+			}
+
+			while (removed) {
+				const int square = std::countr_zero(removed);
+				removed &= removed - 1;
+				subs[nSubs++] = ACC::Row(bucket, ACC::CalculateIndex(perspective, color, pt, square, mirrored));
+			}
+
+			entry.bb[color][pt] = now;
+		}
 	}
 
-	while (blackPieces) {
-		int square = blackPieces.getLS1BIndex();
+	ACC::ApplyInPlace(entry.acc, adds, nAdds, subs, nSubs);
+	out = entry.acc;
+}
 
-		int wInput = ACC::CalculateIndex(White, Black, GetPieceType(square), square, accPair.mirroredWhite);
-		int bInput = ACC::CalculateIndex(Black, Black, GetPieceType(square), square, accPair.mirroredBlack);
+void Board::ApplyDeltaPerspective(bool perspective, ACC::Accumulator& dst, const ACC::Accumulator& src) const {
+	const bool mirrored = perspective == White ? mirroredWhite : mirroredBlack;
+	const int kingSq = (pieces[King] & colors[perspective]).getLS1BIndex();
+	const int bucket = NNUE::kingBuckets[perspective][kingSq];
 
-		for (int i = 0; i < NNUE::HL_SIZE; i++) {
-			accPair.white[i] += NNUE::net.accumulator_weights[bucketPair.white][wInput * NNUE::HL_SIZE + i];
-			accPair.black[i] += NNUE::net.accumulator_weights[bucketPair.black][bInput * NNUE::HL_SIZE + i];
-		}
+	const bool stm = accUpdate.stm;
 
-		blackPieces.PopBit(square);
+	const int16_t* a1 = ACC::Row(bucket, ACC::CalculateIndex(perspective, stm, accUpdate.addPT1, accUpdate.add1, mirrored));
+	const int16_t* a2 = nullptr;
+	const int16_t* s1 = ACC::Row(bucket, ACC::CalculateIndex(perspective, stm, accUpdate.subPT1, accUpdate.sub1, mirrored));
+	const int16_t* s2 = nullptr;
+
+	if (accUpdate.nAdd == 2)
+		a2 = ACC::Row(bucket, ACC::CalculateIndex(perspective, stm, accUpdate.addPT2, accUpdate.add2, mirrored));
+
+	if (accUpdate.nSub == 2)
+		s2 = ACC::Row(bucket, ACC::CalculateIndex(perspective, accUpdate.sub2Opp ? !stm : stm, accUpdate.subPT2, accUpdate.sub2, mirrored));
+
+	ACC::Apply(dst, src, a1, a2, s1, s2);
+}
+
+void Board::UpdateAccumulator(ACC::AccStack& stack, int ply) {
+	using ACC::UpdateType;
+
+	if (accUpdate.type == UpdateType::None) return;
+
+	if (accUpdate.type == UpdateType::Copy && ply > 0) {
+		stack.cur[ply] = stack.cur[ply - 1];
+		accUpdate.type = UpdateType::None;
+		return;
 	}
+
+	ACC::AccumulatorPair& dst = stack.slots[ply];
+
+	if (ply == 0 || accUpdate.type != UpdateType::Delta) {
+		RefreshPerspective(stack.finny, White, dst.white);
+		RefreshPerspective(stack.finny, Black, dst.black);
+	} else {
+		const ACC::AccumulatorPair& prev = *stack.cur[ply - 1];
+
+		for (int perspective = White; perspective <= Black; perspective++) {
+			if (accUpdate.refreshMask & (1 << perspective))
+				RefreshPerspective(stack.finny, perspective, dst.get(perspective));
+			else
+				ApplyDeltaPerspective(perspective, dst.get(perspective), prev.get(perspective));
+		}
+	}
+
+	stack.cur[ply] = &dst;
+	accUpdate.type = UpdateType::None;
 }
 
 Bitboard Board::AttacksTo(int square, Bitboard occupancy) {
     Bitboard attacks;
 
-    // Pawn attacks
 
-    // Opponent attacks
     attacks |= (MOVEGEN::pawnAttacks[sideToMove][square] & colors[!sideToMove] & pieces[Pawn]);
 
-    // Own piece attacks
     attacks |= (MOVEGEN::pawnAttacks[!sideToMove][square] & colors[sideToMove] & pieces[Pawn]);
 
-    // Knight
     attacks |= (MOVEGEN::knightAttacks[square] & pieces[Knight]);
 
-    // King
     attacks |= (MOVEGEN::kingAttacks[square] & pieces[King]);
 
     Bitboard bishopAttacks = MOVEGEN::getBishopAttack(square, occupancy);
     Bitboard rookAttacks = MOVEGEN::getRookAttack(square, occupancy);
 
-    // Rook or queen
     attacks |= (rookAttacks & (pieces[Rook] | pieces[Queen]));
 
-    // Bishop or queen
     attacks |= (bishopAttacks & (pieces[Bishop] | pieces[Queen]));
 
     return attacks;
@@ -643,7 +706,6 @@ static Bitboard rayBetween(int sq1, int sq2) {
     int df = (f2 > f1) - (f2 < f1);
     int dr = (r2 > r1) - (r2 < r1);
 
-    // must be same rank, file, or diagonal
     if (df != 0 && dr != 0 && std::abs(f2 - f1) != std::abs(r2 - r1))
         return 0ULL;
 
@@ -663,7 +725,6 @@ static Bitboard rayBetween(int sq1, int sq2) {
     return ray;
 }
 
-// Returns the full ray from `from` in the direction of `to`, to the edge of the board
 static Bitboard fullRay(int from, int to) {
     int df = (to % 8) - (from % 8);
     int dr = (to / 8) - (from / 8);
@@ -785,7 +846,6 @@ bool Board::IsPseudoLegal(Move &move) {
     const int to   = move.MoveTo();
     const int flag = move.GetFlags();
 
-    // basic bounds
     if ((unsigned)from >= 64u || (unsigned)to >= 64u) return false;
 
     const int us   = sideToMove;
@@ -799,18 +859,14 @@ bool Board::IsPseudoLegal(Move &move) {
     const bool isCapture = move.IsCapture();
     const int targetPiece = GetPieceType(to);
 
-    // capture consistency (except EP which captures "behind")
     if (flag == capture) {
         if (targetPiece == nullPieceType) return false;
         if (!colors[them].IsSet(to)) return false;
     } else if (isCapture && flag != epCapture) {
-        // promo-capture also lands on occupied enemy square
         if (targetPiece == nullPieceType) return false;
         if (!colors[them].IsSet(to)) return false;
     } else if (!isCapture) {
-        // quiet moves must not land on occupied square
         if (occupied.IsSet(to)) {
-            // except castling (king lands on empty anyway)
             if (flag != kingCastle && flag != queenCastle) return false;
         }
     }
@@ -827,12 +883,10 @@ bool Board::IsPseudoLegal(Move &move) {
     };
 
     auto isPawnCaptureTo = [&] {
-        // diagonal one step forward
         return (to == from + dir - 1 && toFile == fromFile - 1)
             || (to == from + dir + 1 && toFile == fromFile + 1);
     };
 
-    // handle specials by flag first
     switch (flag) {
     case quiet:
     case capture:
@@ -840,10 +894,9 @@ bool Board::IsPseudoLegal(Move &move) {
 
     case doublePawnPush: {
         if (movingPiece != Pawn) return false;
-        // from must be on starting rank
-        if (!us) { // white
+        if (!us) {
             if (fromRank != 1) return false;
-        } else {   // black
+        } else {
             if (fromRank != 6) return false;
         }
         const int mid = from + dir;
@@ -858,7 +911,6 @@ bool Board::IsPseudoLegal(Move &move) {
         if (to != enPassantTarget) return false;
         if (!isPawnCaptureTo()) return false;
 
-        // target square is empty, captured pawn is behind to
         const int capSq = to - dir;
         if (!colors[them].IsSet(capSq)) return false;
         if (GetPieceType(capSq) != Pawn) return false;
@@ -883,7 +935,6 @@ bool Board::IsPseudoLegal(Move &move) {
             const int targetSq = us ? g8 : g1;
             if (to != targetSq) return false;
 
-            // must be exactly king+rook on that side and no attacked transit squares
             if ((Bitboard(KingSide) & occupied).PopCount() != 2) return false;
             if (mask & colorThreats[them]) return false;
             return true;
@@ -901,11 +952,9 @@ bool Board::IsPseudoLegal(Move &move) {
     }
 
     default:
-        // promotions (quiet + capture)
         if (!move.IsPromo()) return false;
         if (movingPiece != Pawn) return false;
 
-        // must land on last rank
         if (!us) {
             if (toRank != 7) return false;
         } else {
@@ -921,16 +970,13 @@ bool Board::IsPseudoLegal(Move &move) {
         return true;
     }
 
-    // normal piece movement checks for quiet/capture (non-special)
     switch (movingPiece) {
     case Pawn: {
-        // non-promo pawns cannot land on last rank
         if (!us) { if (toRank == 7) return false; }
         else     { if (toRank == 0) return false; }
 
         if (move.IsCapture()) {
             if (!isPawnCaptureTo()) return false;
-            // (regular capture already checked occupancy/enemy above)
             return true;
         } else {
             return isOneStepPawnPush();

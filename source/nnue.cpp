@@ -15,26 +15,22 @@ void Network::Load(const std::string& path) {
         std::cerr << "Failed to open file " + path << std::endl;
     }
 
-    // HL weights
     for (size_t i = 0; i < accumulator_weights.size(); i++) {
         for (size_t j = 0; j < accumulator_weights[i].size(); j++) {
             file.read(reinterpret_cast<char*>(&accumulator_weights[i][j]), sizeof(int16_t));
         }
     }
 
-    // HL biases
     for (size_t i = 0; i < accumulator_biases.size(); i++) {
         file.read(reinterpret_cast<char*>(&accumulator_biases[i]), sizeof(int16_t));
     }
 
-    // Output weights
     for (size_t i = 0; i < output_weights.size(); i++) {
         for (size_t j = 0; j < output_weights[i].size(); j++) {
             file.read(reinterpret_cast<char*>(&output_weights[i][j]), sizeof(int16_t));
         }
     }
 
-    // Output biases
     for (size_t i = 0; i < output_bias.size(); i++) {
         file.read(reinterpret_cast<char*>(&output_bias[i]), sizeof(int16_t));
     }
@@ -135,12 +131,12 @@ using nativeVector = void*;
 #endif
 
 
-static int32_t VectorizedSCReLU(const Board& board, const Network& net, size_t outputBucket) {
+static int32_t VectorizedSCReLU(const Board& board, const ACC::AccumulatorPair& acc, const Network& net, size_t outputBucket) {
     const size_t VECTOR_SIZE = sizeof(nativeVector) / sizeof(int16_t);
     static_assert(HL_SIZE % VECTOR_SIZE == 0, "HL size must be divisible by the native register size of your CPU for vectorization to work");
 
-    const ACC::Accumulator& stmAcc = board.sideToMove == White ? board.accPair.white : board.accPair.black;
-    const ACC::Accumulator& nstmAcc = !board.sideToMove == White ? board.accPair.white : board.accPair.black;
+    const ACC::Accumulator& stmAcc = board.sideToMove == White ? acc.white : acc.black;
+    const ACC::Accumulator& nstmAcc = !board.sideToMove == White ? acc.white : acc.black;
 
     const nativeVector VEC_QA   = set1_epi16(QA);
     const nativeVector VEC_ZERO = set1_epi16(0);
@@ -148,19 +144,15 @@ static int32_t VectorizedSCReLU(const Board& board, const Network& net, size_t o
     nativeVector accumulator{};
 
     for (int i = 0; i < HL_SIZE; i += VECTOR_SIZE) {
-        // Load accumulators
         const nativeVector stmAccumValues   = load_epi16(reinterpret_cast<const nativeVector*>(&stmAcc[i]));
         const nativeVector nstmAccumValues  = load_epi16(reinterpret_cast<const nativeVector*>(&nstmAcc[i]));
 
-        // Clamp values
         const nativeVector stmClamped   = min_epi16(VEC_QA, max_epi16(stmAccumValues, VEC_ZERO));
         const nativeVector nstmClamped  = min_epi16(VEC_QA, max_epi16(nstmAccumValues, VEC_ZERO));
 
-        // Load weights
         const nativeVector stmWeights   = load_epi16(reinterpret_cast<const nativeVector*>(&net.output_weights[outputBucket][i]));
         const nativeVector nstmWeights  = load_epi16(reinterpret_cast<const nativeVector*>(&net.output_weights[outputBucket][i + HL_SIZE]));
 
-        // SCReLU activation
         const nativeVector stmActivated  = madd_epi16(stmClamped, mullo_epi16(stmClamped, stmWeights));
         const nativeVector nstmActivated  = madd_epi16(nstmClamped, mullo_epi16(nstmClamped, nstmWeights));
 
@@ -171,13 +163,13 @@ static int32_t VectorizedSCReLU(const Board& board, const Network& net, size_t o
     return reduce_epi32(accumulator);
 }
 
-int Forward(const Board& board, const Network& net) {
+static int Forward(const Board& board, const ACC::AccumulatorPair& acc, const Network& net) {
     const size_t divisor      = 32 / OUTPUT_BUCKETS;
     const size_t outputBucket = (board.occupied.PopCount() - 2) / divisor;
 
     int64_t eval = 0;
 
-    eval = VectorizedSCReLU(board, net, outputBucket);
+    eval = VectorizedSCReLU(board, acc, net, outputBucket);
 
     eval /= QA;
 
@@ -187,16 +179,21 @@ int Forward(const Board& board, const Network& net) {
     return (eval * SCALE) / (QA * QB);
 }
 
-int16_t Network::Evaluate(const Board& board, bool datagen) {
-    // Disabled in datagen
+int16_t Network::Evaluate(const Board& board, const ACC::AccumulatorPair& acc, bool datagen) {
     const int materialScale = datagen ? 4096 : 2048
         +  90 * board.pieces[Knight].PopCount()
         +  90 * board.pieces[Bishop].PopCount()
         + 180 * board.pieces[Rook].PopCount()
         + 360 * board.pieces[Queen].PopCount();
 
-    return std::clamp(Forward(board, *this) * materialScale / 4096, (-SEARCH::MATE_SCORE + SEARCH::MAX_DEPTH),
+    return std::clamp(Forward(board, acc, *this) * materialScale / 4096, (-SEARCH::MATE_SCORE + SEARCH::MAX_DEPTH),
         (SEARCH::MATE_SCORE - SEARCH::MAX_DEPTH));
+}
+
+int16_t Network::Evaluate(const Board& board, bool datagen) {
+    ACC::AccumulatorPair acc;
+    board.RefreshAccumulator(acc);
+    return Evaluate(board, acc, datagen);
 }
 
 }
