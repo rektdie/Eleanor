@@ -374,6 +374,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
         int score = -Quiescence<isPV, mode>(copy, -beta, -alpha, ply + 1, ctx).score;
 
         if (score >= beta) {
+            if (searchStopped.load(std::memory_order_relaxed)) return 0;
             ctx->TT->WriteEntry(board.hashKey, 0, score, CutNode, currMove, ttpv);
             return score;
         }
