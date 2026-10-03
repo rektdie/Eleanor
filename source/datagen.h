@@ -1,6 +1,7 @@
 #pragma once
 #include "board.h"
 #include "utils.h"
+#include <atomic>
 #include <fstream>
 #include "stopwatch.h"
 
@@ -10,6 +11,15 @@ constexpr int GAME_BUFFER = 500;
 constexpr int SOFT_NODES = 5000;
 constexpr int HARD_NODES = 100000;
 constexpr int RAND_MOVES = 8;
+
+// Live counters shared between the worker threads and the frontend.
+struct DatagenStats {
+    std::atomic<int> positions{0};
+    std::atomic<int> games{0};
+    std::atomic<int> files{0};
+    std::atomic<long long> nodes{0};
+    std::atomic<int> rejected{0};
+};
 
 struct MarlinFormat {
     uint64_t occupancy;      // 8 bytes: Bitboard representing all occupied squares (includes all pieces)
@@ -62,6 +72,4 @@ struct Game {
 
 void Run(int targetPositions, int threads);
 void RunOnline(const std::string& username, int targetPositions, int threads);
-
-void PrintProgress(int positions, int targetPositions, Stopwatch &stopwatch, int threads);
 }
