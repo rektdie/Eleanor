@@ -300,7 +300,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     bool ttHit = false;
     entry = ctx->TT->GetEntry(board.hashKey);
 
-    if (entry.hashKey == PackHashKey(board.hashKey)) {
+    if (entry.hashKey == PackHashKey(board.hashKey) && entry.depth > 0) {
         ttHit = true;
 
         switch (entry.nodeType) {
@@ -423,13 +423,12 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (!ctx->excluded)
         entry = ctx->TT->GetEntry(board.hashKey);
 
-    const bool ttHit = entry.hashKey == PackHashKey(board.hashKey);
+    const bool ttHit = entry.hashKey == PackHashKey(board.hashKey) && entry.depth >= depth;
     const bool ttpv = isPV | entry.ttpv;
 
     if constexpr (!isPV) {
         if (ttHit) {
-            if (entry.depth >= depth &&
-                ((entry.nodeType == PV) ||
+            if (((entry.nodeType == PV) ||
                 (entry.nodeType == AllNode && entry.score <= alpha) ||
                 (entry.nodeType == CutNode && entry.score >= beta))) {
 
