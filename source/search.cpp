@@ -13,6 +13,74 @@
 
 namespace SEARCH {
 
+static void PublishRootVote(SearchContext* ctx, const SearchResults& results, int depth) {
+    if (!ctx->voteTable || !ctx->voteMutex)
+        return;
+    Move m = results.bestMove;
+    if (uint16_t(m) == 0)
+        return;
+    if (ctx->threadId < 0 || ctx->threadId >= static_cast<int>(ctx->voteTable->size()))
+        return;
+    std::lock_guard<std::mutex> lock(*ctx->voteMutex);
+    RootVote& slot = (*ctx->voteTable)[ctx->threadId];
+    slot.bestMove = results.bestMove;
+    slot.score = results.score;
+    slot.depth = depth;
+}
+
+SearchResults VoteRootMoves(const std::vector<RootVote>& votes) {
+    struct Tally {
+        Move move;
+        int count = 0;
+        int score = 0;
+        int depth = 0;
+    };
+    std::vector<Tally> tallies;
+    tallies.reserve(votes.size());
+
+    for (const RootVote& v : votes) {
+        Move mv = v.bestMove;
+        if (uint16_t(mv) == 0)
+            continue;
+        const uint16_t key = mv;
+        bool found = false;
+        for (Tally& t : tallies) {
+            if (uint16_t(t.move) == key) {
+                t.count++;
+                if (v.depth > t.depth || (v.depth == t.depth && v.score > t.score)) {
+                    t.score = v.score;
+                    t.depth = v.depth;
+                    t.move = v.bestMove;
+                }
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            Tally t;
+            t.move = v.bestMove;
+            t.count = 1;
+            t.score = v.score;
+            t.depth = v.depth;
+            tallies.push_back(t);
+        }
+    }
+
+    if (tallies.empty())
+        return SearchResults(0, Move());
+
+    Tally* best = &tallies[0];
+    for (size_t i = 1; i < tallies.size(); i++) {
+        if (tallies[i].count > best->count
+            || (tallies[i].count == best->count && tallies[i].depth > best->depth)
+            || (tallies[i].count == best->count && tallies[i].depth == best->depth && tallies[i].score > best->score)) {
+            best = &tallies[i];
+        }
+    }
+
+    return SearchResults(best->score, best->move);
+}
+
 static WDLTriplet GetRoundedWDL(int score, Board& board) {
     WDLTriplet wdl = getWDL(score, board);
 
@@ -932,6 +1000,8 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
                 safeResults = currentResults;
             }
 
+            PublishRootVote(ctx, safeResults, depth);
+
             if constexpr (mode == normal || mode == nodesMode) {
                 if (ctx->doPrint)
                     PrintSearchInfo(board, ctx, safeResults, depth, elapsed);
@@ -984,6 +1054,10 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* c
     SearchResults results = ID<mode>(board, params, ctx);
 
     if constexpr (mode != normal && mode != nodesMode) return results;
+
+    if (ctx->voteTable != nullptr) {
+        return results;
+    }
 
     if (ctx->doPrint) {
         if (UCIEnabled) {
