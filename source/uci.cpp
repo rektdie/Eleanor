@@ -208,6 +208,10 @@ static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchC
 }
 #endif
 
+static bool IsGoToken(const std::string &token) {
+    return token == "searchmoves" || token == "ponder" || token == "wtime" || token == "btime" || token == "winc" || token == "binc" || token == "movestogo" || token == "depth" || token == "nodes" || token == "mate" || token == "movetime" || token == "infinite";
+}
+
 static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* ctx) {
     StopSearchThreads();
     searchStopped.store(false, std::memory_order_relaxed);
@@ -221,14 +225,45 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* c
     params.binc = ReadParam("binc", command);
     params.movesToGo = ReadParam("movestogo", command);
     params.nodes = ReadParam("nodes", command);
+    params.depth = ReadParam("depth", command);
+    params.mate = ReadParam("mate", command);
+    params.movetime = ReadParam("movetime", command);
 
-    if (command.find("movetime") != std::string::npos) {
-        params.wtime = ReadParam("movetime", command);
-        params.btime = ReadParam("movetime", command);
-    } else if (command.find("infinite") != std::string::npos) {
-        params.wtime = 99999999;
-        params.btime = 99999999;
+    if (params.depth < 0)
+        params.depth = 0;
+    if (params.mate < 0)
+        params.mate = 0;
+    if (params.movetime < 0)
+        params.movetime = 0;
+    if (params.nodes < 0)
+        params.nodes = 0;
+    if (params.depth > SEARCH::MAX_DEPTH)
+        params.depth = SEARCH::MAX_DEPTH;
+    if (params.mate * 2 > SEARCH::MAX_DEPTH)
+        params.mate = SEARCH::MAX_DEPTH / 2;
+
+    if (command.find("infinite") != std::string::npos)
+        params.infinite = true;
+    if (command.find("ponder") != std::string::npos)
+        params.infinite = true;
+
+    size_t searchmovesPos = command.find("searchmoves");
+    if (searchmovesPos != std::string::npos) {
+        std::vector<std::string> tokens = UTILS::split(command.substr(searchmovesPos + 11), ' ');
+        for (std::string &token : tokens) {
+            if (token.empty())
+                continue;
+            if (IsGoToken(token))
+                break;
+            if (token.size() < 4)
+                continue;
+            Move m = UTILS::parseMove(board, token);
+            if (m != 0)
+                params.searchMoves.push_back(m);
+        }
     }
+
+    ctx->searchMoves = params.searchMoves;
 
     searchThreads.reserve(threads);
     for (int i = 0; i < threads; i++) {
@@ -301,7 +336,7 @@ static void SetOption(std::string& command, SEARCH::SearchContext* ctx) {
 }
 
 static void PrintEngineInfo() {
-    std::cout << "id name Eleanor v4.1" << std::endl;
+    std::cout << "id name Eleanor v" << EleanorVersion << std::endl;
     std::cout << "id author rektdie" << std::endl;
     std::cout << "option name Hash type spin default 8 min 1 max 1024" << std::endl;
     std::cout << "option name Threads type spin default 1 min 1 max 512" << std::endl;
@@ -355,7 +390,7 @@ void UCILoop(Board &board) {
         }
 
         // parse UCI "go" command
-        if (input.find("go") != std::string::npos) {
+        if (input == "go" || input.rfind("go ", 0) == 0) {
             ParseGo(board, input, ctx.get());
             continue;
         }

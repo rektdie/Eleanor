@@ -584,6 +584,18 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ctx->excluded == currMove)
             continue;
 
+        if (ply == 0 && !ctx->searchMoves.empty()) {
+            bool found = false;
+            for (Move &m : ctx->searchMoves) {
+                if (m.MoveFrom() == currMove.MoveFrom() && m.MoveTo() == currMove.MoveTo() && m.GetFlags() == currMove.GetFlags()) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                continue;
+        }
+
         bool notMated = results.score > (-MATE_SCORE + MAX_DEPTH);
         int lmrDepth = depth - lmrTable[currMove.IsQuiet()][depth][moveSeen];
 
@@ -855,6 +867,13 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 
     if constexpr (mode == bench) {
         toDepth = BENCH_DEPTH;
+    } else if constexpr (mode != datagen) {
+        int depthLimit = MAX_DEPTH;
+        if (params.depth > 0)
+            depthLimit = std::min(params.depth, MAX_DEPTH);
+        if (params.mate > 0)
+            depthLimit = std::min({depthLimit, params.mate * 2, MAX_DEPTH});
+        toDepth = depthLimit;
     }
 
     AspirationWindow aw;
@@ -865,9 +884,23 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
 
     ctx->sw.Restart();
 
+    bool hasTime = (fullTime > 0) || (params.movetime > 0);
+    bool useTime = hasTime && !params.infinite;
+
     for (int depth = 1; depth <= toDepth; depth++) {
-        ctx->timeToSearch = std::max((fullTime / movesToGo) + (inc / 2), 4);
-        int softTime = ctx->timeToSearch * 0.65 * nodeScaling;
+        if (params.movetime > 0 && !params.infinite) {
+            ctx->timeToSearch = params.movetime;
+        } else if (useTime) {
+            ctx->timeToSearch = std::max((fullTime / movesToGo) + (inc / 2), 4);
+        } else {
+            ctx->timeToSearch = 2000000000;
+        }
+        int softTime = 2000000000;
+        if (params.movetime > 0 && !params.infinite) {
+            softTime = params.movetime;
+        } else if (useTime) {
+            softTime = int(ctx->timeToSearch * 0.65 * nodeScaling);
+        }
         ctx->seldepth = 0;
         ctx->rootDepth = depth;
 
@@ -904,7 +937,7 @@ static SearchResults ID(Board &board, SearchParams params, SearchContext* ctx) {
                     PrintSearchInfo(board, ctx, safeResults, depth, elapsed);
 
                 if constexpr (mode == normal) {
-                    if (ctx->sw.GetElapsedMS() >= softTime) {
+                    if (useTime && ctx->sw.GetElapsedMS() >= softTime) {
                         searchStopped.store(true, std::memory_order_relaxed);
                         break;
                     }
@@ -933,6 +966,7 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* c
 
     ctx->seldepth = 0;
     ctx->nodesTable = {};
+    ctx->searchMoves = params.searchMoves;
     if constexpr (mode != bench) {
         ctx->nodes = 0;
 

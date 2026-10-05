@@ -218,6 +218,7 @@ public:
     U64 nodes = 0;
     U64 nodesToGo = 0;
     int timeToSearch = 0;
+    std::vector<Move> searchMoves;
 
     std::array<U64, 4096> nodesTable{};
 
