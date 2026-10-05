@@ -170,7 +170,7 @@ public:
     void Print(int n, bool isEven = false) {
         for (int i = 0; i < length[n]; i++) {
             if (i == 0 && !UCIEnabled) {
-                std::cout << termcolor::bright_cyan;
+                std::cout << termcolor::bold << termcolor::bright_cyan;
                 table[n][i].PrintMove();
                 std::cout << termcolor::reset;
 
@@ -182,7 +182,8 @@ public:
             } else {
                 table[n][i].PrintMove();
             }
-            std::cout << ' ';
+            if (i + 1 < length[n])
+                std::cout << ' ';
         }
     }
 
@@ -271,6 +272,8 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* c
 bool IsDraw(Board &board, SearchContext* ctx);
 
 void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, int depth, int elapsed);
+
+void PrintSearchHeader();
 
 int MoveEstimatedValue(Board& board, Move& move);
 }

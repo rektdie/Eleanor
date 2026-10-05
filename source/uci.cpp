@@ -443,7 +443,7 @@ void UCILoop(Board &board) {
         }
 
         if (input.find("nnue") != std::string::npos) {
-            board.PrintNNUE();
+            board.PrintNNUE(input.find("full") != std::string::npos);
             continue;
         }
 

@@ -1,12 +1,130 @@
 #include <cstring>
 #include <string_view>
 #include <array>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <memory>
 #include "benchmark.h"
 #include "search.h"
 #include "stopwatch.h"
+#include "wdl.h"
 
 using namespace SEARCH;
+
+static std::string BenchScoreString(int score, bool &isMate) {
+    std::stringstream ss;
+    isMate = std::abs(score) + MAX_DEPTH >= MATE_SCORE;
+    if (isMate) {
+        int mateIn = (MATE_SCORE - (std::abs(score) - 1)) / 2;
+        mateIn = score < 0 ? mateIn * -1 : mateIn;
+        if (mateIn < 0) {
+            ss << "-M" << std::abs(mateIn);
+        } else {
+            ss << "+M" << mateIn;
+        }
+    } else {
+        ss << std::showpos << std::fixed << std::setprecision(2)
+           << (score / 100.0) << std::noshowpos;
+    }
+    return ss.str();
+}
+
+static std::string BenchCountString(U64 count, const char* suffix) {
+    std::stringstream ss;
+    if (count >= 1000000) {
+        ss << std::fixed << std::setprecision(1) << (count / 1000000.0) << "M" << suffix;
+    } else if (count >= 1000) {
+        ss << std::fixed << std::setprecision(1) << (count / 1000.0) << "k" << suffix;
+    } else {
+        ss << count << suffix;
+    }
+    return ss.str();
+}
+
+static void PrintBenchHeader() {
+    std::cout << termcolor::bold << termcolor::color<244>;
+    std::cout << std::setw(4) << std::right << "#";
+    std::cout << std::setw(8) << std::left << " Depth";
+    std::cout << std::setw(9) << std::right << "Score";
+    std::cout << std::setw(10) << std::right << "Nodes";
+    std::cout << std::setw(9) << std::right << "Time";
+    std::cout << std::setw(9) << std::right << "NPS";
+    std::cout << "  Best";
+    std::cout << termcolor::reset << std::endl;
+
+    std::cout << termcolor::color<238>;
+    for (int i = 0; i < 64; i++)
+        std::cout << '-';
+    std::cout << termcolor::reset << std::endl;
+}
+
+static void PrintBenchLine(int index, Board& board, SearchResults& results, SearchContext* ctx, U64 posNodes, int elapsedMs) {
+    if (index % 2 == 0) {
+        std::cout << termcolor::color<247>;
+    } else {
+        std::cout << termcolor::color<251>;
+    }
+
+    std::cout << std::setw(4) << std::right << index;
+
+    std::stringstream depthStr;
+    depthStr << BENCH_DEPTH << '/' << ctx->seldepth;
+    std::cout << termcolor::bold << termcolor::bright_white;
+    std::cout << std::setw(8) << std::left << (" " + depthStr.str());
+    std::cout << termcolor::reset;
+    if (index % 2 == 0) {
+        std::cout << termcolor::color<247>;
+    } else {
+        std::cout << termcolor::color<251>;
+    }
+
+    const bool isMateScore = std::abs(results.score) + MAX_DEPTH >= MATE_SCORE;
+    const int normalizedScore = isMateScore ? results.score : scaleEval(results.score, board);
+    bool isMate = false;
+    std::string scoreStr = BenchScoreString(normalizedScore, isMate);
+    if (isMate) {
+        int mateIn = (MATE_SCORE - (std::abs(normalizedScore) - 1)) / 2;
+        mateIn = normalizedScore < 0 ? mateIn * -1 : mateIn;
+        if (mateIn > 0) {
+            std::cout << termcolor::bold << termcolor::bright_green;
+        } else {
+            std::cout << termcolor::bold << termcolor::bright_red;
+        }
+    } else {
+        if (normalizedScore > 0) {
+            std::cout << termcolor::bold << termcolor::green;
+        } else if (normalizedScore < 0) {
+            std::cout << termcolor::bold << termcolor::red;
+        }
+    }
+    std::cout << std::setw(9) << std::right << scoreStr;
+    std::cout << termcolor::reset;
+    if (index % 2 == 0) {
+        std::cout << termcolor::color<247>;
+    } else {
+        std::cout << termcolor::color<251>;
+    }
+
+    std::cout << std::setw(10) << std::right << BenchCountString(posNodes, "");
+
+    std::stringstream timeStr;
+    if (elapsedMs >= 1000) {
+        timeStr << std::fixed << std::setprecision(1) << (elapsedMs / 1000.0) << "s";
+    } else {
+        timeStr << elapsedMs << "ms";
+    }
+    std::cout << std::setw(9) << std::right << timeStr.str();
+
+    double elapsedSec = elapsedMs / 1000.0;
+    U64 nps = elapsedSec > 0 ? U64(posNodes / elapsedSec) : posNodes;
+    std::cout << std::setw(9) << std::right << BenchCountString(nps, "/s");
+
+    std::cout << "  ";
+    std::cout << termcolor::bold << termcolor::bright_cyan;
+    std::cout << results.bestMove.GetMoveString();
+    std::cout << termcolor::reset << std::endl;
+}
 
 constexpr std::array<std::string_view, 50> fenPositions = {
     "rnbq1k1r/ppp1bppp/4pn2/8/2B5/2NP1N2/PPP2PPP/R1BQR1K1 b - - 2 8",
@@ -68,11 +186,35 @@ void RunBenchmark() {
     auto ctx = std::make_unique<SearchContext>();
     ctx->TT = &BenchTT;
 
-    Stopwatch sw;
-    for (int i = 0; i < fenPositions.size(); i++) {
-        board.SetByFen(fenPositions[i]);
-        SearchPosition<bench>(board, SearchParams(), ctx.get());
-    }
+    PrintBenchHeader();
 
-    std::cout << ctx->nodes << " nodes " << int(ctx->nodes/sw.GetElapsedSec()) << " nps" << std::endl;
+    Stopwatch sw;
+    for (size_t i = 0; i < fenPositions.size(); i++) {
+        board.SetByFen(fenPositions[i]);
+        U64 nodesBefore = ctx->nodes;
+        Stopwatch posSw;
+        SearchResults results = SearchPosition<bench>(board, SearchParams(), ctx.get());
+        int elapsedMs = posSw.GetElapsedMS();
+        PrintBenchLine(int(i + 1), board, results, ctx.get(), ctx->nodes - nodesBefore, elapsedMs);
+    }
+    double totalSec = sw.GetElapsedSec();
+
+    std::cout << termcolor::color<238>;
+    for (int i = 0; i < 64; i++)
+        std::cout << '-';
+    std::cout << termcolor::reset << std::endl;
+
+    std::cout << termcolor::bold << termcolor::bright_white;
+    std::cout << "Positions: " << fenPositions.size();
+    std::cout << "   Nodes: " << BenchCountString(ctx->nodes, "");
+    std::cout << "   Time: ";
+    if (totalSec >= 1.0) {
+        std::cout << std::fixed << std::setprecision(1) << totalSec << "s";
+    } else {
+        std::cout << int(totalSec * 1000) << "ms";
+    }
+    std::cout << "   Avg: " << BenchCountString(totalSec > 0 ? U64(ctx->nodes / totalSec) : ctx->nodes, "/s");
+    std::cout << termcolor::reset << std::endl;
+
+    std::cout << ctx->nodes << " nodes " << int(ctx->nodes/totalSec) << " nps" << std::endl;
 }

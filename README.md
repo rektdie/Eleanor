@@ -57,6 +57,7 @@ You can interact with the engine via these commands:
 
 - `stop` — Stops the current search  
 - `bench` — Runs a speed benchmark on a set of positions  
+- `nnue [full]` — Shows a detailed breakdown of the neural network evaluation for the current position (`full` adds histograms, per-step math and top 8 neurons)  
 
 The engine can be used in any GUI with **UCI support**.
 

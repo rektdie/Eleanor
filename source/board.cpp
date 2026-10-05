@@ -5,11 +5,19 @@
 #include "nnue.h"
 #include "tt.h"
 #include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <algorithm>
+#include <numeric>
+#include <vector>
 #include <ranges>
 #include <string_view>
 #include <cassert>
 #include "types.h"
 #include "utils.h"
+#include "wdl.h"
+#include "search.h"
+#include "termcolor.hpp"
 
 void Board::Reset() {
     castlingRights = 0;
@@ -251,8 +259,511 @@ void Board::PrintBoard() {
 	std::cout << "      Fen: " << GetFen() << std::endl;
 }
 
-void Board::PrintNNUE() {
-	std::cout << "Final eval: " << NNUE::net.Evaluate(*this) << std::endl;
+void Board::PrintNNUE(bool full) {
+    ACC::AccumulatorPair acc;
+    RefreshAccumulator(acc);
+
+    const int pieceCount = occupied.PopCount();
+    const size_t divisor = 32 / NNUE::OUTPUT_BUCKETS;
+    const size_t outBucket = (pieceCount - 2) / divisor;
+
+    const int wKingSq = (pieces[King] & colors[White]).getLS1BIndex();
+    const int bKingSq = (pieces[King] & colors[Black]).getLS1BIndex();
+    const ACC::BucketPair buckets = GetBuckets();
+
+    const bool stmIsWhite = (sideToMove == White);
+    const ACC::Accumulator& stmAcc = stmIsWhite ? acc.white : acc.black;
+    const ACC::Accumulator& nstmAcc = stmIsWhite ? acc.black : acc.white;
+
+    auto bar = [](int value, int maxValue, int width) {
+        std::string s;
+        int filled = maxValue > 0 ? (value * width + maxValue / 2) / maxValue : 0;
+        for (int i = 0; i < width; i++)
+            s += (i < filled) ? '#' : '.';
+        return s;
+    };
+
+    auto section = [](const char* name) {
+        std::cout << termcolor::bold << termcolor::color<244>;
+        std::cout << "-- " << name << " --";
+        std::cout << termcolor::reset << std::endl;
+    };
+
+    auto pieceLetter = [&](int sq) {
+        int pt = mailbox[sq];
+        if (pt == nullPieceType)
+            return ' ';
+        bool white = colors[White].IsSet(sq);
+        return PIECE_LETTERS[pt * 2 + (white ? White : Black)];
+    };
+
+    auto boardRow = [&](int rank) {
+        std::ostringstream row;
+        row << termcolor::color<244> << rank + 1 << termcolor::reset << "  ";
+        for (int file = 0; file < 8; file++) {
+            int sq = rank * 8 + file;
+            int pt = mailbox[sq];
+            bool isKingSq = (sq == wKingSq) || (sq == bKingSq);
+            if (pt == nullPieceType) {
+                row << termcolor::color<240> << ". " << termcolor::reset;
+            } else {
+                bool white = colors[White].IsSet(sq);
+                if (isKingSq)
+                    row << termcolor::bold << termcolor::reverse;
+                if (white)
+                    row << termcolor::bright_white;
+                else
+                    row << termcolor::yellow;
+                row << pieceLetter(sq) << ' ';
+                row << termcolor::reset;
+            }
+        }
+        return row.str();
+    };
+
+    auto bucketMapRow = [&](bool forWhite, int rank) {
+        std::ostringstream row;
+        int kingSq = forWhite ? wKingSq : bKingSq;
+        for (int file = 0; file < 8; file++) {
+            int sq = rank * 8 + file;
+            int b = NNUE::kingBuckets[forWhite ? White : Black][sq];
+            if (sq == kingSq)
+                row << termcolor::bold << termcolor::reverse << termcolor::bright_cyan;
+            else
+                row << termcolor::color<244>;
+            row << b << ' ';
+            row << termcolor::reset;
+        }
+        return row.str();
+    };
+
+    auto printBoardAndMaps = [&]() {
+        std::cout << "    a b c d e f g h    White regions      Black regions" << std::endl;
+        for (int rank = 7; rank >= 0; rank--) {
+            std::cout << boardRow(rank) << "  " << bucketMapRow(true, rank);
+            std::cout << "  " << bucketMapRow(false, rank) << std::endl;
+        }
+        std::cout << "    a b c d e f g h" << termcolor::color<244> << "    Kings highlighted" << termcolor::reset << std::endl;
+    };
+
+    auto printGauge = [&](double pawns, const std::string& valueStr, bool positive, bool isMate) {
+        const int width = 41;
+        const int center = width / 2;
+        double cl = std::clamp(pawns, -5.0, 5.0);
+        int mark = center + int(std::round(cl / 5.0 * center));
+        mark = std::clamp(mark, 0, width - 1);
+        std::cout << "  ";
+        for (int i = 0; i < width; i++) {
+            if (i == mark) {
+                std::cout << termcolor::bold << termcolor::bright_white << 'O';
+            } else if (i == center) {
+                std::cout << termcolor::color<244> << '+';
+            } else if (i < center) {
+                std::cout << termcolor::red << '-';
+            } else {
+                std::cout << termcolor::green << '-';
+            }
+            std::cout << termcolor::reset;
+        }
+        std::cout << "  ";
+        if (isMate) {
+            if (positive)
+                std::cout << termcolor::bold << termcolor::bright_green;
+            else
+                std::cout << termcolor::bold << termcolor::bright_red;
+        } else if (positive) {
+            std::cout << termcolor::bold << termcolor::green;
+        } else {
+            std::cout << termcolor::bold << termcolor::red;
+        }
+        std::cout << valueStr << termcolor::reset << std::endl;
+        std::cout << "  " << termcolor::color<244> << "-5" << std::string(center - 2, ' ') << "0"
+                  << std::string(center - 2, ' ') << "+5" << termcolor::reset << std::endl;
+    };
+
+    auto printWdlBar = [&](const WDLTriplet& t) {
+        const int width = 32;
+        int w = (t.wins * width + 500) / 1000;
+        int l = (t.losses * width + 500) / 1000;
+        int d = width - w - l;
+        std::cout << "  ";
+        std::cout << termcolor::bright_green;
+        for (int i = 0; i < w; i++) std::cout << '#';
+        std::cout << termcolor::color<244>;
+        for (int i = 0; i < d; i++) std::cout << '#';
+        std::cout << termcolor::bright_red;
+        for (int i = 0; i < l; i++) std::cout << '#';
+        std::cout << termcolor::reset << std::endl;
+    };
+
+    struct AccStats {
+        int16_t mn = 0;
+        int16_t mx = 0;
+        double mean = 0;
+        double absMean = 0;
+        int zeros = 0;
+        int saturated = 0;
+    };
+
+    auto accStats = [](const ACC::Accumulator& a) {
+        AccStats s;
+        s.mn = a[0];
+        s.mx = a[0];
+        int64_t sum = 0;
+        int64_t absSum = 0;
+        for (size_t i = 0; i < NNUE::HL_SIZE; i++) {
+            s.mn = std::min(s.mn, a[i]);
+            s.mx = std::max(s.mx, a[i]);
+            sum += a[i];
+            absSum += std::abs(a[i]);
+            int32_t c = std::clamp<int32_t>(a[i], 0, NNUE::QA);
+            if (c == 0)
+                s.zeros++;
+            if (c >= NNUE::QA)
+                s.saturated++;
+        }
+        s.mean = double(sum) / double(NNUE::HL_SIZE);
+        s.absMean = double(absSum) / double(NNUE::HL_SIZE);
+        return s;
+    };
+
+    auto perspectivePart = [&](const ACC::Accumulator& a, size_t base, std::vector<std::tuple<int64_t,int,int16_t,int16_t>>* top) {
+        int64_t part = 0;
+        for (size_t i = 0; i < NNUE::HL_SIZE; i++) {
+            int32_t c = std::clamp<int32_t>(a[i], 0, NNUE::QA);
+            int16_t w = NNUE::net.output_weights[outBucket][base + i];
+            int16_t prod = int16_t(c * w);
+            int64_t contrib = int64_t(c) * prod;
+            part += contrib;
+            if (top && (c > 0))
+                top->emplace_back(std::llabs(contrib), int(i), int16_t(c), w);
+        }
+        return part;
+    };
+
+    std::vector<std::tuple<int64_t,int,int16_t,int16_t>> stmTop;
+    std::vector<std::tuple<int64_t,int,int16_t,int16_t>> nstmTop;
+    stmTop.reserve(NNUE::HL_SIZE);
+    nstmTop.reserve(NNUE::HL_SIZE);
+    const int64_t stmPart = perspectivePart(stmAcc, 0, &stmTop);
+    const int64_t nstmPart = perspectivePart(nstmAcc, NNUE::HL_SIZE, &nstmTop);
+    const int64_t preBias = (stmPart + nstmPart) / NNUE::QA;
+    const int16_t bias = NNUE::net.output_bias[outBucket];
+    const int64_t biased = preBias + bias;
+    const int64_t rawEval = (biased * NNUE::SCALE) / (NNUE::QA * NNUE::QB);
+
+    const int nN = pieces[Knight].PopCount();
+    const int nB = pieces[Bishop].PopCount();
+    const int nR = pieces[Rook].PopCount();
+    const int nQ = pieces[Queen].PopCount();
+    const int materialScale = 2048 + 90 * nN + 90 * nB + 180 * nR + 360 * nQ;
+    const int16_t finalEval = std::clamp<int64_t>(rawEval * materialScale / 4096,
+        (-SEARCH::MATE_SCORE + SEARCH::MAX_DEPTH), (SEARCH::MATE_SCORE - SEARCH::MAX_DEPTH));
+
+    const bool isMateScore = std::abs(finalEval) + SEARCH::MAX_DEPTH >= SEARCH::MATE_SCORE;
+    const int normalized = isMateScore ? finalEval : scaleEval(finalEval, *this);
+    const WDLTriplet wdl = getWDL(finalEval, *this);
+
+    std::cout << termcolor::bold << termcolor::bright_white;
+    std::cout << "NNUE evaluation detail";
+    std::cout << termcolor::reset << std::endl;
+    std::cout << termcolor::color<244> << "FEN: " << termcolor::reset << GetFen() << std::endl;
+    std::cout << termcolor::color<244> << "Side to move: " << termcolor::reset;
+    if (!sideToMove) {
+        std::cout << termcolor::bold << termcolor::bright_white << "White";
+    } else {
+        std::cout << termcolor::bold << termcolor::color<208> << "Black";
+    }
+    std::cout << termcolor::reset << "   " << termcolor::color<244> << "Pieces: " << termcolor::reset << pieceCount << std::endl;
+    if (full)
+        std::cout << std::endl;
+
+    section("Position");
+    printBoardAndMaps();
+    if (full)
+        std::cout << std::endl;
+
+    section("Architecture");
+    std::cout << "  HL " << termcolor::bold << termcolor::bright_white << NNUE::HL_SIZE << termcolor::reset;
+    std::cout << "   Input " << termcolor::bold << termcolor::bright_white << NNUE::INPUT_SIZE << termcolor::reset;
+    std::cout << "   In-buckets " << termcolor::bold << termcolor::bright_white << NNUE::INPUT_BUCKETS << termcolor::reset;
+    std::cout << "   Out-buckets " << termcolor::bold << termcolor::bright_white << NNUE::OUTPUT_BUCKETS << termcolor::reset << std::endl;
+    std::cout << "  QA " << termcolor::bold << termcolor::bright_white << NNUE::QA << termcolor::reset;
+    std::cout << "   QB " << termcolor::bold << termcolor::bright_white << NNUE::QB << termcolor::reset;
+    std::cout << "   Scale " << termcolor::bold << termcolor::bright_white << NNUE::SCALE << termcolor::reset << std::endl;
+    if (full)
+        std::cout << std::endl;
+
+    section("Buckets");
+    std::cout << "  Out ";
+    for (size_t b = 0; b < NNUE::OUTPUT_BUCKETS; b++) {
+        if (b == outBucket)
+            std::cout << termcolor::bold << termcolor::bright_cyan << '[' << b << ']' << termcolor::reset;
+        else
+            std::cout << termcolor::color<244> << ' ' << b << ' ' << termcolor::reset;
+    }
+    std::cout << termcolor::color<244> << "  ((" << pieceCount << " - 2) / " << divisor << ")" << termcolor::reset << std::endl;
+    std::cout << "  Kings " << termcolor::bold << termcolor::bright_white << squareCoords[wKingSq] << "->" << buckets.white << termcolor::reset;
+    std::cout << (mirroredWhite ? "(m)" : "") << " ";
+    std::cout << termcolor::bold << termcolor::bright_white << squareCoords[bKingSq] << "->" << buckets.black << termcolor::reset;
+    std::cout << (mirroredBlack ? "(m)" : "") << "   Feats ";
+    std::cout << termcolor::bold << termcolor::bright_white << pieceCount << termcolor::reset << std::endl;
+    if (full) {
+        std::cout << "  Material ";
+        std::cout << "N " << termcolor::bold << termcolor::bright_white << nN << termcolor::reset;
+        std::cout << " B " << termcolor::bold << termcolor::bright_white << nB << termcolor::reset;
+        std::cout << " R " << termcolor::bold << termcolor::bright_white << nR << termcolor::reset;
+        std::cout << " Q " << termcolor::bold << termcolor::bright_white << nQ << termcolor::reset;
+        std::cout << "  scale = 2048+90N+90B+180R+360Q = ";
+        std::cout << termcolor::bold << termcolor::bright_white << materialScale << termcolor::reset;
+        std::cout << termcolor::color<244> << " (/4096)" << termcolor::reset << std::endl;
+    } else {
+        std::cout << "  Material scale ";
+        std::cout << termcolor::bold << termcolor::bright_white << materialScale << termcolor::reset;
+        std::cout << termcolor::color<244> << " (/4096)" << termcolor::reset << std::endl;
+    }
+    if (full)
+        std::cout << std::endl;
+
+    section("Accumulators");
+    for (int p = 0; p < 2; p++) {
+        const bool isWhite = (p == 0);
+        const ACC::Accumulator& a = isWhite ? acc.white : acc.black;
+        const AccStats s = accStats(a);
+        const int active = int(NNUE::HL_SIZE) - s.zeros;
+        std::cout << "  " << (isWhite ? "White" : "Black");
+        if ((stmIsWhite && isWhite) || (!stmIsWhite && !isWhite))
+            std::cout << termcolor::bold << termcolor::bright_cyan << " (STM)" << termcolor::reset;
+        else
+            std::cout << termcolor::color<244> << " (NSTM)" << termcolor::reset;
+        std::cout << "  min " << termcolor::bold << termcolor::bright_white << s.mn << termcolor::reset;
+        std::cout << "  max " << termcolor::bold << termcolor::bright_white << s.mx << termcolor::reset;
+        std::cout << "  mean ";
+        std::cout << termcolor::bright_white << std::fixed << std::setprecision(1) << s.mean << termcolor::reset;
+        if (full) {
+            std::cout << "  |mean| ";
+            std::cout << termcolor::bright_white << std::fixed << std::setprecision(1) << s.absMean << termcolor::reset;
+            std::cout << std::endl;
+            std::cout << "    active " << termcolor::bold << termcolor::green << active << termcolor::reset;
+            std::cout << termcolor::color<244> << " / " << NNUE::HL_SIZE << termcolor::reset;
+            std::cout << "   zero " << termcolor::color<244> << s.zeros << termcolor::reset;
+            std::cout << "   saturated(QA) ";
+            if (s.saturated > 0)
+                std::cout << termcolor::bold << termcolor::yellow << s.saturated << termcolor::reset;
+            else
+                std::cout << termcolor::color<244> << "0" << termcolor::reset;
+            std::cout << std::endl;
+        } else {
+            std::cout << "  act " << termcolor::bold << termcolor::green << active << termcolor::reset;
+            std::cout << termcolor::color<244> << "/" << NNUE::HL_SIZE << " sat ";
+            if (s.saturated > 0)
+                std::cout << termcolor::reset << termcolor::bold << termcolor::yellow << s.saturated << termcolor::reset;
+            else
+                std::cout << "0" << termcolor::reset;
+            std::cout << std::endl;
+        }
+
+        if (full) {
+            int bins[8] = {};
+            for (size_t i = 0; i < NNUE::HL_SIZE; i++) {
+                int32_t c = std::clamp<int32_t>(a[i], 0, NNUE::QA);
+                int bin = std::min(7, (c * 8) / (NNUE::QA + 1));
+                bins[bin]++;
+            }
+            int binMax = *std::max_element(bins, bins + 8);
+            std::cout << "    act ";
+            std::cout << termcolor::green << bar(bins[0], binMax, 8) << termcolor::reset;
+            std::cout << ' ' << termcolor::color<244> << "0" << termcolor::reset;
+            std::cout << ' ' << termcolor::green << bar(bins[7], binMax, 8) << termcolor::reset;
+            std::cout << ' ' << termcolor::color<244> << "QA" << termcolor::reset;
+            std::cout << termcolor::color<244> << "   peak bin " << (std::max_element(bins, bins + 8) - bins);
+            std::cout << " (" << binMax << ")" << termcolor::reset << std::endl;
+        }
+    }
+    if (full)
+        std::cout << std::endl;
+
+    section("Output layer");
+    if (full) {
+        std::cout << "  bias[" << outBucket << "] = ";
+        std::cout << termcolor::bold << termcolor::bright_white << bias << termcolor::reset << std::endl;
+        std::cout << "  STM" << termcolor::color<244> << (stmIsWhite ? " (White)" : " (Black)") << termcolor::reset;
+        std::cout << " part = " << termcolor::bold << termcolor::bright_white << stmPart << termcolor::reset << std::endl;
+        std::cout << "  NSTM" << termcolor::color<244> << (stmIsWhite ? " (Black)" : " (White)") << termcolor::reset;
+        std::cout << " part = " << termcolor::bold << termcolor::bright_white << nstmPart << termcolor::reset << std::endl;
+        std::cout << "  (STM+NSTM) / QA + bias = ";
+        std::cout << termcolor::bright_white << "(" << stmPart;
+        if (nstmPart < 0)
+            std::cout << " - " << -nstmPart;
+        else
+            std::cout << " + " << nstmPart;
+        std::cout << ") / " << NNUE::QA << " + " << bias;
+        std::cout << " = " << biased << termcolor::reset << std::endl;
+        std::cout << "  x Scale / (QA x QB) = " << termcolor::bright_white << biased << " x " << NNUE::SCALE;
+        std::cout << " / (" << NNUE::QA << " x " << NNUE::QB << ") = " << rawEval << termcolor::reset << std::endl;
+        std::cout << "  x material / 4096 = " << termcolor::bright_white << rawEval << " x " << materialScale << " / 4096";
+        std::cout << " = " << (rawEval * materialScale / 4096) << termcolor::reset << std::endl;
+    } else {
+        std::cout << "  parts STM " << termcolor::bold << termcolor::bright_white << stmPart << termcolor::reset;
+        std::cout << "  NSTM " << termcolor::bold << termcolor::bright_white << nstmPart << termcolor::reset;
+        std::cout << "  bias " << termcolor::bold << termcolor::bright_white << bias << termcolor::reset;
+        std::cout << "  -> raw " << termcolor::bold << termcolor::bright_white << rawEval << termcolor::reset;
+        std::cout << "  x" << materialScale << "/4096" << std::endl;
+    }
+    if (full)
+        std::cout << std::endl;
+
+    auto humanShort = [](int64_t v) {
+        std::ostringstream os;
+        int64_t a = v < 0 ? -v : v;
+        if (a >= 1000000)
+            os << (v < 0 ? "-" : "") << std::fixed << std::setprecision(1) << (a / 1000000.0) << 'M';
+        else if (a >= 1000)
+            os << (v < 0 ? "-" : "") << std::fixed << std::setprecision(1) << (a / 1000.0) << 'k';
+        else
+            os << v;
+        return os.str();
+    };
+
+    auto denseEntry = [&](int idx, int16_t act, int16_t w, int64_t contrib, int64_t maxAbs) {
+        std::ostringstream os;
+        int barLen = int((std::llabs(contrib) * 10 + maxAbs / 2) / maxAbs);
+        os << ' ' << std::setw(4) << idx << ' ' << std::setw(4) << act << ' ' << std::setw(6) << w << ' ';
+        if (contrib >= 0)
+            os << termcolor::green;
+        else
+            os << termcolor::red;
+        os << std::setw(7) << humanShort(contrib);
+        for (int k = 0; k < barLen; k++) os << '#';
+        for (int k = barLen; k < 10; k++) os << ' ';
+        os << termcolor::reset;
+        return os.str();
+    };
+
+    auto printTopPair = [&](const char* leftLabel, std::vector<std::tuple<int64_t,int,int16_t,int16_t>>& left,
+                            const char* rightLabel, std::vector<std::tuple<int64_t,int,int16_t,int16_t>>& right, size_t count) {
+        auto byAbs = [](const auto& x, const auto& y) { return std::get<0>(x) > std::get<0>(y); };
+        size_t nl = std::min(count, left.size());
+        size_t nr = std::min(count, right.size());
+        size_t n = std::max(nl, nr);
+        if (nl > 0) std::partial_sort(left.begin(), left.begin() + nl, left.end(), byAbs);
+        if (nr > 0) std::partial_sort(right.begin(), right.begin() + nr, right.end(), byAbs);
+        int64_t maxAbs = 1;
+        if (nl > 0) maxAbs = std::max(maxAbs, std::get<0>(left[0]));
+        if (nr > 0) maxAbs = std::max(maxAbs, std::get<0>(right[0]));
+        std::cout << "  " << termcolor::bold << termcolor::bright_white << leftLabel << termcolor::reset;
+        std::cout << std::string(36 - std::string(leftLabel).size(), ' ') << "   ";
+        std::cout << termcolor::bold << termcolor::bright_white << rightLabel << termcolor::reset << std::endl;
+        for (size_t i = 0; i < n; i++) {
+            std::cout << "  ";
+            if (i < nl) {
+                int idx; int16_t act; int16_t w; int64_t ab;
+                std::tie(ab, idx, act, w) = left[i];
+                std::cout << denseEntry(idx, act, w, int64_t(act) * int16_t(act * w), maxAbs);
+            } else {
+                std::cout << std::string(36, ' ');
+            }
+            std::cout << "   ";
+            if (i < nr) {
+                int idx; int16_t act; int16_t w; int64_t ab;
+                std::tie(ab, idx, act, w) = right[i];
+                std::cout << denseEntry(idx, act, w, int64_t(act) * int16_t(act * w), maxAbs);
+            }
+            std::cout << std::endl;
+        }
+    };
+
+    auto printTop = [&](const char* label, std::vector<std::tuple<int64_t,int,int16_t,int16_t>>& v, size_t count) {
+        std::cout << "  Top " << label << " neurons" << termcolor::color<244> << " (idx act w contrib)" << termcolor::reset << std::endl;
+        size_t n = std::min(count, v.size());
+        std::partial_sort(v.begin(), v.begin() + n, v.end(),
+            [](const auto& x, const auto& y) { return std::get<0>(x) > std::get<0>(y); });
+        int64_t maxAbs = n > 0 ? std::get<0>(v[0]) : 1;
+        for (size_t i = 0; i < n; i++) {
+            int64_t ab;
+            int idx;
+            int16_t act;
+            int16_t w;
+            std::tie(ab, idx, act, w) = v[i];
+            int64_t contrib = int64_t(act) * int16_t(act * w);
+            int barLen = int((ab * 14 + maxAbs / 2) / maxAbs);
+            std::cout << "    ";
+            std::cout << termcolor::color<244> << "#" << termcolor::reset;
+            std::cout << termcolor::bold << termcolor::bright_white << std::setw(5) << idx << termcolor::reset;
+            std::cout << "  act " << termcolor::bright_white << std::setw(4) << act << termcolor::reset;
+            std::cout << "  w " << std::setw(7) << w;
+            std::cout << "  c ";
+            if (contrib >= 0)
+                std::cout << termcolor::green;
+            else
+                std::cout << termcolor::red;
+            std::cout << std::setw(11) << contrib;
+            for (int k = 0; k < barLen; k++) std::cout << '#';
+            std::cout << termcolor::reset << std::endl;
+        }
+    };
+
+    section("Top neurons");
+    if (full) {
+        printTop(stmIsWhite ? "White/STM" : "Black/STM", stmTop, 8);
+        printTop(stmIsWhite ? "Black/NSTM" : "White/NSTM", nstmTop, 8);
+    } else {
+        printTopPair(stmIsWhite ? "STM White" : "STM Black", stmTop,
+                     stmIsWhite ? "NSTM Black" : "NSTM White", nstmTop, 3);
+        std::cout << termcolor::color<244> << "  (idx act w contrib, nnue full for top 8)" << termcolor::reset << std::endl;
+    }
+    if (full)
+        std::cout << std::endl;
+
+    section("Eval");
+    {
+        std::stringstream ss;
+        if (isMateScore) {
+            int mateIn = (SEARCH::MATE_SCORE - (std::abs(finalEval) - 1)) / 2;
+            mateIn = finalEval < 0 ? mateIn * -1 : mateIn;
+            ss << ((mateIn < 0) ? "-M" : "+M") << std::abs(mateIn);
+            printGauge(mateIn > 0 ? 5.0 : -5.0, ss.str(), mateIn > 0, true);
+        } else {
+            ss << std::showpos << std::fixed << std::setprecision(2) << (normalized / 100.0) << std::noshowpos;
+            printGauge(normalized / 100.0, ss.str(), normalized > 0, false);
+        }
+    }
+    std::cout << "  Raw ";
+    std::cout << termcolor::bold << termcolor::bright_white << rawEval << termcolor::reset;
+    std::cout << "   Normalized ";
+    if (isMateScore) {
+        int mateIn = (SEARCH::MATE_SCORE - (std::abs(finalEval) - 1)) / 2;
+        mateIn = finalEval < 0 ? mateIn * -1 : mateIn;
+        if (mateIn > 0)
+            std::cout << termcolor::bold << termcolor::bright_green;
+        else
+            std::cout << termcolor::bold << termcolor::bright_red;
+        std::cout << ((mateIn < 0) ? "-M" : "+M") << std::abs(mateIn);
+        std::cout << termcolor::reset;
+    } else {
+        if (normalized > 0)
+            std::cout << termcolor::bold << termcolor::green;
+        else if (normalized < 0)
+            std::cout << termcolor::bold << termcolor::red;
+        else
+            std::cout << termcolor::bright_white;
+        std::stringstream ss;
+        ss << std::showpos << std::fixed << std::setprecision(2) << (normalized / 100.0) << std::noshowpos;
+        std::cout << ss.str();
+        std::cout << termcolor::reset;
+    }
+    std::cout << "   WDL " << termcolor::color<244>;
+    std::cout << wdl.wins << "W " << wdl.draws << "D " << wdl.losses << "L";
+    std::cout << termcolor::reset << std::endl;
+    printWdlBar(wdl);
+    std::cout << "  Final eval: ";
+    if (finalEval > 0)
+        std::cout << termcolor::bold << termcolor::green;
+    else if (finalEval < 0)
+        std::cout << termcolor::bold << termcolor::red;
+    else
+        std::cout << termcolor::bold << termcolor::bright_white;
+    std::cout << finalEval << termcolor::reset << std::endl;
 }
 
 void Board::AddMove(Move move) {

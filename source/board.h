@@ -58,7 +58,7 @@ public:
 	std::string GetFen();
 	void PrintBoard();
 
-	void PrintNNUE();
+	void PrintNNUE(bool full = false);
 
 	void AddMove(Move move);
 	void ResetMoves();

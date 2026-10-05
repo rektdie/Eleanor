@@ -976,14 +976,26 @@ SearchResults SearchPosition(Board &board, SearchParams params, SearchContext* c
     }
     ctx->pvLine.Clear();
 
+    if constexpr (mode == normal || mode == nodesMode) {
+        if (ctx->doPrint && !UCIEnabled)
+            PrintSearchHeader();
+    }
+
     SearchResults results = ID<mode>(board, params, ctx);
 
     if constexpr (mode != normal && mode != nodesMode) return results;
 
     if (ctx->doPrint) {
-        std::cout << "bestmove ";
-        results.bestMove.PrintMove();
-        std::cout << std::endl;
+        if (UCIEnabled) {
+            std::cout << "bestmove ";
+            results.bestMove.PrintMove();
+            std::cout << std::endl;
+        } else {
+            std::cout << termcolor::color<244> << "bestmove " << termcolor::reset;
+            std::cout << termcolor::bold << termcolor::bright_green;
+            results.bestMove.PrintMove();
+            std::cout << termcolor::reset << std::endl;
+        }
     }
 
     return results;
@@ -1004,6 +1016,27 @@ int MoveEstimatedValue(Board& board, Move& move) {
     }
 
     return value;
+}
+
+void PrintSearchHeader() {
+    if (UCIEnabled)
+        return;
+
+    std::cout << termcolor::bold << termcolor::color<244>;
+    std::cout << std::setw(7) << std::left << "Depth";
+    std::cout << std::setw(9) << std::right << "Time";
+    std::cout << std::setw(9) << std::right << "Score";
+    std::cout << std::setw(14) << std::right << "W-D-L";
+    std::cout << std::setw(7) << std::right << "TT";
+    std::cout << std::setw(9) << std::right << "Nodes";
+    std::cout << std::setw(9) << std::right << "NPS";
+    std::cout << "  PV";
+    std::cout << termcolor::reset << std::endl;
+
+    std::cout << termcolor::color<238>;
+    for (int i = 0; i < 72; i++)
+        std::cout << '-';
+    std::cout << termcolor::reset << std::endl;
 }
 
 void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, int depth, int elapsed) {
@@ -1045,7 +1078,14 @@ void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, i
 
         std::stringstream depthStr;
         depthStr << depth << '/' << ctx->seldepth;
-        std::cout << std::setw(6) << std::left << depthStr.str();
+        std::cout << termcolor::bold << termcolor::bright_white;
+        std::cout << std::setw(7) << std::left << depthStr.str();
+        std::cout << termcolor::reset;
+        if (depth % 2 == 0) {
+            std::cout << termcolor::color<247>;
+        } else {
+            std::cout << termcolor::color<251>;
+        }
 
         std::stringstream timeStr;
         if (elapsed >= 1000) {
@@ -1053,7 +1093,7 @@ void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, i
         } else {
             timeStr << elapsed << "ms";
         }
-        std::cout << std::setw(10) << std::right << timeStr.str();
+        std::cout << std::setw(9) << std::right << timeStr.str();
 
         std::stringstream scoreStr;
         bool isMate = false;
@@ -1075,15 +1115,15 @@ void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, i
 
         if (isMate) {
             if (mateIn > 0) {
-                std::cout << termcolor::bright_green;
+                std::cout << termcolor::bold << termcolor::bright_green;
             } else {
-                std::cout << termcolor::bright_red;
+                std::cout << termcolor::bold << termcolor::bright_red;
             }
         } else {
             if (results.score > 0) {
-                std::cout << termcolor::green;
+                std::cout << termcolor::bold << termcolor::green;
             } else if (results.score < 0) {
-                std::cout << termcolor::red;
+                std::cout << termcolor::bold << termcolor::red;
             }
         }
 
@@ -1100,11 +1140,31 @@ void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, i
         wdlStr << displayWDL.wins << "W "
                << displayWDL.draws << "D "
                << displayWDL.losses << "L";
+        std::cout << termcolor::color<244>;
         std::cout << std::setw(14) << std::right << wdlStr.str();
+        if (depth % 2 == 0) {
+            std::cout << termcolor::color<247>;
+        } else {
+            std::cout << termcolor::color<251>;
+        }
 
-        std::stringstream hashfullStr;
-        hashfullStr << "TT: " << (ctx->TT->GetUsedPercentage() + 5) / 10 << '%';
-        std::cout << std::setw(10) << std::right << hashfullStr.str();
+        int hashUsed = ctx->TT->GetUsedPercentage();
+        std::stringstream hashStr;
+        hashStr << (hashUsed + 5) / 10 << '%';
+        if (hashUsed >= 950) {
+            std::cout << termcolor::bright_red;
+        } else if (hashUsed >= 700) {
+            std::cout << termcolor::yellow;
+        } else {
+            std::cout << termcolor::green;
+        }
+        std::cout << std::setw(7) << std::right << hashStr.str();
+        std::cout << termcolor::reset;
+        if (depth % 2 == 0) {
+            std::cout << termcolor::color<247>;
+        } else {
+            std::cout << termcolor::color<251>;
+        }
 
         std::stringstream nodesStr;
         if (ctx->nodes >= 1000000) {
@@ -1114,7 +1174,7 @@ void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, i
         } else {
             nodesStr << ctx->nodes;
         }
-        std::cout << std::setw(11) << std::right << nodesStr.str();
+        std::cout << std::setw(9) << std::right << nodesStr.str();
 
         int nps = int(ctx->nodes/ctx->sw.GetElapsedSec());
         std::stringstream npsStr;
@@ -1125,7 +1185,7 @@ void PrintSearchInfo(Board& board, SearchContext* ctx, SearchResults& results, i
         } else {
             npsStr << nps << "/s";
         }
-        std::cout << std::setw(12) << std::right << npsStr.str();
+        std::cout << std::setw(9) << std::right << npsStr.str();
 
         std::cout << "  ";
         ctx->pvLine.Print(0, depth % 2 == 0);
