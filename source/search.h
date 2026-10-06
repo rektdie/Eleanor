@@ -2,6 +2,7 @@
 #include "board.h"
 #include "uci.h"
 #include <vector>
+#include <memory>
 #include <mutex>
 #include "move.h"
 #include <algorithm>
@@ -85,9 +86,12 @@ public:
 
 class CorrHist {
 private:
-    MultiArray<int, 2, CORRHIST_SIZE> pawnHist;
-    MultiArray<int, 2, CORRHIST_SIZE> nonPawnHist;
-    MultiArray<int, 2, CORRHIST_SIZE> majorHist;
+    struct Tables {
+        MultiArray<int, 2, CORRHIST_SIZE> pawnHist{};
+        MultiArray<int, 2, CORRHIST_SIZE> nonPawnHist{};
+        MultiArray<int, 2, CORRHIST_SIZE> majorHist{};
+    };
+    std::shared_ptr<Tables> t = std::make_shared<Tables>();
 public:
     void Update(Board& board, int depth, int diff, int* entry) {
         const int scaledDiff = diff * CORRHIST_GRAIN;
@@ -98,21 +102,21 @@ public:
     }
 
     void UpdateAll(Board& board, int depth, int diff) {
-        Update(board, depth, diff, &pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]);
-        Update(board, depth, diff, &nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE]);
-        Update(board, depth, diff, &majorHist[board.sideToMove][board.majorKey % CORRHIST_SIZE]);
+        Update(board, depth, diff, &t->pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]);
+        Update(board, depth, diff, &t->nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE]);
+        Update(board, depth, diff, &t->majorHist[board.sideToMove][board.majorKey % CORRHIST_SIZE]);
     }
 
     int GetAllHist(Board& board) {
-        return pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]
-            + nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE]
-            + majorHist[board.sideToMove][board.majorKey % CORRHIST_SIZE];
+        return t->pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]
+            + t->nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE]
+            + t->majorHist[board.sideToMove][board.majorKey % CORRHIST_SIZE];
     }
 
     void Clear() {
-        std::fill(&pawnHist[0][0], &pawnHist[0][0] + sizeof(pawnHist) / sizeof(int), 0);
-        std::fill(&nonPawnHist[0][0], &nonPawnHist[0][0] + sizeof(nonPawnHist) / sizeof(int), 0);
-        std::fill(&majorHist[0][0], &majorHist[0][0] + sizeof(majorHist) / sizeof(int), 0);
+        std::fill(&t->pawnHist[0][0], &t->pawnHist[0][0] + sizeof(t->pawnHist) / sizeof(int), 0);
+        std::fill(&t->nonPawnHist[0][0], &t->nonPawnHist[0][0] + sizeof(t->nonPawnHist) / sizeof(int), 0);
+        std::fill(&t->majorHist[0][0], &t->majorHist[0][0] + sizeof(t->majorHist) / sizeof(int), 0);
     }
 };
 
@@ -276,7 +280,6 @@ public:
     void CopyLearningFrom(const SearchContext& other) {
         history = other.history;
         conthist = other.conthist;
-        corrhist = other.corrhist;
         capthist = other.capthist;
         killerMoves = other.killerMoves;
     }
