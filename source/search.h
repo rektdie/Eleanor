@@ -272,6 +272,14 @@ public:
         ss = {};
         positionHistory.resize(1000);
     }
+
+    void CopyLearningFrom(const SearchContext& other) {
+        history = other.history;
+        conthist = other.conthist;
+        corrhist = other.corrhist;
+        capthist = other.capthist;
+        killerMoves = other.killerMoves;
+    }
 };
 
 bool SEE(Board& board, Move& move, int threshold);
