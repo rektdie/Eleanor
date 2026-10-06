@@ -13,6 +13,7 @@
 #include "utils.h"
 #include "datagen.h"
 #include "tunables.h"
+#include "termcolor.hpp"
 
 // OS-dependent threading includes
 #ifdef _WIN32
@@ -20,6 +21,8 @@
 #else
     #include <pthread.h>
 #endif
+#include <mutex>
+#include <atomic>
 
 namespace {
 
@@ -43,6 +46,47 @@ static std::vector<std::thread> searchThreads;
 static std::vector<pthread_t> searchThreads;
 #endif
 
+static std::vector<SEARCH::RootVote> rootVotes;
+static std::mutex voteMutex;
+static std::atomic<bool> votePrinted{false};
+
+static void PrintVotedBestmove(Move move) {
+    if (UCIEnabled) {
+        std::cout << "bestmove ";
+        if (!move)
+            std::cout << "0000";
+        else
+            move.PrintMove();
+        std::cout << std::endl;
+    } else {
+        std::cout << termcolor::color<244> << "bestmove " << termcolor::reset;
+        if (!move) {
+            std::cout << "0000" << std::endl;
+        } else {
+            std::cout << termcolor::bold << termcolor::bright_green;
+            move.PrintMove();
+            std::cout << termcolor::reset << std::endl;
+        }
+    }
+}
+
+static SearchResults GetVotedResult(const SearchResults& fallback) {
+    std::lock_guard<std::mutex> lock(voteMutex);
+    SearchResults voted = SEARCH::VoteRootMoves(rootVotes);
+    Move m = voted.bestMove;
+    if (uint16_t(m) == 0)
+        return fallback;
+    return voted;
+}
+
+static bool TryPrintVotedBestmove(const SearchResults& fallback) {
+    if (votePrinted.exchange(true, std::memory_order_acq_rel))
+        return false;
+    SearchResults voted = GetVotedResult(fallback);
+    PrintVotedBestmove(voted.bestMove);
+    return true;
+}
+
 static void JoinSearchThreads() {
 #ifdef _WIN32
     for (auto& thread : searchThreads) {
@@ -62,6 +106,16 @@ static void JoinSearchThreads() {
 static void StopSearchThreads() {
     searchStopped.store(true, std::memory_order_relaxed);
     JoinSearchThreads();
+}
+
+static void StopSearchThreadsAndVote() {
+    if (searchThreads.empty()) {
+        searchStopped.store(true, std::memory_order_relaxed);
+        return;
+    }
+    searchStopped.store(true, std::memory_order_relaxed);
+    JoinSearchThreads();
+    TryPrintVotedBestmove(SearchResults(0, Move()));
 }
 
 } // namespace
@@ -140,12 +194,20 @@ static double ReadParam(const std::string& param, const std::string &command) {
 // Windows implementation using std::thread
 template <SEARCH::searchMode mode>
 static void ThreadFunc(Board board, SearchParams params, SEARCH::SearchContext* ctx) {
-    SEARCH::SearchPosition<mode>(board, params, ctx);
+    SearchResults results = SEARCH::SearchPosition<mode>(board, params, ctx);
+    int id = ctx->threadId;
     delete ctx;
+    if (id == 0) {
+        searchStopped.store(true, std::memory_order_relaxed);
+        TryPrintVotedBestmove(results);
+    }
 }
 
 static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchContext* ctx, int id) {
     SEARCH::SearchContext* ctxCopy = new SEARCH::SearchContext(*ctx);
+    ctxCopy->threadId = id;
+    ctxCopy->voteTable = &rootVotes;
+    ctxCopy->voteMutex = &voteMutex;
     if (id == 0)
         ctxCopy->doPrint = true;
 
@@ -162,9 +224,14 @@ template <SEARCH::searchMode mode>
 static void* ThreadFunc(void* arg) {
     auto* tup = static_cast<std::tuple<Board, SearchParams, SEARCH::SearchContext*>*>(arg);
     SEARCH::SearchContext* ctx = std::get<2>(*tup);
-    SEARCH::SearchPosition<mode>(std::get<0>(*tup), std::get<1>(*tup), ctx);
+    SearchResults results = SEARCH::SearchPosition<mode>(std::get<0>(*tup), std::get<1>(*tup), ctx);
+    int id = ctx->threadId;
     delete ctx;
     delete tup;
+    if (id == 0) {
+        searchStopped.store(true, std::memory_order_relaxed);
+        TryPrintVotedBestmove(results);
+    }
     return nullptr;
 }
 
@@ -174,6 +241,9 @@ static void StartSearchThread(Board& board, SearchParams params, SEARCH::SearchC
     pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);  // 8 MB stack
 
     SEARCH::SearchContext* ctxCopy = new SEARCH::SearchContext(*ctx);
+    ctxCopy->threadId = id;
+    ctxCopy->voteTable = &rootVotes;
+    ctxCopy->voteMutex = &voteMutex;
     if (id == 0)
         ctxCopy->doPrint = true;
 
@@ -265,8 +335,20 @@ static void ParseGo(Board &board, std::string &command, SEARCH::SearchContext* c
 
     ctx->searchMoves = params.searchMoves;
 
-    searchThreads.reserve(threads);
-    for (int i = 0; i < threads; i++) {
+    int numThreads = threads;
+    if (numThreads < 1)
+        numThreads = 1;
+    if (numThreads > 512)
+        numThreads = 512;
+
+    {
+        std::lock_guard<std::mutex> lock(voteMutex);
+        rootVotes.assign(numThreads, SEARCH::RootVote());
+    }
+    votePrinted.store(false, std::memory_order_relaxed);
+
+    searchThreads.reserve(numThreads);
+    for (int i = 0; i < numThreads; i++) {
         StartSearchThread(board, params, ctx, i);
     }
 }
@@ -281,7 +363,11 @@ static void SetOption(std::string& command, SEARCH::SearchContext* ctx) {
     }
 
     if (command.find("Threads") != std::string::npos) {
-        threads = ReadParam("value", command);
+        threads = static_cast<int>(ReadParam("value", command));
+        if (threads < 1)
+            threads = 1;
+        if (threads > 512)
+            threads = 512;
         return;
     }
 
@@ -404,7 +490,7 @@ void UCILoop(Board &board) {
 
         // parse UCI "stop" command
         if (input.find("stop") != std::string::npos) {
-            StopSearchThreads();
+            StopSearchThreadsAndVote();
             continue;
         }
 
