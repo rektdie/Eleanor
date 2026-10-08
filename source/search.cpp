@@ -484,6 +484,22 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
 
+    if (ply) {
+        const int matedScore = -MATE_SCORE + ply;
+        if (matedScore > alpha) {
+            alpha = matedScore;
+            if (alpha >= beta)
+                return alpha;
+        }
+
+        const int mateScore = MATE_SCORE - ply;
+        if (mateScore < beta) {
+            beta = mateScore;
+            if (alpha >= beta)
+                return beta;
+        }
+    }
+
     ctx->pvLine.SetLength(ply);
     if (ply && (IsDraw(board, ctx))) return 0;
 
