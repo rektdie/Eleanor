@@ -13,6 +13,10 @@
 
 namespace SEARCH {
 
+static inline int LerpFailSoft(int a, int b, int t) {
+    return int(a - ((int64_t(a - b) * t) / 1024));
+}
+
 static void PublishRootVote(SearchContext* ctx, const SearchResults& results, int depth) {
     if (!ctx->voteTable || !ctx->voteMutex)
         return;
@@ -376,8 +380,11 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
             case PV:
                 return entry.score;
             case CutNode:
-                if (entry.score >= beta)
+                if (entry.score >= beta) {
+                    if (!IsDecisive(entry.score) && !IsDecisive(beta) && qsTTFailMedium)
+                        return LerpFailSoft(entry.score, beta, qsTTFailMedium);
                     return entry.score;
+                }
                 break;
             case AllNode:
                 if (entry.score <= alpha)
@@ -405,6 +412,8 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     }
 
     if (bestScore >= beta) {
+        if (!IsDecisive(bestScore) && !IsDecisive(beta) && standpatFailMedium)
+            return LerpFailSoft(bestScore, beta, standpatFailMedium);
         return bestScore;
     }
 
@@ -456,8 +465,11 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
         if (score >= beta) {
             if (searchStopped.load(std::memory_order_relaxed)) return 0;
-            ctx->TT->WriteEntry(board.hashKey, 0, ScoreToTT(score, ply), CutNode, currMove, ttpv);
-            return score;
+            int failSoft = score;
+            if (!IsDecisive(score) && !IsDecisive(beta) && qsFailMedium)
+                failSoft = LerpFailSoft(score, beta, qsFailMedium);
+            ctx->TT->WriteEntry(board.hashKey, 0, ScoreToTT(failSoft, ply), CutNode, currMove, ttpv);
+            return failSoft;
         }
 
         bestScore = std::max(score, bestScore);
@@ -468,6 +480,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
             results.bestMove = currMove;
         }
     }
+
+    if (bestScore > beta && !IsDecisive(bestScore) && !IsDecisive(beta) && qsFailMedium)
+        bestScore = LerpFailSoft(bestScore, beta, qsFailMedium);
 
     results.score = bestScore;
     if (searchStopped.load(std::memory_order_relaxed)) return 0;
@@ -520,7 +535,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 ((entry.nodeType == PV) ||
                 (entry.nodeType == AllNode && entry.score <= alpha) ||
                 (entry.nodeType == CutNode && entry.score >= beta))) {
-
+                if (entry.score >= beta && !IsDecisive(entry.score) && !IsDecisive(beta) && ttFailMedium)
+                    return SearchResults(LerpFailSoft(entry.score, beta, ttFailMedium), entry.bestMove);
                 return SearchResults(entry.score, entry.bestMove);
             }
         }
@@ -562,9 +578,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply) {
             int margin = rfpBase + rfpMargin * (depth - improving);
             if (!ttpv && ttAdjustedEval - margin >= beta && depth < 7) {
-                return !IsDecisive(ttAdjustedEval) && !IsDecisive(beta)
-                    ? ((ttAdjustedEval + beta) / 2)
-                    :  ttAdjustedEval;
+                if (!IsDecisive(ttAdjustedEval) && !IsDecisive(beta) && rfpFailMedium)
+                    return LerpFailSoft(ttAdjustedEval, beta, rfpFailMedium);
+                return ttAdjustedEval;
             }
 
             if (!isPV && depth <= 3 && staticEval + razoringScalar * depth < alpha && entry.nodeType != CutNode) {
@@ -644,7 +660,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
             if (score >= probcutBeta) {
                 ctx->TT->WriteEntry(board.hashKey, probcutDepth, ScoreToTT(score, ply), CutNode, currMove, ttpv);
-
+                if (!IsDecisive(score) && !IsDecisive(beta) && probcutFailMedium)
+                    return LerpFailSoft(score, beta, probcutFailMedium);
                 return score;
             }
         }

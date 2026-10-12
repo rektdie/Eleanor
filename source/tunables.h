@@ -40,6 +40,12 @@
     X_INT(seeQueenValue, 924, 700, 1300) \
     X_INT(seeQsThreshold, -13, -120, 120) \
     X_INT(seeOrderingThreshold, -102, -200, 0) \
+    X_INT(rfpFailMedium, 394, 0, 1024) \
+    X_INT(ttFailMedium, 0, 0, 1024) \
+    X_INT(qsTTFailMedium, 43, 0, 1024) \
+    X_INT(standpatFailMedium, 263, 0, 1024) \
+    X_INT(qsFailMedium, 550, 0, 1024) \
+    X_INT(probcutFailMedium, 559, 0, 1024) \
     X_INT(ldseMargin, 26, 0, 96) \
     X_INT(noisyScoreScale, 32, 0, 96) \
     X_INT(historyBonusMultiplier, 306, 280, 320) \
