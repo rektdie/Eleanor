@@ -47,6 +47,7 @@ int MovePicker<mode>::ScoreQuietMove(Move move) {
     bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
 
     int score = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
+    score += ctx->pawnhist[board.sideToMove][board.pawnKey % 512][board.GetPieceType(move.MoveFrom())][move.MoveTo()];
 
     if (ply > 0) score += ctx->conthist.GetNPly(board, move, ctx, ply, 1);
     if (ply > 1) score += ctx->conthist.GetNPly(board, move, ctx, ply, 2);

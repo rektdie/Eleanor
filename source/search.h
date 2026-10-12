@@ -158,6 +158,25 @@ public:
     }
 };
 
+class PawnHistory {
+private:
+    MultiArray<int, 2, 512, 6, 64> pawnMoves;
+public:
+    void Update(bool stm, U64 pawnKey, int piece, int to, int bonus) {
+        int clampedBonus = std::clamp(bonus, -MAX_HISTORY, MAX_HISTORY);
+        int& entry = pawnMoves[stm][pawnKey % 512][piece][to];
+        entry += clampedBonus - entry * std::abs(clampedBonus) / MAX_HISTORY;
+    }
+
+    void Clear() {
+        std::fill(&pawnMoves[0][0][0][0], &pawnMoves[0][0][0][0] + sizeof(pawnMoves) / sizeof(int), 0);
+    }
+
+    auto& operator[](int index) {
+        return pawnMoves[index];
+    }
+};
+
 class History {
 private:
     MultiArray<int, 2, 64, 64, 2, 2> historyMoves;
@@ -265,6 +284,7 @@ public:
 
     PVLine pvLine;
     History history;
+    PawnHistory pawnhist;
     ContHistory conthist;
     CorrHist corrhist;
     CaptHistory capthist;
@@ -284,6 +304,7 @@ public:
     SearchContext(){
         pvLine.Clear();
         history.Clear();
+        pawnhist.Clear();
         conthist.Clear();
         corrhist.Clear();
         capthist.Clear();
@@ -295,6 +316,7 @@ public:
 
     void CopyLearningFrom(const SearchContext& other) {
         history = other.history;
+        pawnhist = other.pawnhist;
         conthist = other.conthist;
         capthist = other.capthist;
         killerMoves = other.killerMoves;

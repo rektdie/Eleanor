@@ -474,6 +474,7 @@ void UCILoop(Board &board) {
 
             ctx->killerMoves = {};
             ctx->history.Clear();
+            ctx->pawnhist.Clear();
             ctx->conthist.Clear();
             ctx->corrhist.Clear();
             ResetPositionHistory(ctx.get(), board);

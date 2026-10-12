@@ -208,6 +208,7 @@ static int GetReductions(Board &board, Move &move, int depth, int moveSeen, int 
         bool targetThreatened = board.IsSquareThreatened(board.sideToMove, move.MoveTo());
 
         historyReduction = ctx->history[board.sideToMove][move.MoveFrom()][move.MoveTo()][sourceThreatened][targetThreatened];
+        historyReduction += ctx->pawnhist[board.sideToMove][board.pawnKey % 512][board.GetPieceType(move.MoveFrom())][move.MoveTo()];
         if (ply > 0) {
             historyReduction += ctx->conthist.GetNPly(board, move, ctx, ply, 1);
 
@@ -700,6 +701,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         bool targetThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveTo());
 
         int historyScore = ctx->history[board.sideToMove][currMove.MoveFrom()][currMove.MoveTo()][sourceThreatened][targetThreatened];
+        historyScore += ctx->pawnhist[board.sideToMove][board.pawnKey % 512][board.GetPieceType(currMove.MoveFrom())][currMove.MoveTo()];
 
         if (ply > 0) historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 1);
         if (ply > 1) historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
@@ -861,6 +863,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 ctx->killerMoves[ply] = currMove;
 
                 ctx->history.Update(board.sideToMove, currMove, sourceThreatened, targetThreatened, historyBonus);
+                ctx->pawnhist.Update(board.sideToMove, board.pawnKey, ctx->ss[ply].pieceType, ctx->ss[ply].moveTo, historyBonus);
 
                 if (ply > 0) UpdateContHistNPly(1);
                 if (ply > 1) UpdateContHistNPly(2);
@@ -869,6 +872,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     sourceThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[i].MoveFrom());
                     targetThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[i].MoveTo());
                     ctx->history.Update(board.sideToMove, seenQuiets[i], sourceThreatened, targetThreatened, -historyMalus);
+                    ctx->pawnhist.Update(board.sideToMove, board.pawnKey, board.GetPieceType(seenQuiets[i].MoveFrom()), seenQuiets[i].MoveTo(), -historyMalus);
                 }
             } else {
                 UpdateCaptHist(currMove, captHistoryBonus);
