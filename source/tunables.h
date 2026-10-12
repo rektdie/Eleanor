@@ -29,8 +29,12 @@
     X_INT(probcutBetaMargin, 190, 100, 300) \
     X_INT(razoringScalar, 195, 80, 320) \
     X_INT(doubleExtMargin, 32, 8, 64) \
-    X_INT(seeQuietThreshold, -81, -160, 0) \
-    X_INT(seeNoisyThreshold, -32, -120, 40) \
+    X_INT(seeQuietOffs, 0, -96, 96) \
+    X_INT(seeQuietMult, -81, -160, 0) \
+    X_INT(seeQuietQuad, 0, -16, 16) \
+    X_INT(seeNoisyOffs, 0, -96, 96) \
+    X_INT(seeNoisyMult, 0, -60, 60) \
+    X_INT(seeNoisyQuad, -32, -120, 0) \
     X_INT(aspInitialDelta, 26, 8, 96) \
     X_INT(nmpBetaMargin, 25, 8, 96) \
     X_INT(seePawnValue, 98, 80, 140) \

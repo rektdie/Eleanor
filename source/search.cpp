@@ -711,9 +711,12 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             continue;
         }
 
-        int SEEThreshold = currMove.IsQuiet() ? seeQuietThreshold * depth : seeNoisyThreshold * depth * depth;
+        int seeClampedLmr = std::max(lmrDepth, 0);
+        int seeThreshold = (currMove.IsQuiet() ? seeQuietOffs : seeNoisyOffs)
+            + (currMove.IsQuiet() ? seeQuietMult : seeNoisyMult) * seeClampedLmr
+            + (currMove.IsQuiet() ? seeQuietQuad : seeNoisyQuad) * seeClampedLmr * seeClampedLmr;
 
-        if (ply && depth <= 10 && notMated && !SEE(board, currMove, SEEThreshold))
+        if (ply && depth <= 10 && notMated && !SEE(board, currMove, seeThreshold))
             continue;
 
 
