@@ -687,15 +687,6 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         bool notMated = results.score > (-MATE_SCORE + MAX_DEPTH);
         int lmrDepth = depth - lmrTable[currMove.IsQuiet()][depth][moveSeen];
 
-        if (currMove.IsQuiet() && notMated) {
-
-            int lmpThreshold = 7 + depth * depth * (1 + improving);
-
-            if (moveSeen >= lmpThreshold) {
-                continue;
-            }
-        }
-
         bool sourceThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveFrom());
         bool targetThreatened = board.IsSquareThreatened(board.sideToMove, currMove.MoveTo());
 
@@ -704,10 +695,23 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         if (ply > 0) historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 1);
         if (ply > 1) historyScore += ctx->conthist.GetNPly(board, currMove, ctx, ply, 2);
 
+        bool directCheck = board.GivesDirectCheck(currMove);
+
+        if (currMove.IsQuiet() && notMated) {
+
+            int lmpThreshold = (3 + depth * depth) / (2 - improving)
+                + historyScore * lmpHistoryScale / 8388608
+                + (directCheck ? lmpCheckBonus : 0);
+
+            if (moveSeen >= lmpThreshold) {
+                continue;
+            }
+        }
+
         int margin = fpMargin * (lmrDepth + improving) + historyScore / 32;
 
         if (!isPV && ply && currMove.IsQuiet()
-                && lmrDepth <= 7 && staticEval + margin < alpha && notMated && !board.GivesDirectCheck(currMove)) {
+                && lmrDepth <= 7 && staticEval + margin < alpha && notMated && !directCheck) {
             continue;
         }
 
