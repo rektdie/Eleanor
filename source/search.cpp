@@ -370,6 +370,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     if (entry.hashKey == board.hashKey) {
         ttHit = true;
+        entry.score = ScoreFromTT(entry.score, ply);
 
         switch (entry.nodeType) {
             case PV:
@@ -455,7 +456,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
         if (score >= beta) {
             if (searchStopped.load(std::memory_order_relaxed)) return 0;
-            ctx->TT->WriteEntry(board.hashKey, 0, score, CutNode, currMove, ttpv);
+            ctx->TT->WriteEntry(board.hashKey, 0, ScoreToTT(score, ply), CutNode, currMove, ttpv);
             return score;
         }
 
@@ -470,7 +471,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     results.score = bestScore;
     if (searchStopped.load(std::memory_order_relaxed)) return 0;
-    ctx->TT->WriteEntry(board.hashKey, 0, results.score, nodeType, results.bestMove, ttpv);
+    ctx->TT->WriteEntry(board.hashKey, 0, ScoreToTT(results.score, ply), nodeType, results.bestMove, ttpv);
     return results;
 }
 
@@ -509,6 +510,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     const bool ttHit = entry.hashKey == board.hashKey;
     const bool ttpv = isPV | entry.ttpv;
+
+    if (ttHit)
+        entry.score = ScoreFromTT(entry.score, ply);
 
     if constexpr (!isPV) {
         if (ttHit) {
@@ -639,7 +643,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             if (searchStopped.load(std::memory_order_relaxed)) return 0;
 
             if (score >= probcutBeta) {
-                ctx->TT->WriteEntry(board.hashKey, probcutDepth, score, CutNode, currMove, ttpv);
+                ctx->TT->WriteEntry(board.hashKey, probcutDepth, ScoreToTT(score, ply), CutNode, currMove, ttpv);
 
                 return score;
             }
@@ -880,7 +884,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             }
 
             if (!ctx->excluded)
-                ctx->TT->WriteEntry(board.hashKey, depth, score, CutNode, currMove, ttpv);
+                ctx->TT->WriteEntry(board.hashKey, depth, ScoreToTT(score, ply), CutNode, currMove, ttpv);
             return score;
         }
     }
@@ -901,7 +905,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             ctx->corrhist.UpdateAll(board, depth, corrHistBonus);
         }
 
-        ctx->TT->WriteEntry(board.hashKey, depth, results.score, nodeType, results.bestMove, ttpv);
+        ctx->TT->WriteEntry(board.hashKey, depth, ScoreToTT(results.score, ply), nodeType, results.bestMove, ttpv);
     }
     return results;
 }
