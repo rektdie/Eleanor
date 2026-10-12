@@ -123,10 +123,11 @@ public:
         Update(board, depth, diff, &t->majorHist[board.sideToMove][board.majorKey % CORRHIST_SIZE]);
     }
 
-    int GetAllHist(Board& board) {
-        return t->pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE]
-            + t->nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE]
-            + t->majorHist[board.sideToMove][board.majorKey % CORRHIST_SIZE];
+    int GetCorrection(Board& board) {
+        int corr = t->pawnHist[board.sideToMove][board.pawnKey % CORRHIST_SIZE] * corrPawnWeight
+            + t->nonPawnHist[board.sideToMove][board.nonPawnKey % CORRHIST_SIZE] * corrNonPawnWeight
+            + t->majorHist[board.sideToMove][board.majorKey % CORRHIST_SIZE] * corrMajorWeight;
+        return corr / (CORRHIST_GRAIN * 1024);
     }
 
     void Clear() {

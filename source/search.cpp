@@ -142,11 +142,11 @@ int16_t ContHistory::GetNPly(Board& board, Move& move, SearchContext* ctx, int p
 }
 
 static int AdjustEval(Board &board, SearchContext* ctx, int eval) {
-    int corrhist = ctx->corrhist.GetAllHist(board);
+    int corrhist = ctx->corrhist.GetCorrection(board);
 
     int mateFound = MATE_SCORE - MAX_DEPTH;
 
-    int adjusted = eval + corrhist / CORRHIST_GRAIN;
+    int adjusted = eval + corrhist;
 
     const int scaleNumerator = std::max(0, fiftyMoveScaleBase - board.halfMoves);
     adjusted = adjusted * scaleNumerator / fiftyMoveScaleBase;

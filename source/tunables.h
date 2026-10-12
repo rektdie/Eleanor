@@ -54,6 +54,9 @@
     X_INT(captHistoryBonusSub, 249, 235, 265) \
     X_INT(captHistoryMalusMultiplier, 300, 280, 320) \
     X_INT(captHistoryMalusSub, 249, 235, 265) \
+    X_INT(corrPawnWeight, 1100, 0, 2048) \
+    X_INT(corrNonPawnWeight, 1033, 0, 2048) \
+    X_INT(corrMajorWeight, 997, 0, 2048) \
     X_INT(fiftyMoveScaleBase, 200, 100, 400)
 
 #ifdef TUNING
