@@ -410,6 +410,16 @@ static void PlayGames(int id, DatagenStats& stats, std::atomic<bool>& stopFlag) 
 
     const int evenityMargin = 200;
 
+    // --- ADJUDIKÁCIÓS BEÁLLÍTÁSOK ---
+    // Az Eleanor nyers, skálázatlan NNUE kimenetéhez és a corrhist fluktuációkhoz igazítva
+    const int DRAW_ADJ_SCORE = 20;    // +/- 20 centipawn
+    const int DRAW_ADJ_MIN_PLY = 80;  // 40 teljes lépés (80 ply) után kezdjük vizsgálni
+    const int DRAW_ADJ_COUNT = 8;     // 8 fél-lépés (4 teljes lépés) egyhuzamban
+
+    const int WIN_ADJ_SCORE = 400;    // 400 cp már egyértelmű nyerés (nyers értékelésnél)
+    const int WIN_ADJ_COUNT = 4;      // 4 fél-lépés egyhuzamban ezen a határon túl
+    // --------------------------------
+
     try {
         while (!stopFlag && !g_shutdownRequested) {
             Board board;
@@ -440,6 +450,11 @@ static void PlayGames(int id, DatagenStats& stats, std::atomic<bool>& stopFlag) 
             int staticEval = UTILS::ConvertToWhiteRelative(board, NNUE::net.Evaluate(board, true));
             int wdl = 1;
 
+            // --- Adjudikációs számlálók az adott játékhoz ---
+            int drawCount = 0;
+            int winCount = 0;
+            bool isAdjudicated = false;
+
             while (!IsGameOver(board, ctx.get())) {
                 if (g_shutdownRequested) break;
 
@@ -453,6 +468,43 @@ static void PlayGames(int id, DatagenStats& stats, std::atomic<bool>& stopFlag) 
                 game.moves.emplace_back(ScoredMove(results.bestMove.ConvertToViriMoveFormat(),
                         UTILS::ConvertToWhiteRelative(board, results.score)));
 
+                // ------------------------------------
+                // --- KORAI BEFEJEZÉS VIZSGÁLATA ---
+                // ------------------------------------
+                int score = results.score; 
+
+                // 1. Döntetlen (Draw) adjudikáció
+                if (board.positionIndex >= DRAW_ADJ_MIN_PLY && std::abs(score) <= DRAW_ADJ_SCORE) {
+                    drawCount++;
+                } else {
+                    drawCount = 0;
+                }
+
+                // 2. Nyerés/Vesztés (Win/Loss) adjudikáció
+                if (std::abs(score) >= WIN_ADJ_SCORE) {
+                    winCount++;
+                } else {
+                    winCount = 0;
+                }
+
+                // --- Eredmény kihirdetése ---
+                if (drawCount >= DRAW_ADJ_COUNT) {
+                    wdl = 1; 
+                    isAdjudicated = true;
+                    break;
+                }
+
+                if (winCount >= WIN_ADJ_COUNT) {
+                    if (score > 0) {
+                        wdl = board.sideToMove ? 0 : 2; 
+                    } else {
+                        wdl = board.sideToMove ? 2 : 0; 
+                    }
+                    isAdjudicated = true;
+                    break;
+                }
+                // ------------------------------------
+
                 board.MakeMove(results.bestMove);
                 ctx->positionHistory[board.positionIndex] = board.hashKey;
 
@@ -461,8 +513,13 @@ static void PlayGames(int id, DatagenStats& stats, std::atomic<bool>& stopFlag) 
                 MOVEGEN::GenerateMoves<All>(board, true);
             }
 
-            if (!SEARCH::IsDraw(board, ctx.get())) {
-                wdl = board.sideToMove ? 2 : 0;
+            // Ha végig lement a meccs mattig/50 lépésig
+            if (!isAdjudicated) {
+                if (!SEARCH::IsDraw(board, ctx.get())) {
+                    wdl = board.sideToMove ? 2 : 0;
+                } else {
+                    wdl = 1;
+                }
             }
 
             game.format.packFrom(startpos, staticEval, wdl);
