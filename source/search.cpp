@@ -133,6 +133,8 @@ void RefreshTunableCaches() {
 
 int16_t ContHistory::GetNPly(Board& board, Move& move, SearchContext* ctx, int ply, int n) {
     int prevType = ctx->ss[ply-n].pieceType;
+    if (prevType == -1) return 0;
+
     int prevTo = ctx->ss[ply-n].moveTo;
     int pieceType = board.GetPieceType(move.MoveFrom());
     int to = move.MoveTo();
@@ -577,6 +579,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     Board copy = board;
                     copy.MakeMove(Move());
 
+                    ctx->ss[ply].pieceType = -1;
+                    ctx->ss[ply].moveTo = -1;
+
                     const int reduction = 4 + improving + depth / 3 + entry.bestMove.IsCapture();
 
                     ctx->TT->PrefetchEntry(copy.hashKey);
@@ -626,6 +631,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
             Board copy = board;
             copy.MakeMove(currMove);
+
+            ctx->ss[ply].pieceType = board.GetPieceType(currMove.MoveFrom());
+            ctx->ss[ply].moveTo = currMove.MoveTo();
+            ctx->ss[ply].side = board.sideToMove;
 
             if (copy.positionIndex >= ctx->positionHistory.size()) {
                 ctx->positionHistory.resize(copy.positionIndex + 100);
@@ -842,6 +851,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
             auto UpdateContHistNPly = [&](int n) {
                 int prevType    = ctx->ss[ply - n].pieceType;
+                if (prevType == -1) return;
+
                 int prevTo      = ctx->ss[ply - n].moveTo;
                 bool otherColor = ctx->ss[ply - n].side;
                 int pieceType   = ctx->ss[ply].pieceType;
