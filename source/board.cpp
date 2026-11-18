@@ -34,7 +34,7 @@ void Board::Reset() {
     mailbox = std::array<int, 64>();
     mailbox.fill(nullPieceType);
 
-    pinned = std::array<Bitboard, 2>();
+    pinned = 0ULL;
 
 	pieces = std::array<Bitboard, 6>();
 	colors = std::array<Bitboard, 2>();
@@ -43,7 +43,6 @@ void Board::Reset() {
 	mirroredWhite = false;
 	mirroredBlack = false;
 
-	pieceThreats = std::array<Bitboard, 6>();
 	colorThreats = std::array<Bitboard, 2>();
 
     moveList = std::array<Move, MAX_MOVES>();
@@ -109,10 +108,9 @@ void Board::SetByFen(std::string_view fen) {
 
     occupied = colors[White] | colors[Black];
     hashKey = UTILS::GetHashKey(*this);
-    checkers = CalcCheckers();
-    pinned = {CalcPinned(White), CalcPinned(Black)};
-    CalcCheckers();
 	MOVEGEN::GenThreatMaps(*this);
+    pinned = CalcPinned(sideToMove);
+    checkers = CalcCheckers();
 	MOVEGEN::GenerateMoves<All>(*this, true);
 
     int whiteKingFile = (pieces[King] & colors[White]).getLS1BIndex() % 8;
@@ -778,12 +776,6 @@ void Board::ResetMoves() {
 void Board::ListMoves() {
 	int moveCount = 1;
 	for (int i = 0; i < currentMoveIndex; i++) {
-        if (!IsLegal(moveList[i])) continue;
-
-		Board copy = *this;
-		copy.MakeMove(moveList[i]);
-
-
 		std::cout << moveCount << ". ";
 		moveList[i].PrintMove();
 		std::cout << "( " << moveTypes[moveList[i].GetFlags()] << " )";
@@ -801,9 +793,7 @@ int Board::GetPieceColor(int square) {
 }
 
 bool Board::InCheck() {
-	Bitboard myKingSquare = colors[sideToMove] & pieces[King];
-
-	return colorThreats[!sideToMove] & myKingSquare;
+	return checkers;
 }
 
 void Board::SetPiece(int piece, int square, bool color) {
@@ -897,6 +887,10 @@ void Board::MakeMove(Move move) {
         }
 
         enPassantTarget = newEpTarget;
+
+        MOVEGEN::GenThreatMaps(*this);
+        pinned = CalcPinned(sideToMove);
+        checkers = CalcCheckers();
 
         return;
     }
@@ -1036,7 +1030,7 @@ void Board::MakeMove(Move move) {
 	enPassantTarget = newEpTarget;
 
 	MOVEGEN::GenThreatMaps(*this);
-    pinned = {CalcPinned(White), CalcPinned(Black)};
+    pinned = CalcPinned(sideToMove);
     checkers = CalcCheckers();
     CalcCheckZones();
 
@@ -1208,69 +1202,17 @@ Bitboard Board::AttacksTo(int square, Bitboard occupancy) {
     return attacks;
 }
 
-static Bitboard rayBetween(int sq1, int sq2) {
-    if (sq1 == sq2) return 0ULL;
-
-    int f1 = sq1 % 8, r1 = sq1 / 8;
-    int f2 = sq2 % 8, r2 = sq2 / 8;
-
-    int df = (f2 > f1) - (f2 < f1);
-    int dr = (r2 > r1) - (r2 < r1);
-
-    if (df != 0 && dr != 0 && std::abs(f2 - f1) != std::abs(r2 - r1))
-        return 0ULL;
-
-    Bitboard ray = 0ULL;
-
-    int f = f1 + df;
-    int r = r1 + dr;
-
-    while (f != f2 || r != r2) {
-        ray |= 1ULL << (r * 8 + f);
-        f += df;
-        r += dr;
-    }
-
-    ray &= ~((1ULL << sq1) | (1ULL << sq2));
-
-    return ray;
-}
-
-static Bitboard fullRay(int from, int to) {
-    int df = (to % 8) - (from % 8);
-    int dr = (to / 8) - (from / 8);
-
-    if (df != 0) df /= std::abs(df);
-    if (dr != 0) dr /= std::abs(dr);
-
-    Bitboard ray = 0ULL;
-
-    int f = from % 8 + df;
-    int r = from / 8 + dr;
-    while (f >= 0 && f < 8 && r >= 0 && r < 8) {
-        ray |= 1ULL << (r * 8 + f);
-        f += df;
-        r += dr;
-    }
-
-    f = from % 8 - df;
-    r = from / 8 - dr;
-    while (f >= 0 && f < 8 && r >= 0 && r < 8) {
-        ray |= 1ULL << (r * 8 + f);
-        f -= df;
-        r -= dr;
-    }
-
-    ray |= 1ULL << from;
-    return ray;
-}
-
 bool Board::IsSquareThreatened(bool side, int square) {
 	return colorThreats[!side].IsSet(square);
 }
 
 Bitboard Board::CalcCheckers() {
-    return AttacksTo((colors[sideToMove] & pieces[King]).getLS1BIndex(), occupied) & colors[!sideToMove];
+    int kingSquare = (colors[sideToMove] & pieces[King]).getLS1BIndex();
+
+    if (!colorThreats[!sideToMove].IsSet(kingSquare))
+        return 0ULL;
+
+    return AttacksTo(kingSquare, occupied) & colors[!sideToMove];
 }
 
 Bitboard Board::CalcPinned(bool color) {
@@ -1282,18 +1224,17 @@ Bitboard Board::CalcPinned(bool color) {
 
     Bitboard oppQueens = pieces[Queen] & colors[!color];
 
-    Bitboard potentialAttackers = MOVEGEN::getBishopAttack(kingSquare, colors[!color]) & (oppQueens | (pieces[Bishop] & colors[!color]))
-                                | MOVEGEN::getRookAttack(kingSquare, colors[!color]) & (oppQueens | (pieces[Rook] & colors[!color]));
+    Bitboard snipers = MOVEGEN::getBishopAttack(kingSquare, colors[!color]) & (oppQueens | (pieces[Bishop] & colors[!color]))
+                     | MOVEGEN::getRookAttack(kingSquare, colors[!color]) & (oppQueens | (pieces[Rook] & colors[!color]));
 
-    while (potentialAttackers) {
-        int attackerSquare = potentialAttackers.getLS1BIndex();
+    while (snipers) {
+        int sniperSquare = snipers.PopLSB();
 
-        Bitboard isPinned = colors[color] & rayBetween(attackerSquare, kingSquare);
+        Bitboard blockers = MOVEGEN::betweenBB[kingSquare][sniperSquare] & occupied;
 
-        if (isPinned.PopCount() == 1)
-            pinned |= isPinned;
+        if (blockers.PopCount() == 1)
+            pinned |= blockers;
 
-        potentialAttackers.PopBit(attackerSquare);
     }
 
     return pinned;
@@ -1308,46 +1249,24 @@ bool Board::IsLegal(Move &move) {
     int from = move.MoveFrom();
     int to = move.MoveTo();
 
-    Bitboard king = pieces[King] & colors[us];
-    int kingSquare = king.getLS1BIndex();
+    int kingSquare = (pieces[King] & colors[us]).getLS1BIndex();
 
-    int moveType = move.GetFlags();
+    if (move.GetFlags() == epCapture)
+        return MOVEGEN::IsEPLegal(*this, from, kingSquare);
 
-    if (moveType == epCapture) {
-        int epCapturedSquare = to + (us == White ? -8 : 8);
-        Bitboard occAfterEP = occupied ^ Bitboard::GetSquare(from) ^ Bitboard::GetSquare(to)
-                                ^ Bitboard::GetSquare(epCapturedSquare);
+    if (from == kingSquare)
+        return !colorThreats[them].IsSet(to);
 
-        Bitboard theirQueens = pieces[Queen] & colors[them];
-
-        return (MOVEGEN::getBishopAttack(kingSquare, occAfterEP) & (theirQueens | (pieces[Bishop] & colors[them]))).PopCount() < 1
-            && (MOVEGEN::getRookAttack(kingSquare, occAfterEP) & (theirQueens | (pieces[Rook] & colors[them]))).PopCount() < 1;
-    }
-
-    int movingPiece = GetPieceType(from);
-
-    if (movingPiece == King) {
-        Bitboard kinglessOcc = occupied ^ king;
-        Bitboard theirQueens = pieces[Queen] & colors[them];
-
-        return !colorThreats[them].IsSet(to)
-            && (MOVEGEN::getBishopAttack(to, kinglessOcc) & (theirQueens | (pieces[Bishop] & colors[them]))).PopCount() == 0
-            && (MOVEGEN::getRookAttack(to, kinglessOcc) & (theirQueens | (pieces[Rook] & colors[them]))).PopCount() == 0;
-    }
-
-    if (checkers.PopCount() > 1) {
-        return false;
-    }
-
-    if (pinned[us].IsSet(from) && !fullRay(kingSquare, from).IsSet(to))
+    if (checkers.PopCount() > 1)
         return false;
 
-    if (checkers.PopCount() < 1)
+    if (pinned.IsSet(from) && !MOVEGEN::lineBB[kingSquare][from].IsSet(to))
+        return false;
+
+    if (!checkers)
         return true;
 
-    int checkerSquare = checkers.getLS1BIndex();
-
-    return (rayBetween(kingSquare, checkerSquare) | checkers).IsSet(to);
+    return (MOVEGEN::betweenBB[kingSquare][checkers.getLS1BIndex()] | checkers).IsSet(to);
 }
 
 bool Board::IsPseudoLegal(Move &move) {

@@ -69,15 +69,7 @@ static void CountLeaf(Board& pos, Move move, PerftCounts& out) {
         if (!IsDirectCheck(pos, move))
             out.discovery++;
         MOVEGEN::GenerateMoves<All>(pos, true);
-        bool hasLegal = false;
-        for (int i = 0; i < pos.currentMoveIndex; i++) {
-            Move m = pos.moveList[i];
-            if (pos.IsLegal(m)) {
-                hasLegal = true;
-                break;
-            }
-        }
-        if (!hasLegal)
+        if (!pos.currentMoveIndex)
             out.mates++;
     }
 }
@@ -86,8 +78,6 @@ static void PerftRec(Board& board, int depth, PerftCounts& out) {
     MOVEGEN::GenerateMoves<All>(board, true);
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Move move = board.moveList[i];
-        if (!board.IsLegal(move))
-            continue;
         Board copy = board;
         copy.MakeMove(move);
         if (depth == 1)
@@ -95,6 +85,50 @@ static void PerftRec(Board& board, int depth, PerftCounts& out) {
         else
             PerftRec(copy, depth - 1, out);
     }
+}
+
+static U64 PerftBulk(Board& board, int depth) {
+    MOVEGEN::GenerateMoves<All>(board, true);
+    if (depth == 1)
+        return board.currentMoveIndex;
+
+    U64 nodes = 0;
+    for (int i = 0; i < board.currentMoveIndex; i++) {
+        Board copy = board;
+        copy.MakeMove(board.moveList[i]);
+        nodes += PerftBulk(copy, depth - 1);
+    }
+    return nodes;
+}
+
+static void PrintPerftSummary(int depth, U64 nodes, double elapsed) {
+    std::cout << std::endl << "Depth: " << depth << std::endl;
+    std::cout << "Total nodes: " << nodes << std::endl;
+    std::cout << "Time took: " << elapsed << "s (";
+    std::cout << U64(double(nodes) / elapsed) << " nodes/sec)" << std::endl;
+}
+
+static void PerftDivide(Board &board, int depth) {
+    Stopwatch sw;
+
+    MOVEGEN::GenerateMoves<All>(board, true);
+
+    U64 total = 0;
+    for (int i = 0; i < board.currentMoveIndex; i++) {
+        Move move = board.moveList[i];
+        U64 nodes = 1;
+        if (depth > 1) {
+            Board copy = board;
+            copy.MakeMove(move);
+            nodes = PerftBulk(copy, depth - 1);
+        }
+        total += nodes;
+
+        std::cout << termcolor::bold << termcolor::bright_cyan << std::setw(6) << std::left << (move.GetMoveString() + ":");
+        std::cout << termcolor::bright_white << std::setw(11) << std::right << nodes << termcolor::reset << std::endl;
+    }
+
+    PrintPerftSummary(depth, total, sw.GetElapsedSec());
 }
 
 static void PrintPerftHeader() {
@@ -201,8 +235,13 @@ static void PrintPerftLine(int index, const std::string& moveStr, const PerftCou
     std::cout << termcolor::reset << std::endl;
 }
 
-void Perft(Board &board, int depth) {
+void Perft(Board &board, int depth, bool stats) {
     Stopwatch sw;
+
+    if (depth > 0 && !stats) {
+        PerftDivide(board, depth);
+        return;
+    }
 
     if (depth <= 0) {
         std::cout << std::endl << "Depth: " << depth << std::endl;
@@ -221,8 +260,6 @@ void Perft(Board &board, int depth) {
 
     for (int i = 0; i < board.currentMoveIndex; i++) {
         Move move = board.moveList[i];
-        if (!board.IsLegal(move))
-            continue;
         Board copy = board;
         copy.MakeMove(move);
         PerftCounts local;
@@ -258,8 +295,5 @@ void Perft(Board &board, int depth) {
     std::cout << "   Avg: " << nps << "/s";
     std::cout << termcolor::reset << std::endl;
 
-    std::cout << std::endl << "Depth: " << depth << std::endl;
-    std::cout << "Total nodes: " << total.nodes << std::endl;
-    std::cout << "Time took: " << elapsed << "s (";
-    std::cout << int(double(total.nodes) / elapsed) << " nodes/sec)" << std::endl;
+    PrintPerftSummary(depth, total.nodes, elapsed);
 }

@@ -7,19 +7,21 @@
 constexpr short moveFromMask = 0x3F;
 constexpr short moveToMask = 0xFC0;
 
+// capture bit | promo bit | 2 bit subfield
 enum MOVE_FLAGS {
     quiet, doublePawnPush,
     kingCastle, queenCastle,
-    capture, epCapture,
     knightPromotion, bishopPromotion, rookPromotion, queenPromotion,
-    knightPromoCapture, bishopPromoCapture, rookPromoCapture, queenPromoCapture
+    capture, epCapture,
+    knightPromoCapture = 12, bishopPromoCapture, rookPromoCapture, queenPromoCapture
 };
 
-constexpr std::array<std::string_view, 14> moveTypes {
+constexpr std::array<std::string_view, 16> moveTypes {
     "quiet", "doublePawnPush",
     "kingCastle", "QueenCastle",
-    "capture", "epCapture",
     "knightPromotion", "bishopPromotion", "rookPromotion", "queenPromotion",
+    "capture", "epCapture",
+    "unused", "unused",
     "knightPromoCapture", "bishopPromoCapture", "rookPromoCapture", "queenPromoCapture"
 };
 
@@ -50,22 +52,19 @@ public:
     }
 
     bool IsCapture() {
-        return (GetFlags() == capture || GetFlags() == epCapture
-            || GetFlags() == knightPromoCapture || GetFlags() == bishopPromoCapture
-            || GetFlags() == rookPromoCapture || GetFlags() == queenPromoCapture);
+        return m_move & 0x8000;
     }
 
     bool IsQuiet() {
-        return (GetFlags() == quiet || GetFlags() == kingCastle
-        || GetFlags() == queenCastle || GetFlags() == doublePawnPush);
+        return !(m_move & 0xC000);
     }
 
     bool IsPromo() {
-        return (GetFlags() >= knightPromotion);
+        return m_move & 0x4000;
     }
 
     bool IsCastle() {
-        return (GetFlags() == kingCastle || GetFlags() == queenCastle);
+        return (m_move & 0xE000) == 0x2000;
     }
 
     void PrintMove() {
@@ -130,18 +129,8 @@ public:
 
         if (flags == epCapture) {
             viriMove |= 0x4000;
-        } else if (flags >= knightPromotion && flags <= queenPromoCapture) {
-            uint16_t promoPiece = 0;
-
-            if (flags == knightPromotion || flags == knightPromoCapture) {
-                promoPiece = 0;
-            } else if (flags == bishopPromotion || flags == bishopPromoCapture) {
-                promoPiece = 1;
-            } else if (flags == rookPromotion || flags == rookPromoCapture) {
-                promoPiece = 2;
-            } else if (flags == queenPromotion || flags == queenPromoCapture) {
-                promoPiece = 3;
-            }
+        } else if (IsPromo()) {
+            uint16_t promoPiece = flags & 3;
 
             viriMove |= 0xC000;
             viriMove |= (promoPiece << 12);
@@ -151,11 +140,7 @@ public:
     }
 
     int GetPromoPiece() {
-        if (IsCapture()) {
-            return GetFlags() - 9;
-        } else {
-            return GetFlags() - 5;
-        }
+        return (GetFlags() & 3) + Knight;
     }
 
     operator uint16_t() {

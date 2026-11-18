@@ -233,6 +233,22 @@ void initSliderAttacks() {
 			rookAttacks[square][magicIndex] = rookAttacksOnTheFly(square, occupancy);
 		}
 	}
+
+	for (int sq1 = 0; sq1 < 64; sq1++) {
+		for (int sq2 = 0; sq2 < 64; sq2++) {
+			if (sq1 == sq2) continue;
+
+			Bitboard squares = Bitboard::GetSquare(sq1) | Bitboard::GetSquare(sq2);
+
+			if (getBishopAttack(sq1, 0ULL).IsSet(sq2)) {
+				lineBB[sq1][sq2] = (getBishopAttack(sq1, 0ULL) & getBishopAttack(sq2, 0ULL)) | squares;
+				betweenBB[sq1][sq2] = getBishopAttack(sq1, squares) & getBishopAttack(sq2, squares);
+			} else if (getRookAttack(sq1, 0ULL).IsSet(sq2)) {
+				lineBB[sq1][sq2] = (getRookAttack(sq1, 0ULL) & getRookAttack(sq2, 0ULL)) | squares;
+				betweenBB[sq1][sq2] = getRookAttack(sq1, squares) & getRookAttack(sq2, squares);
+			}
+		}
+	}
 }
 
 Bitboard getBishopAttack(int square, U64 occupancy) {
@@ -300,26 +316,33 @@ Bitboard getPawnPushes(int square, bool color, Bitboard &occupancy) {
 }
 
 void GenThreatMaps(Board &board) {
-	for (int color = White; color <= Black; color++) {
-		board.colorThreats[color] = 0ULL;
+	const bool them = !board.sideToMove;
+	const U64 occupancy = board.occupied & ~(board.colors[!them] & board.pieces[King]);
 
-		for (int type = Pawn; type <= King; type++) {
-			board.pieceThreats[type] = 0ULL;
+	Bitboard pawns = board.pieces[Pawn] & board.colors[them];
+	Bitboard threats = them ? ((pawns >> 7) & notAfile) | ((pawns >> 9) & notHfile)
+		: ((pawns << 9) & notAfile) | ((pawns << 7) & notHfile);
 
-			Bitboard pieces = board.pieces[type] & board.colors[color];
-
-			while (pieces) {
-				int square = pieces.getLS1BIndex();
-
-				board.pieceThreats[type] |= MOVEGEN::getPieceAttacks(square, type, color, board.occupied
-					& ~(board.colors[!color] & board.pieces[King]));
-
-				pieces.PopBit(square);
-
-			}
-
-			board.colorThreats[color] |= board.pieceThreats[type];
-		}
+	Bitboard knights = board.pieces[Knight] & board.colors[them];
+	while (knights) {
+		int square = knights.PopLSB();
+		threats |= knightAttacks[square];
 	}
+
+	Bitboard diagonals = (board.pieces[Bishop] | board.pieces[Queen]) & board.colors[them];
+	while (diagonals) {
+		int square = diagonals.PopLSB();
+		threats |= getBishopAttack(square, occupancy);
+	}
+
+	Bitboard orthogonals = (board.pieces[Rook] | board.pieces[Queen]) & board.colors[them];
+	while (orthogonals) {
+		int square = orthogonals.PopLSB();
+		threats |= getRookAttack(square, occupancy);
+	}
+
+	threats |= kingAttacks[(board.pieces[King] & board.colors[them]).getLS1BIndex()];
+
+	board.colorThreats[them] = threats;
 }
 }

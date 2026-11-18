@@ -23,14 +23,13 @@ public:
 
 	Bitboard occupied;
 
-    std::array<Bitboard, 2> pinned;
+    Bitboard pinned;
     Bitboard checkers;
 
     ACC::Update accUpdate;
     bool mirroredWhite = false;
     bool mirroredBlack = false;
 
-    std::array<Bitboard, 6> pieceThreats;
 	std::array<Bitboard, 2> colorThreats;
 
     std::array<Move, MAX_MOVES> moveList;

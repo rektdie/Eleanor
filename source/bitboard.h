@@ -19,6 +19,7 @@ public:
 
 	int PopCount() const;
 	int getLS1BIndex() const;
+	int PopLSB();
 	static Bitboard getOccupancy(int index, Bitboard attackMask);
 
 	static Bitboard GetSquare(int square) {
