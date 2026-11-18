@@ -503,8 +503,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     ctx->pvLine.SetLength(ply);
     if (ply && (IsDraw(board, ctx))) return 0;
 
+    Move excluded = ctx->ss[ply].excluded;
+
     TTEntry entry;
-    if (!ctx->excluded)
+    if (!excluded)
         entry = ctx->TT->GetEntry(board.hashKey);
 
     const bool ttHit = entry.hashKey == board.hashKey;
@@ -535,7 +537,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
     const bool inCheck = board.InCheck();
 
-    if (!ctx->excluded && !inCheck && ttHit &&
+    if (!excluded && !inCheck && ttHit &&
         ((entry.nodeType == PV) ||
         (entry.nodeType == AllNode && entry.score <= staticEval) ||
         (entry.nodeType == CutNode && entry.score >= staticEval))) {
@@ -557,7 +559,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         return true;
     }();
 
-    if (!inCheck && !ctx->excluded) {
+    if (!inCheck && !excluded) {
         if (ply) {
             int margin = rfpBase + rfpMargin * (depth - improving);
             if (!ttpv && ttAdjustedEval - margin >= beta && depth < 7) {
@@ -616,7 +618,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         Move currMove;
         while ((currMove = mp.Next())) {
 
-            if (ctx->excluded == currMove)
+            if (excluded == currMove)
                 continue;
 
             if (!SEE(board, currMove, seeThreshold))
@@ -667,7 +669,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
     Move currMove;
     while ((currMove = mp.Next())) {
 
-        if (ctx->excluded == currMove)
+        if (excluded == currMove)
             continue;
 
         if (ply == 0 && !ctx->searchMoves.empty()) {
@@ -724,7 +726,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
 
         int extension = 0;
 
-        if (ply && ply < ctx->rootDepth * 2 && currMove == entry.bestMove && ctx->excluded == 0) {
+        if (ply && ply < ctx->rootDepth * 2 && currMove == entry.bestMove && excluded == 0) {
             if (depth >= 8
                 && ttHit
                 && entry.depth >= depth - 3
@@ -733,9 +735,9 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 const int sBeta = std::max(-inf + 1, entry.score - depth * 2);
                 const int sDepth = (depth - 1) / 2;
 
-                ctx->excluded = currMove;
+                ctx->ss[ply].excluded = currMove;
                 const int singularScore = PVS<false, mode>(board, sDepth, sBeta-1, sBeta, ply, ctx, cutnode).score;
-                ctx->excluded = Move();
+                ctx->ss[ply].excluded = Move();
 
                 if (singularScore < sBeta) {
                     extension++;
@@ -770,7 +772,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         }
         ctx->positionHistory[copy.positionIndex] = copy.hashKey;
 
-        int newDepth = depth + (copy.InCheck() && !ctx->excluded) - 1 + extension;
+        int newDepth = depth + (copy.InCheck() && !excluded) - 1 + extension;
 
         U64 nodesBeforeSearch = ctx->nodes;
 
@@ -875,24 +877,24 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 UpdateCaptHist(seenCaptures[i], -captHistoryMalus);
             }
 
-            if (!ctx->excluded && !inCheck && currMove.IsQuiet() && score > staticEval) {
+            if (!excluded && !inCheck && currMove.IsQuiet() && score > staticEval) {
                 int corrHistBonus = std::clamp(score - staticEval, -CORRHIST_LIMIT, CORRHIST_LIMIT);
                 ctx->corrhist.UpdateAll(board, depth, corrHistBonus);
             }
 
-            if (!ctx->excluded)
+            if (!excluded)
                 ctx->TT->WriteEntry(board.hashKey, depth, ScoreToTT(score, ply), CutNode, currMove, ttpv);
             return score;
         }
     }
 
     if (moveSeen == 0) {
-        if (ctx->excluded) return alpha;
+        if (excluded) return alpha;
         return inCheck ? -MATE_SCORE + ply : 0;
     }
 
     if (searchStopped.load(std::memory_order_relaxed)) return 0;
-    if (!ctx->excluded) {
+    if (!excluded) {
 
         if (!inCheck && ((results.bestMove.IsQuiet() || !results.bestMove))
                 && !(nodeType == AllNode && results.score >= staticEval)) {

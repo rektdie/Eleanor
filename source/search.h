@@ -239,6 +239,8 @@ public:
     int pieceType = -1;
     int moveTo = -1;
     bool side = -1;
+
+    Move excluded = Move();
 };
 
 class SearchContext {
@@ -258,8 +260,6 @@ public:
 
     int seldepth = 0;
     int rootDepth = 0;
-
-    Move excluded = Move();
 
     int minNmpPly = 0;
 
