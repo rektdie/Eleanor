@@ -14,7 +14,7 @@ void TTable::WriteEntry(U64 &hashKey, int depth, int score, int nodeType, Move b
         current = &bucket->alwaysReplace;
     } else if (!bucket->depthPreferred) {
         current = &bucket->depthPreferred;
-    } else if (ttpv) {
+    } else if (ttpv && depth >= bucket->depthPreferred.depth) {
         current = &bucket->depthPreferred;
     } else {
         const int depthPreferredValue = GetReplacementValue(bucket->depthPreferred);
