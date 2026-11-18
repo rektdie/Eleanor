@@ -692,7 +692,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
         bool notMated = results.score > (-MATE_SCORE + MAX_DEPTH);
         int lmrDepth = depth - lmrTable[currMove.IsQuiet()][depth][moveSeen];
 
-        if (currMove.IsQuiet() && notMated) {
+        if (ply && currMove.IsQuiet() && notMated) {
 
             int lmpThreshold = 7 + depth * depth * (1 + improving);
 
