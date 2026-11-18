@@ -856,7 +856,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                 }
             };
 
-            if (!currMove.IsCapture()) {
+            if (currMove.IsQuiet()) {
                 ctx->killerMoves[ply] = currMove;
 
                 ctx->history.Update(board.sideToMove, currMove, sourceThreatened, targetThreatened, historyBonus);
@@ -869,7 +869,7 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
                     targetThreatened = board.IsSquareThreatened(board.sideToMove, seenQuiets[i].MoveTo());
                     ctx->history.Update(board.sideToMove, seenQuiets[i], sourceThreatened, targetThreatened, -historyMalus);
                 }
-            } else {
+            } else if (currMove.IsCapture()) {
                 UpdateCaptHist(currMove, captHistoryBonus);
             }
 
