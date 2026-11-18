@@ -14,7 +14,7 @@ MovePicker<mode>::MovePicker(Board &b, SearchContext *c, int p, Move tt)
     }
 
     if constexpr (mode == Noisy) {
-        if (ttMove && !(ttMove.IsCapture() || ttMove.IsPromo())) {
+        if (ttMove && !board.InCheck() && !(ttMove.IsCapture() || ttMove.IsPromo())) {
             ttMove = Move();
         }
     } else {
@@ -158,7 +158,7 @@ Move MovePicker<mode>::Next() {
             Move m = PopBest(noisyCursor, goodNoisyEnd);
             if (m) return m;
 
-            if constexpr (mode == Noisy) {
+            if (mode == Noisy && !board.InCheck()) {
                 stage = PickStage::BadNoisy;
             } else {
                 stage = PickStage::Killer;

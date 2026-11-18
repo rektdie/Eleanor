@@ -361,8 +361,12 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     if (ply > ctx->seldepth)
         ctx->seldepth = ply;
 
-    int bestScore = AdjustEval(board, ctx, StaticEval<mode>(board, ctx, ply));
-    ctx->ss[ply].eval = bestScore;
+    const bool inCheck = board.InCheck();
+
+    const int staticEval = AdjustEval(board, ctx, StaticEval<mode>(board, ctx, ply));
+    ctx->ss[ply].eval = staticEval;
+
+    int bestScore = inCheck ? -inf : staticEval;
 
     TTEntry entry;
     bool ttHit = false;
@@ -388,7 +392,7 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
 
     const bool ttpv = isPV | entry.ttpv;
 
-    if (ttHit) {
+    if (ttHit && !inCheck) {
         switch (entry.nodeType) {
             case PV:
                 bestScore = entry.score;
@@ -419,8 +423,6 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
     SearchResults results;
 
     int nodeType = AllNode;
-
-    const bool inCheck = board.InCheck();
 
     Move currMove;
     while ((currMove = mp.Next())) {
@@ -467,6 +469,9 @@ static SearchResults Quiescence(Board& board, int alpha, int beta, int ply, Sear
             results.bestMove = currMove;
         }
     }
+
+    if (inCheck && bestScore == -inf)
+        return -MATE_SCORE + ply;
 
     results.score = bestScore;
     if (searchStopped.load(std::memory_order_relaxed)) return 0;
