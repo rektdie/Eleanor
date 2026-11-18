@@ -15,6 +15,9 @@ inline Bitboard pawnAttacks[2][64];
 inline Bitboard knightAttacks[64];
 inline Bitboard kingAttacks[64];
 
+inline Bitboard betweenBB[64][64];
+inline Bitboard lineBB[64][64];
+
 void initLeaperAttacks();
 void initSliderAttacks();
 
@@ -25,20 +28,20 @@ Bitboard getPawnPushes(int square, bool color, Bitboard &occupancy);
 Bitboard getPieceAttacks(int square, int piece, int color, U64 occupancy);
 
 template <MovegenMode mode>
-void GenPawnMoves(Board &board);
+void GenPawnMoves(Board &board, Bitboard checkMask, int kingSquare);
 template <MovegenMode mode>
-void GenKnightMoves(Board &board);
+void GenKnightMoves(Board &board, Bitboard checkMask);
 template <MovegenMode mode>
-void GenRookMoves(Board &board);
+void GenRookMoves(Board &board, Bitboard checkMask, int kingSquare);
 template <MovegenMode mode>
-void GenBishopMoves(Board &board);
+void GenBishopMoves(Board &board, Bitboard checkMask, int kingSquare);
 template <MovegenMode mode>
-void GenQueenMoves(Board &board);
+void GenQueenMoves(Board &board, Bitboard checkMask, int kingSquare);
 template <MovegenMode mode>
-void GenKingMoves(Board &board);
+void GenKingMoves(Board &board, int kingSquare);
 
 template <MovegenMode mode>
-void GenerateMoves(Board &board, bool clear, bool recalcThreats = true);
+void GenerateMoves(Board &board, bool clear);
 
 void GenThreatMaps(Board &board);
 

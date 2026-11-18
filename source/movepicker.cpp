@@ -9,7 +9,7 @@ template <MovegenMode mode>
 MovePicker<mode>::MovePicker(Board &b, SearchContext *c, int p, Move tt)
     : board(b), ctx(c), ply(p), ttMove(tt), killerMove(), stage(PickStage::TTMove) {
 
-    if (!ttMove || !board.IsPseudoLegal(ttMove)) {
+    if (!ttMove || !board.IsPseudoLegal(ttMove) || !board.IsLegal(ttMove)) {
         ttMove = Move();
     }
 
@@ -21,7 +21,7 @@ MovePicker<mode>::MovePicker(Board &b, SearchContext *c, int p, Move tt)
         Move killer = ctx->killerMoves[ply];
 
         if (killer && killer != ttMove && !killer.IsCapture() && !killer.IsPromo()
-                && board.IsPseudoLegal(killer)) {
+                && board.IsPseudoLegal(killer) && board.IsLegal(killer)) {
             killerMove = killer;
         }
     }
@@ -58,7 +58,7 @@ template <MovegenMode mode>
 void MovePicker<mode>::ScoreNoisyRange() {
     noisyStart = 0;
 
-    MOVEGEN::GenerateMoves<Noisy>(board, true, false);
+    MOVEGEN::GenerateMoves<Noisy>(board, true);
 
     int rawEnd = board.currentMoveIndex;
     int write = noisyStart;
@@ -98,7 +98,7 @@ template <MovegenMode mode>
 void MovePicker<mode>::ScoreQuietRange() {
     quietStart = noisyEnd;
 
-    MOVEGEN::GenerateMoves<Quiet>(board, false, false);
+    MOVEGEN::GenerateMoves<Quiet>(board, false);
 
     int rawEnd = board.currentMoveIndex;
     int write = quietStart;

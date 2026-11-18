@@ -236,16 +236,8 @@ static void SetupSignalHandlers() {
 static bool IsGameOver(Board &board, SEARCH::SearchContext* ctx) {
     if (SEARCH::IsDraw(board, ctx)) return true;
 
-    int moveSeen = 0;
-
-    for (int i = 0; i < board.currentMoveIndex; i++) {
-        if (!board.IsLegal(board.moveList[i])) continue;
-        Board copy = board;
-        copy.MakeMove(board.moveList[i]);
-        moveSeen++;
-    }
-
-    return moveSeen == 0;
+    MOVEGEN::GenerateMoves<All>(board, true);
+    return board.currentMoveIndex == 0;
 }
 
 static void PlayRandMoves(Board &board, SEARCH::SearchContext* ctx) {
@@ -265,10 +257,6 @@ static void PlayRandMoves(Board &board, SEARCH::SearchContext* ctx) {
         std::uniform_int_distribution<int> dist(0, board.currentMoveIndex - 1);
 
         Move currMove = board.moveList[dist(rng)];
-        if (!board.IsLegal(currMove))  {
-            count--;
-            continue;
-        }
 
         board.MakeMove(currMove);
 

@@ -521,7 +521,7 @@ void UCILoop(Board &board) {
         }
 
         if (input.find("perft") != std::string::npos) {
-            Perft(board, ReadParam("perft", input));
+            Perft(board, ReadParam("perft", input), input.find("stats") != std::string::npos);
             continue;
         }
 

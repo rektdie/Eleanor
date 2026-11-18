@@ -1,3 +1,4 @@
+#include <bit>
 #include "bitboard.h"
 
 void Bitboard::PrintBoard() const {
@@ -47,6 +48,12 @@ int Bitboard::getLS1BIndex() const {
 	}
 
 	return -1;
+}
+
+int Bitboard::PopLSB() {
+	int square = std::countr_zero(m_board);
+	m_board &= m_board - 1;
+	return square;
 }
 
 Bitboard Bitboard::getOccupancy(int index, Bitboard attackMask) { Bitboard occupancy;
