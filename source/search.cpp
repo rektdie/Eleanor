@@ -633,10 +633,10 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             ctx->positionHistory[copy.positionIndex] = copy.hashKey;
             ctx->nodes++;
 
-            int score = -Quiescence<isPV, mode>(copy, -probcutBeta, -probcutBeta + 1, ply + 1, ctx).score;
+            int score = -Quiescence<false, mode>(copy, -probcutBeta, -probcutBeta + 1, ply + 1, ctx).score;
 
             if (score >= probcutBeta) {
-                score = -PVS<isPV, mode>(copy, probcutDepth - 1, -probcutBeta, -probcutBeta + 1,
+                score = -PVS<false, mode>(copy, probcutDepth - 1, -probcutBeta, -probcutBeta + 1,
                     ply + 1, ctx, !cutnode).score;
             }
 
