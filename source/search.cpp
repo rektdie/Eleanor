@@ -730,7 +730,8 @@ SearchResults PVS(Board& board, int depth, int alpha, int beta, int ply, SearchC
             if (depth >= 8
                 && ttHit
                 && entry.depth >= depth - 3
-                && entry.nodeType != AllNode)
+                && entry.nodeType != AllNode
+                && !IsDecisive(entry.score))
             {
                 const int sBeta = std::max(-inf + 1, entry.score - depth * 2);
                 const int sDepth = (depth - 1) / 2;
